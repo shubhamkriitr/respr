@@ -1,0 +1,8 @@
+scipy
+numpy
+seaborn
+torch
+heartpy
+scikit-learn
+loguru
+pandas
