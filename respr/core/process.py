@@ -65,3 +65,35 @@ class PpgSignalProcessor(BasePpgSignalProcessor):
     
     def __init__(self, config):
         super().__init__(config)
+    
+    
+    def extract_riiv(self, signal, timestep, peaklist, troughlist, sampling_freq):
+        pass
+
+class MultiparameterSmartFusion(object):
+    
+    
+    def extract_riiv(self, signal, timestep, peaklist, troughlist, sampling_freq):
+        pass
+        
+    
+    def extract_riav(self):
+        pass
+    
+    def extract_rifv(self):
+        pass
+    
+    def aggregate_predictions(self):
+        pass
+    
+    def create_respiratory_signal(self):
+        pass
+    
+    def estimate_respiratory_rate(self):
+        pass
+    
+
+if __name__ == "__main__":
+    ppgproc = PpgSignalProcessor()
+    
+        
