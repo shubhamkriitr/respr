@@ -127,6 +127,87 @@ class PpgSignalProcessor(object):
                                             x=signal_data, num=num_points,
                                             t=timesteps)
         return resampled_signal, new_timesteps
+    
+    def adjust_peaks_and_troughs(self, peaklist, troughlist,
+                                 timestep, signal_value):
+        # fix leading troughs
+        idx_t = 0
+        min_trough_t = None
+        min_trough_value = np.max(signal_value)
+        new_troughlist = []
+        new_peaklist = peaklist
+        # time step(relative) at which first peak is detected
+        first_p1_t = peaklist[0]
+        discard_first_peak = False
+        
+        while idx_t < troughlist.shape[0]:
+            tr_t =  troughlist[idx_t] # time step (relative and not absolute 
+            # time) at which trough is detected
+            
+            if tr_t > first_p1_t:
+                break
+            
+            tr_v = signal_value[tr_t] # signal value at the trough location
+            
+            if tr_v < min_trough_value:
+                min_trough_value = tr_v
+                min_trough_t = tr_t
+            
+            idx_t += 1
+        
+        if min_trough_t is not None:
+            new_troughlist.append(min_trough_t)
+        else:
+            discard_first_peak = True
+            
+        
+        # scan and fix remaining
+        # idx_t is taken from before
+        idx_p1 = 0
+        tr_count = 0 # running count of troughs b/w two peaks
+        min_tr_t = None
+        min_tr_value = np.max(signal_value)
+        
+        while idx_p1 < (peaklist.shape[0]-1) :
+            
+            # time steps at which peaks are detected
+            p1_t, p2_t = peaklist[idx_p1], peaklist[idx_p1+1] 
+            
+            while idx_t < troughlist.shape[0]:
+                tr_t =  troughlist[idx_t] # time step at which trough is detected
+
+                tr_v = signal_value[tr_t]
+
+
+                if tr_t < p2_t:
+                    if min_tr_value > tr_v:
+                        min_tr_value = tr_v
+                        min_tr_t = tr_t
+
+                    idx_t += 1
+                    tr_count += 1
+                else:
+                    break
+                    
+            if tr_count == 0:
+                # select min location from signal
+                min_tr_t = p1_t + np.argmin(signal_value[p1_t:p2_t+1])
+            
+            new_troughlist.append(min_tr_t)
+            
+            # prepare vars for next peak pair
+            min_tr_value = np.max(signal_value)
+            tr_count = 0
+            min_tr_t = None
+            idx_p1 += 1
+        
+            
+            
+        if discard_first_peak:
+            new_peaklist = peaklist[1:]
+        
+        return new_peaklist, np.array(new_troughlist)
+            
 
 class MultiparameterSmartFusion(object):
 
