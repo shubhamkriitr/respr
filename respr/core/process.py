@@ -2,6 +2,7 @@ import numpy as np
 import scipy.io
 from scipy.signal import butter
 from scipy import stats
+from respr.util import logger
 
 # config keys
 CONF_ELIM_VHF = "eliminate_vhf"
@@ -61,22 +62,74 @@ class BasePpgSignalProcessor:
         pass
 
 
-class PpgSignalProcessor(BasePpgSignalProcessor):
+class PpgSignalProcessor(object):
     
     def __init__(self, config):
-        super().__init__(config)
-    
-    
-    def extract_riiv(self, signal, timestep, peaklist, troughlist, sampling_freq):
-        pass
-
-class MultiparameterSmartFusion(object):
-    
-    
-    def extract_riiv(self, signal, timestep, peaklist, troughlist, sampling_freq):
+        # super().__init__(config)
         pass
         
     
+    def _peak_trough_format_check(self, peaklist, troughlist):
+        if len(peaklist) != len(troughlist):
+            raise ValueError(f"Number of peaks({len(peaklist)}) do not mathch"
+                             f"the number of troughs {len(troughlist)}")
+    
+    
+    def extract_riav(self, signal, timestep, peaklist, troughlist, 
+                     sampling_freq):
+        """Extract respiratory induced amplitude variatiuons
+            Args:
+                peaklist: (Array)
+        """
+        
+        self._peak_trough_format_check(peaklist, troughlist)
+        # difference between peak and trough values
+        riav = signal[peaklist] - signal[troughlist]
+        riav_t = (timestep[peaklist] + timestep[troughlist])/2.0
+        
+        
+        return riav, riav_t
+    
+    def extract_riiv(self, signal, timestep, peaklist, troughlist, 
+                     sampling_freq):
+        """Extract respiratory induced intensity variatiuons
+            Args:
+                peaklist: (Array)
+        """
+        
+        self._peak_trough_format_check(peaklist, troughlist)
+        
+        # difference between peak and trough values
+        riiv = signal[peaklist]
+        riiv_t = timestep[peaklist]
+        
+        return riiv, riiv_t
+    
+    def extract_rifv(self, signal, timestep, peaklist, troughlist, 
+                     sampling_freq):
+        """Extract respiratory induced frequency variatiuons
+            Args:
+                peaklist: (Array)
+        """
+        self._peak_trough_format_check(peaklist, troughlist)
+        t_peak = timestep[peaklist]
+        rifv = np.diff(t_peak, n=1, axis=0)
+        rifv_t = np.array([(t_peak[i]+t_peak[i-1])/2.0 
+                           for i in range(1, len(t_peak))])
+        return rifv, rifv_t
+    
+    
+    def resample(self, signal_data, timesteps, output_sampling_freq):
+        time_interval = timesteps[-1] - timesteps[0]
+        num_points = round(time_interval * output_sampling_freq) + 1
+        logger.debug(f"num_points={num_points} / freq: {output_sampling_freq}")
+        resampled_signal, new_timesteps = scipy.signal.resample(
+                                            x=signal_data, num=num_points,
+                                            t=timesteps)
+        return resampled_signal, new_timesteps
+
+class MultiparameterSmartFusion(object):
+
     def extract_riav(self):
         pass
     
