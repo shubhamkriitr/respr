@@ -3,6 +3,7 @@ import scipy.io
 from scipy.signal import butter
 from scipy import stats
 from respr.util import logger
+from scipy.fft import fft, fftfreq
 
 # config keys
 CONF_ELIM_VHF = "eliminate_vhf"
@@ -209,7 +210,16 @@ class PpgSignalProcessor(object):
         return new_peaklist, np.array(new_troughlist)
             
 
+from scipy.fft import fft, fftfreq
+import matplotlib.pyplot as plt
+
 class MultiparameterSmartFusion(object):
+    
+    def __init__(self, config):
+        # TODO: remove this override
+        self._config = {
+            ""
+        }
 
     def extract_riav(self):
         pass
@@ -221,10 +231,63 @@ class MultiparameterSmartFusion(object):
         pass
     
     def create_respiratory_signal(self):
-        pass
+        pass    
+
+    def estimate_respiratory_rate(self, resp_signal, sampling_freq,
+                                  detrend=True, elim_non_resp=True):
+        
+        # detrend the signal
+        if detrend:
+            logger.debug("Detrend (mean)")
+            resp_signal = scipy.signal.detrend(resp_signal, type="constant")
+        
+         # keep only plausible respiratory frequencies
+        if elim_non_resp:
+            logger.debug("Remove non-respiratory frequencies")
+            resp_signal = self.eliminate_non_respiratory_frequencies(
+                            resp_signal, sampling_freq)
+        
+        
+       
+        
+        N = resp_signal.shape[0]
+        T = 1.0/ sampling_freq
+        x = np.linspace(0.0, N*T, N, endpoint=False)
+        
+        y_fft = fft(resp_signal)
+        x_fft = fftfreq(N, T)[:N//2]
+
+        print(f" N = {N}/ T = {T}/ x = {x.shape}/ resp = {resp_signal.shape}")
+        print(f" x_fft = {x_fft.shape}/ y_fft = {y_fft.shape}")
+        
+        x_fft_per_min = x_fft * sampling_freq *  60
+        y_final = 2.0/N * np.abs(y_fft[0:N//2])
+        max_energy_idx = np.argmax(y_final)
+        bpm, bpm_response = x_fft_per_min[max_energy_idx], y_final[max_energy_idx]
+        #>>> plt.plot(x_fft_per_min, y_final)
+        #>>> plt.scatter([bpm], [bpm_response])
+        #>>> plt.grid()
+        #>>> plt.show()
+        return bpm
+        
     
-    def estimate_respiratory_rate(self):
-        pass
+    
+    def eliminate_non_respiratory_frequencies(self,  signal_, sampling_freq=None):
+        # TODO: Use Kaiser Window Approach
+        if sampling_freq is None:
+            raise NotImplementedError()
+
+        # Bandpass filter signal
+        cutoff_low = 2/60.0 #using 1bpm / TODO: add to config
+        cutoff_high = 36/60.0 # using 36bpm / TODO: add to config
+        
+        [b, a] = butter(1, [cutoff_low / sampling_freq * 2, cutoff_high / sampling_freq * 2],
+                        btype='bandpass', analog=False)
+
+        signal_ = np.reshape(signal_, len(signal_))
+        signal_ = scipy.signal.filtfilt(b, a, np.double(signal_))
+
+        return signal_
     
 
 if __name__ == "__main__":
