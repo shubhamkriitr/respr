@@ -22,6 +22,7 @@ class BasePpgSignalProcessor:
         # ppg.Dpass = 0.05;
         # ppg.Dstop = 0.01;
         # TODO: remove this config override
+        logger.warning(f"overiding provide config: {config}")
         config = {
             CONF_ELIM_VHF:{
                 CONF_CUTOFF_HIGH: 35,
@@ -43,7 +44,7 @@ class BasePpgSignalProcessor:
         # Compute Wn units (N.B. Wn for Nyquist frequency = 1)
         wn = cutoff_high / sampling_freq * 2
         
-        [b, a] = butter(1, wn,
+        [b, a] = butter(5, wn,
                         btype='lowpass', output="ba", analog=False)
 
         signal_ = np.reshape(signal_, len(signal_))
@@ -63,11 +64,11 @@ class BasePpgSignalProcessor:
         pass
 
 
-class PpgSignalProcessor(object):
+class PpgSignalProcessor(BasePpgSignalProcessor):
     
     def __init__(self, config):
-        # super().__init__(config)
-        pass
+        super().__init__(config)
+        
         
     
     def _peak_trough_format_check(self, peaklist, troughlist):
@@ -234,7 +235,10 @@ class MultiparameterSmartFusion(object):
         pass    
 
     def estimate_respiratory_rate(self, resp_signal, sampling_freq,
-                                  detrend=True, elim_non_resp=True):
+                                  detrend=True, elim_non_resp=True,
+                                  window_type=None):
+        N = resp_signal.shape[0]
+        T = 1.0/ sampling_freq
         
         # detrend the signal
         if detrend:
@@ -247,11 +251,11 @@ class MultiparameterSmartFusion(object):
             resp_signal = self.eliminate_non_respiratory_frequencies(
                             resp_signal, sampling_freq)
         
+        if window_type is not None:
+            assert window_type in ["hamming"] # TODO: check if want to use other types of windows
+            _window = scipy.signal.get_window(window_type, N)
+            resp_signal = _window*resp_signal
         
-       
-        
-        N = resp_signal.shape[0]
-        T = 1.0/ sampling_freq
         x = np.linspace(0.0, N*T, N, endpoint=False)
         
         y_fft = fft(resp_signal)
@@ -260,7 +264,7 @@ class MultiparameterSmartFusion(object):
         print(f" N = {N}/ T = {T}/ x = {x.shape}/ resp = {resp_signal.shape}")
         print(f" x_fft = {x_fft.shape}/ y_fft = {y_fft.shape}")
         
-        x_fft_per_min = x_fft * sampling_freq *  60
+        x_fft_per_min = x_fft *  60
         y_final = 2.0/N * np.abs(y_fft[0:N//2])
         max_energy_idx = np.argmax(y_final)
         bpm, bpm_response = x_fft_per_min[max_energy_idx], y_final[max_energy_idx]
@@ -281,14 +285,34 @@ class MultiparameterSmartFusion(object):
         cutoff_low = 2/60.0 #using 1bpm / TODO: add to config
         cutoff_high = 36/60.0 # using 36bpm / TODO: add to config
         
-        [b, a] = butter(1, [cutoff_low / sampling_freq * 2, cutoff_high / sampling_freq * 2],
+        [b, a] = butter(5, [cutoff_low / sampling_freq * 2, cutoff_high / sampling_freq * 2],
                         btype='bandpass', analog=False)
 
         signal_ = np.reshape(signal_, len(signal_))
         signal_ = scipy.signal.filtfilt(b, a, np.double(signal_))
 
         return signal_
+
+class PpgSignalProcessor2(PpgSignalProcessor):
+    def __init__(self, config):
+        super().__init__(config)
+    def extract_riav(self, signal, timestep, peaklist, troughlist, sampling_freq):
+        riav, riav_t = super().extract_riav(
+            signal, timestep, peaklist, troughlist, sampling_freq)
+        riav = riav/np.mean(riav)
+        return riav, riav_t
     
+    def extract_riiv(self, signal, timestep, peaklist, troughlist, sampling_freq):
+        riiv, riiv_t = super().extract_riiv(
+            signal, timestep, peaklist, troughlist, sampling_freq)
+        riiv = riiv/np.mean(riiv)
+        return riiv, riiv_t
+    
+    def extract_rifv(self, signal, timestep, peaklist, troughlist, sampling_freq):
+        rifv, rifv_t = super().extract_rifv(
+            signal, timestep, peaklist, troughlist, sampling_freq)
+        rifv = rifv/np.mean(rifv)
+        return rifv, rifv_t
 
 if __name__ == "__main__":
     ppgproc = PpgSignalProcessor()
