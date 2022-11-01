@@ -6,3 +6,4 @@ heartpy
 scikit-learn
 loguru
 pandas
+PyYAML==6.0
