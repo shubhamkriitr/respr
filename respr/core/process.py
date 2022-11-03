@@ -240,6 +240,35 @@ class MultiparameterSmartFusion(object):
         N = resp_signal.shape[0]
         T = 1.0/ sampling_freq
         
+        resp_signal = self.clean_signal_for_psd(
+            resp_signal, sampling_freq, detrend, elim_non_resp, window_type)
+        
+        bpm = self.extract_bpm(resp_signal, N, T)
+        #>>> plt.plot(x_fft_per_min, y_final)
+        #>>> plt.scatter([bpm], [bpm_response])
+        #>>> plt.grid()
+        #>>> plt.show()
+        return bpm
+
+    def extract_bpm(self, resp_signal, N, T):
+        
+        x = np.linspace(0.0, N*T, N, endpoint=False)
+        
+        y_fft = fft(resp_signal)
+        x_fft = fftfreq(N, T)[:N//2]
+
+        print(f" N = {N}/ T = {T}/ x = {x.shape}/ resp = {resp_signal.shape}")
+        print(f" x_fft = {x_fft.shape}/ y_fft = {y_fft.shape}")
+        
+        x_fft_per_min = x_fft *  60
+        y_final = 2.0/N * np.abs(y_fft[0:N//2])
+        max_energy_idx = np.argmax(y_final)
+        bpm, bpm_response = x_fft_per_min[max_energy_idx], y_final[max_energy_idx]
+        return bpm
+
+    def clean_signal_for_psd(self, resp_signal, sampling_freq, detrend,
+                             elim_non_resp, window_type):
+        N = resp_signal.shape[0]
         # detrend the signal
         if detrend:
             logger.debug("Detrend (mean)")
@@ -255,24 +284,7 @@ class MultiparameterSmartFusion(object):
             assert window_type in ["hamming"] # TODO: check if want to use other types of windows
             _window = scipy.signal.get_window(window_type, N)
             resp_signal = _window*resp_signal
-        
-        x = np.linspace(0.0, N*T, N, endpoint=False)
-        
-        y_fft = fft(resp_signal)
-        x_fft = fftfreq(N, T)[:N//2]
-
-        print(f" N = {N}/ T = {T}/ x = {x.shape}/ resp = {resp_signal.shape}")
-        print(f" x_fft = {x_fft.shape}/ y_fft = {y_fft.shape}")
-        
-        x_fft_per_min = x_fft *  60
-        y_final = 2.0/N * np.abs(y_fft[0:N//2])
-        max_energy_idx = np.argmax(y_final)
-        bpm, bpm_response = x_fft_per_min[max_energy_idx], y_final[max_energy_idx]
-        #>>> plt.plot(x_fft_per_min, y_final)
-        #>>> plt.scatter([bpm], [bpm_response])
-        #>>> plt.grid()
-        #>>> plt.show()
-        return bpm
+        return resp_signal
         
     
     
