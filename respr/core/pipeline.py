@@ -6,7 +6,7 @@ from respr.util import logger
 from respr.util.common import get_timestamp_str
 import pickle
 from respr.data.bidmc import BidmcDataAdapter, BIDMC_DATSET_CSV_DIR
-from respr.core.process import PpgSignalProcessor, MultiparameterSmartFusion
+from respr.core.process import PpgSignalProcessor, MultiparameterSmartFusion2
 from respr.core.pulse import PulseDetector
 import heartpy as hp
 
@@ -51,6 +51,7 @@ class Pipeline(BasePipeline):
                     
                 })
             except Exception as exc:
+                raise exc
                 logger.error(exc)
                 errors.append({
                     "idx": idx,
@@ -72,7 +73,7 @@ class Pipeline(BasePipeline):
     def process_one_sample(self, data):
         proc = PpgSignalProcessor({}) # TODO : use config/ factory
         pulse_detector = PulseDetector()
-        model = MultiparameterSmartFusion({})
+        model = MultiparameterSmartFusion2({})
         
         # params
         fs = 125 # Sampling freq. TODO extract from data

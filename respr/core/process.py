@@ -4,6 +4,7 @@ from scipy.signal import butter
 from scipy import stats
 from respr.util import logger
 from scipy.fft import fft, fftfreq
+from respr.core.filter import create_fir
 
 # config keys
 CONF_ELIM_VHF = "eliminate_vhf"
@@ -304,6 +305,54 @@ class MultiparameterSmartFusion(object):
         signal_ = scipy.signal.filtfilt(b, a, np.double(signal_))
 
         return signal_
+    
+class MultiparameterSmartFusion2(MultiparameterSmartFusion):
+    def __init__(self, config):
+        super().__init__(config)
+        self._plot = True # For debugging only
+    
+    def eliminate_non_respiratory_frequencies(self,  signal_, sampling_freq=None):
+        # TODO: Use Kaiser Window Approach
+        if sampling_freq is None:
+            raise NotImplementedError()
+
+        # Bandpass filter signal
+        cutoff_low = 2/60.0 #using 1bpm / TODO: add to config
+        cutoff_high = 36/60.0 # using 36bpm / TODO: add to config
+        cutoff_high_start = (36 - 1)/60.0
+        
+        [b, a] = create_fir(cutoff_low, None, cutoff_high_start, 
+                            cutoff_high, fs=sampling_freq, lp=False)
+
+        signal_ = np.reshape(signal_, len(signal_))
+        signal_ = scipy.signal.filtfilt(b, a, np.double(signal_))
+
+        return signal_
+    
+    def extract_bpm(self, resp_signal, N, T):
+        sampling_frequency = 1/ T
+        f, psd = scipy.signal.welch(resp_signal, fs=sampling_frequency,
+                                     nfft=720*sampling_frequency,
+                                     nperseg=15*sampling_frequency,
+                                     noverlap=10*sampling_frequency,
+                                     detrend=False)
+
+    
+        
+        max_energy_idx = np.argmax(psd)
+        
+        bpm = f[max_energy_idx] *  60
+        
+        # TODO: remove later
+        if self._plot:
+            plt.figure()
+            plt.plot(f, psd)
+            plt.xlabel("f [Hz]")
+            plt.ylabel("PSD")
+        
+        
+        return bpm
+        
 
 class PpgSignalProcessor2(PpgSignalProcessor):
     def __init__(self, config):
