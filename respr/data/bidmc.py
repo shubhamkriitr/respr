@@ -87,6 +87,35 @@ class BidmcDataAdapter:
             data.append(content)
             
         return data
+    
+    def to_standard_format(self, data):
+        raise NotImplementedError()
+        signals = data[2]
+        
+        
+        data_std = {
+            "signals": {
+                "ppg" : None,
+                "gt_resp": None
+            },
+            "time":{
+                
+            },
+            "_metadata": {
+                "signals":{
+                    "ppg" : {
+                        "fs" : None,
+                        "has_timestamps": False
+                    },
+                    "gt_resp": {
+                        "fs" : None,
+                        "has_timestamps": False
+                    }
+                }
+            }
+        }
+        
+        return data_std
 
     
 if __name__ == "__main__":
