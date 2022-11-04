@@ -6,9 +6,11 @@ from respr.util import logger
 from respr.util.common import get_timestamp_str
 import pickle
 from respr.data.bidmc import BidmcDataAdapter, BIDMC_DATSET_CSV_DIR
-from respr.core.process import PpgSignalProcessor, MultiparameterSmartFusion2
+from respr.core.process import (PpgSignalProcessor, MultiparameterSmartFusion2,
+MultiparameterSmartFusion)
 from respr.core.pulse import PulseDetector
 import heartpy as hp
+import traceback
 
 CONF_FEATURE_RESAMPLING_FREQ = 4 # Hz. (for riav/ rifv/ riiv resampling)
 class BasePipeline:
@@ -41,7 +43,7 @@ class Pipeline(BasePipeline):
             #     continue
             
             logger.info(f"Processing subject#{subject_id}")
-            data = bidmc_data_adapter.load_data(subject_id)
+            data = bidmc_data_adapter.get(subject_id)
             try:
                 output = self.process_one_sample(data)
                 results.append({
@@ -50,8 +52,8 @@ class Pipeline(BasePipeline):
                     "output": output
                     
                 })
-            except Exception as exc:
-                logger.error(exc)
+            except KeyboardInterrupt:
+                logger.error(traceback.format_exc())
                 errors.append({
                     "idx": idx,
                     "sample_id": subject_id
@@ -72,13 +74,18 @@ class Pipeline(BasePipeline):
     def process_one_sample(self, data):
         proc = PpgSignalProcessor({}) # TODO : use config/ factory
         pulse_detector = PulseDetector()
-        model = MultiparameterSmartFusion2({})
+        model = MultiparameterSmartFusion({})
         
         # params
-        fs = 125 # Sampling freq. TODO extract from data
-        resp_fs = 1 # sampling freq of respiratory rate (in Hz.)
-        signals = data[2]
-        ppg = signals[" PLETH"]
+        #125 # Sampling freq. TODO extract from data
+        fs = data.value()["_metadata"]["signals"]["ppg"]["fs"]
+        fs = int(fs)
+        
+        # sampling freq of respiratory rate (in Hz.)
+        resp_fs =  data.value()["_metadata"]["signals"]["gt_resp"]["fs"]
+        ppg = data.value()["signals"]["ppg"]
+        gt_resp_full = data.get("signals/gt_resp")
+        
         expected_signal_duration = 8*60 # in seconds
         signal_length = ppg.shape[0] # in number of samples
         assert signal_length == 1 + fs * expected_signal_duration
@@ -88,7 +95,7 @@ class Pipeline(BasePipeline):
         window_step_duration = 1 # second
         window_size = window_duration * fs # in num data points
         window_step = window_step_duration * fs # in num data points
-        num_windows = (signal_length - window_size)//window_step + 1
+        num_windows = int((signal_length - window_size)//window_step + 1)
         gt_resp_idx = None # index pointing to the mid 
         # point of window: from where the ground truth respiratory rate will 
         # be used
@@ -118,7 +125,7 @@ class Pipeline(BasePipeline):
             
             
             # ground truth respiratory rate
-            gt_resp = data[1][" RESP"][gt_resp_idx]
+            gt_resp = gt_resp_full[gt_resp_idx]
             
             rr_est_riav, rr_est_riiv, rr_est_rifv = self.get_respiratory_rate(
                 data, proc, pulse_detector, model, fs, offset, end_)
@@ -136,14 +143,14 @@ class Pipeline(BasePipeline):
         return results
 
     def get_respiratory_rate(self, data, proc, pulse_detector, model, fs, offset, end_):
-        signals = data[2]
-        filtered_signal = proc.eliminate_very_high_freq(signals[" PLETH"])
+        ppg = data.get("signals/ppg")
+        filtered_signal = proc.eliminate_very_high_freq(ppg)
         signal_chunk = filtered_signal[offset:end_]
         new_peaklist, new_troughlist = pulse_detector.get_pulses(
             signal_chunk, fs)
         
         
-        timesteps = signals["Time [s]"][offset:end_].array
+        timesteps = data.get_t("ppg")[offset:end_]
 
         riav, riav_t = proc.extract_riav(signal_chunk, timesteps, new_peaklist,
                                          new_troughlist, None)
