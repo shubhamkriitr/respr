@@ -325,16 +325,16 @@ class MultiparameterSmartFusion2(MultiparameterSmartFusion):
                             cutoff_high, fs=sampling_freq, lp=False)
 
         signal_ = np.reshape(signal_, len(signal_))
-        signal_ = scipy.signal.filtfilt(b, a, np.double(signal_))
+        signal_ = scipy.signal.lfilter(b, a, np.double(signal_))
 
         return signal_
     
     def extract_bpm(self, resp_signal, N, T):
         sampling_frequency = 1/ T
         f, psd = scipy.signal.welch(resp_signal, fs=sampling_frequency,
-                                     nfft=720*sampling_frequency,
-                                     nperseg=15*sampling_frequency,
-                                     noverlap=10*sampling_frequency,
+                                     nfft=200*sampling_frequency,
+                                     nperseg=3*sampling_frequency,
+                                     noverlap=2*sampling_frequency,
                                      detrend=False)
 
     

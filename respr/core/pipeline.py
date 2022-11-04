@@ -51,7 +51,6 @@ class Pipeline(BasePipeline):
                     
                 })
             except Exception as exc:
-                raise exc
                 logger.error(exc)
                 errors.append({
                     "idx": idx,
