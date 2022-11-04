@@ -6,6 +6,10 @@ import heartpy as hp
 import pandas as pd
 import seaborn as sns
 from loguru import logger
+from respr.data import StandardDataRecord
+import numpy as np
+
+SIGNAL_DTYPE = np.float64
 
 # BIDMC Dataset : https://physionet.org/content/bidmc/1.0.0/
 # TODO: move all paths to external config
@@ -25,6 +29,8 @@ class BidmcDataAdapter:
         self.file_prefix = "bidmc_"
         self.file_suffixes = ["_Breaths.csv", "_Numerics.csv",
                               "_Signals.csv", "_Fix.txt"]
+        self.signal_dtype = SIGNAL_DTYPE
+        
     
     def inspect(self):
         """Checks available files
@@ -88,34 +94,78 @@ class BidmcDataAdapter:
             
         return data
     
-    def to_standard_format(self, data):
-        raise NotImplementedError()
+    def get(self, id_):
+        data = self.load_data(id_)
+        data = self.to_standard_format(data, id_)
+        return data
+    
+    def _parse_metadata(self, meta_str):
+        keys = ["Signals sampling frequency:",
+                "Numerics sampling frequency:"]
+        
+        
+        data = [None] * len(keys)
+        
+        k_idx = 0
+        for line in meta_str.split("\n"):
+            if line.startswith(keys[k_idx]):
+                v = line.split(":")[1]
+                v = v.strip().split()[0]
+                v = float(v)
+                data[k_idx] = v
+                k_idx += 1
+            if k_idx == len(data):
+                break
+        
+        # data[0] is signal sampling freq
+        # data[1] is numerics sampling freq (respiratory rate signal sampling
+        # freq)
+        return data
+    
+    def to_standard_format(self, data, id_):
         signals = data[2]
+        numerics = data[1]
+        t_numerics = numerics["Time [s]"].to_numpy(dtype=self.signal_dtype)
+        t_signals = signals["Time [s]"].to_numpy(dtype=self.signal_dtype)
+        ppg = signals[" PLETH"].to_numpy(dtype=self.signal_dtype)
+        gt_resp = numerics[" RESP"].to_numpy(dtype=self.signal_dtype)
+        meta = data[3]
+        signal_fs, numerics_fs = self._parse_metadata(meta)
         
         
         data_std = {
+            "id": id_,
             "signals": {
-                "ppg" : None,
-                "gt_resp": None
+                "ppg" : ppg,
+                "gt_resp": gt_resp
             },
             "time":{
-                
+                "ppg": t_signals,
+                "gt_resp": t_numerics
             },
             "_metadata": {
                 "signals":{
                     "ppg" : {
-                        "fs" : None,
-                        "has_timestamps": False
+                        "fs" : signal_fs,
+                        "has_timestamps": True,
+                        "t_loc" : "time/ppg",
+                        "t_is_uniform": True, # indicates if signal is 
+                        # uniformly sampled everywhere
+                        "t_includes_start": True # if the sample includes 
+                        # signal value st t=0
                     },
                     "gt_resp": {
-                        "fs" : None,
-                        "has_timestamps": False
+                        "fs" : numerics_fs,
+                        "t_is_uniform": True,
+                        "has_timestamps": True,
+                        "t_loc": "time/gt_resp",
+                        "t_includes_start": True
                     }
                 }
             }
         }
         
-        return data_std
+        return StandardDataRecord(data_std)
 
     
 if __name__ == "__main__":
