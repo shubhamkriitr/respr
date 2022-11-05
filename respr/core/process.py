@@ -309,7 +309,7 @@ class MultiparameterSmartFusion(object):
 class MultiparameterSmartFusion2(MultiparameterSmartFusion):
     def __init__(self, config):
         super().__init__(config)
-        self._plot = True # For debugging only
+        self._plot = False # For debugging only 
     
     def eliminate_non_respiratory_frequencies(self,  signal_, sampling_freq=None):
         # TODO: Use Kaiser Window Approach
