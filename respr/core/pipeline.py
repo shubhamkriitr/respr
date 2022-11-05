@@ -74,7 +74,7 @@ class Pipeline(BasePipeline):
     def process_one_sample(self, data):
         proc = PpgSignalProcessor({}) # TODO : use config/ factory
         pulse_detector = PulseDetector()
-        model = MultiparameterSmartFusion({})
+        model = MultiparameterSmartFusion2({})
         
         # params
         #125 # Sampling freq. TODO extract from data
