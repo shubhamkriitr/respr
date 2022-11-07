@@ -41,9 +41,18 @@ class Pipeline(BasePipeline):
         
         results = []
         errors = []
+        
+        n_samples = self._config["instructions"]["num_samples_to_process"]
+        if n_samples is not None:
+            sample_idx_offset = \
+                self._config["instructions"]["sample_index_offset"]
+            sample_idx_end = sample_idx_offset + n_samples
+            subject_ids = subject_ids[sample_idx_offset:sample_idx_end]
+
         for idx, subject_id in enumerate(subject_ids):
             # if subject_id != "41": FIXME: investigate this
             #     continue
+            
             
             logger.info(f"Processing subject#{subject_id}")
             data = bidmc_data_adapter.get(subject_id)
@@ -145,6 +154,8 @@ class Pipeline(BasePipeline):
             rr_est_riav, rr_est_riiv, rr_est_rifv = self.get_respiratory_rate(
                 data, proc, pulse_detector, model, fs, offset, end_)
             
+            if gt_resp is None: # due to possible anomaly
+                continue # do not add estimates to results
             results["window_idx"].append(window_idx)
             results["offset"].append(offset)
             results["end_"].append(end_)

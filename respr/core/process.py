@@ -231,8 +231,26 @@ class PpgSignalProcessor(BasePpgSignalProcessor):
         Returns:
             _type_: _description_
         """
-        reference_rr = reference_rr
-        print("Impl")
+        start_idx = np.searchsorted(timestamps, t_start, side="left")
+        end_idx = np.searchsorted(timestamps, t_end, side="right")
+        
+        
+        y = reference_rr[start_idx:end_idx]
+        
+        if mode == "mean":
+            y_overall = np.mean(y)
+            if np.isnan(y_overall):
+                logger.warning(f"nan encountered : [{start_idx}, {end_idx})")
+                return None
+            if y_overall > 40:
+                logger.warning(
+                    f"Possible anomaly: rr > 40: [{start_idx}, {end_idx})")
+                return None
+        else:
+            raise NotImplementedError()
+        
+        # TODO: may also return aprox. timestamp
+        return y_overall
         
             
 
