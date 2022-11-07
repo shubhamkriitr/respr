@@ -6,7 +6,7 @@ import heartpy as hp
 import pandas as pd
 import seaborn as sns
 from loguru import logger
-from respr.data import StandardDataRecord, BaseDataAdapter
+from respr.data.base import StandardDataRecord, BaseDataAdapter
 import numpy as np
 
 

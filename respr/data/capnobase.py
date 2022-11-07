@@ -10,7 +10,7 @@ from scipy import signal
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-from respr.data import StandardDataRecord, BaseDataAdapter
+from respr.data.base import StandardDataRecord, BaseDataAdapter
 import h5py
 import copy
 
