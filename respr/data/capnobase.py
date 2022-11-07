@@ -28,8 +28,7 @@ logger.info(f"CAPNOBASE_DATASET_CSV_DIR:  {CAPNOBASE_DATASET_CSV_DIR}")
 class CapnobaseDataAdapter(BaseDataAdapter):
     
     def __init__(self, config):
-        self.config = config
-        self.data_root_dir = self.config["data_root_dir"]
+        super().__init__(config)
         # do not change the order
         self.file_prefix = ""
         self.file_suffixes = ["_8min_labels.csv", "_8min_meta.csv",
@@ -134,8 +133,7 @@ class CapnobaseMatDataAdapter(CapnobaseDataAdapter):
         paths = self.get_file_paths(id_)
         mat_file_loc = paths[0]
         with  h5py.File(mat_file_loc, 'r') as f:
-            self.print_keys(f, "f", 0, [])
-            data = self._extract_data_items(f)
+            data = self._extract_data_items(f, id_)
         
         return data
             
@@ -146,24 +144,29 @@ class CapnobaseMatDataAdapter(CapnobaseDataAdapter):
         ppg = np.array(
             f['signal']['pleth']['y'][0, :], dtype=self.signal_dtype)
         
-        signal_fs = 300 #Hz
+        signal_fs = f['param']['samplingrate']['pleth'][0, 0] #Hz
         t_duration_whole_signal = 8 * 60 # in secs
-        num_data_points = t_duration_whole_signal * signal_fs + 1 
+        num_data_points = int(t_duration_whole_signal * signal_fs) + 1 
         # +1 for  t = 0
         
         t = np.linspace(0, t_duration_whole_signal, num_data_points)
         
         assert (t.shape == ppg.shape)
         
+        # respiratory signals (based on capnometry data)
+        rr_timestamp = np.array(f['reference']['rr']['co2']['x'])[:, 0]
+        rr_value = np.array(f['reference']['rr']['co2']['y'])[:, 0]
+        
         data_std = {
             "id": id_,
             "signals": {
                 "ppg" : ppg,
-                "gt_resp": gt_resp
+                "gt_resp": rr_value,
             },
             "time":{
+                "ppg_peak_time_index": ppg_peak_x, # currently not in use 
                 "ppg": t,
-                "gt_resp": t_numerics
+                "gt_resp": rr_timestamp
             },
             "_metadata": {
                 "signals":{

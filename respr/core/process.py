@@ -210,6 +210,30 @@ class PpgSignalProcessor(BasePpgSignalProcessor):
             new_peaklist = peaklist[1:]
         
         return new_peaklist, np.array(new_troughlist)
+    
+    def extract_ground_truth_rr(self, reference_rr, timestamps, 
+                                t_start, t_end, mode="mean"):
+        """Extract (compute) ground truth respiratory rate for a window of
+        `reference_rr` (reference respiratory rate array). The window is 
+        specified by [`t_start`, `t_end`) (N.B. t_end excluded). `timestamps` is
+        the time corresponding to each of the values recorded in `reference_rr`
+        #TODO: doc string
+        Args:
+            reference_signal (_type_): _description_
+            timestamps (_type_): _description_
+            t_start (_type_): _description_
+            t_end (_type_): _description_
+            mode (str, optional): Method to obtain the ground truth
+                Defaults to "mean".
+
+        Raises:
+            
+        Returns:
+            _type_: _description_
+        """
+        reference_rr = reference_rr
+        print("Impl")
+        
             
 
 from scipy.fft import fft, fftfreq

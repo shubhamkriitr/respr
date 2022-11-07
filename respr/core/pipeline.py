@@ -84,12 +84,17 @@ class Pipeline(BasePipeline):
         fs = data.value()["_metadata"]["signals"]["ppg"]["fs"]
         fs = int(fs)
         
-        # sampling freq of respiratory rate (in Hz.)
-        resp_fs =  data.value()["_metadata"]["signals"]["gt_resp"]["fs"]
         ppg = data.value()["signals"]["ppg"]
         gt_resp_full = data.get("signals/gt_resp")
         
-        expected_signal_duration = 8*60 # in seconds
+        # sampling freq of respiratory rate (in Hz.)
+        resp_fs =  data.value()["_metadata"]["signals"]["gt_resp"]["fs"]
+        if resp_fs is None:
+            assert data.get("_metadata/signals/gt_resp/has_timestamps")
+            gt_resp_timestamps = data.get_t("gt_resp")
+            assert gt_resp_full.shape == gt_resp_timestamps.shape    
+        
+        expected_signal_duration = 8*60 # in seconds #TODO: add in/read from data
         signal_length = ppg.shape[0] # in number of samples
         assert signal_length == 1 + fs * expected_signal_duration
         
@@ -123,13 +128,20 @@ class Pipeline(BasePipeline):
             
             offset = window_idx * window_step # index offset
             end_ = offset + window_size
+            t_start = offset * 1/fs
+            t_end = end_ * 1/fs
             t = ((offset + end_)//2) * 1/fs
-            gt_resp_idx = int(t * resp_fs)
             
-            
-            # ground truth respiratory rate
-            gt_resp = gt_resp_full[gt_resp_idx]
-            
+            if resp_fs is not None:
+                gt_resp_idx = int(t * resp_fs)
+                # ground truth respiratory rate
+                gt_resp = gt_resp_full[gt_resp_idx]
+            else:
+                gt_resp_idx = -1 # it's a dummy value
+                gt_resp = proc.extract_ground_truth_rr(
+                    reference_rr=gt_resp_full, timestamps=gt_resp_timestamps,
+                    t_start=t_start, t_end=t_end)
+
             rr_est_riav, rr_est_riiv, rr_est_rifv = self.get_respiratory_rate(
                 data, proc, pulse_detector, model, fs, offset, end_)
             
