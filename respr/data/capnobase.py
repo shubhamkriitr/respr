@@ -11,12 +11,16 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 from respr.data import StandardDataRecord
+import h5py
+import copy
 
 # CapnoBase Dataset: https://borealisdata.ca/dataset.xhtml?persistentId=doi:10.5683/SP2/NLB8IT
 ROOT_LOC = Path(os.path.abspath('')).parents[1]
 DATASET_DIR = ROOT_LOC / "Datasets"
 CAPNOBASE_DATASET_CSV_DIR = DATASET_DIR / "capnobase-dataverse" \
                         / "data" / "csv"
+CAPNOBASE_DATASET_MAT_DIR = DATASET_DIR / "capnobase-dataverse" \
+                        / "data" / "mat"
 
 logger.info(f"CAPNOBASE_DATASET_CSV_DIR:  {CAPNOBASE_DATASET_CSV_DIR}")
 
@@ -31,22 +35,25 @@ class CapnobaseDataAdapter:
         self.file_suffixes = ["_8min_labels.csv", "_8min_meta.csv",
                               "_8min_param.csv", "_8min_reference.csv",
                               "_8min_SFresults.csv", "_8min_signal.csv"]
+        self.input_file_regex = r"[0-9]{4}_[0-9]min_signal\.csv"
+        self.input_file_glob = "[0-9]"*4 + "*.csv"
+        
     
     def inspect(self):
         """Checks available files
         
         Args:
-            data_root_dir: Directory containing all the csv files
+            data_root_dir: Directory containing all the subject files
         """
         datadir = Path(self.data_root_dir)
-        files = datadir.glob("[0-9]"*4 + "*.csv")
+        files = datadir.glob(self.input_file_glob)
         file_names = sorted([f.name for f in files])
         
         return file_names
     
     def extract_subject_ids_from_file_names(self, file_names:list):
         ids = set()
-        pattern = re.compile(r"[0-9]{4}_[0-9]min_signal\.csv")
+        pattern = re.compile(self.input_file_regex)
         warnings = []
         for name in file_names:
             if pattern.fullmatch(name):
@@ -98,4 +105,67 @@ class CapnobaseDataAdapter:
     
     
 
+class CapnobaseMatDataAdapter(CapnobaseDataAdapter):
+    def __init__(self, config):
+        super().__init__(config)
+        self.config = config
+
+        self.file_prefix = ""
+        self.file_suffixes = ["_8min.mat"]
+        self.input_file_regex = r"[0-9]{4}_[0-9]min\.mat"
+        self.input_file_glob = "[0-9]"*4 + "*.mat"
     
+
+    def get_file_paths(self, id_):
+        """Returns path of the following file(s):
+            <id_>_8min.mat
+            
+        """
+        root = Path(self.data_root_dir)
+        file_paths = (root / f"{self.file_prefix}{id_}{suffix}" 
+                      for suffix in self.file_suffixes)
+        return tuple(file_paths)
+    
+    
+    def load_data(self, id_):
+        """Returns contents of the following file(s).
+            <id_>_8min.mat
+        """
+        paths = self.get_file_paths(id_)
+        mat_file_loc = paths[0]
+        with  h5py.File(mat_file_loc, 'r') as f:
+            self.print_keys(f, "f", 0, [])
+    
+    def print_keys(self, current_item, name, level, key_history):
+        prefix = level * "--" + "> "
+        suffix = "\n"
+        key_history = copy.deepcopy(key_history)
+        if level > 0:
+            key_history.append(f"['{name}']")
+        else:
+            key_history.append(f"{name}")
+        key_history_str = "".join(key_history)
+        
+        print(f"{prefix}{key_history_str}{suffix}")
+        
+        keys = None
+        try:
+            keys = sorted(list(current_item.keys()))
+        except (KeyError, AttributeError) as exc:
+            return
+        if keys is None:
+            return
+        for k in keys:
+            self.print_keys(current_item[k], k, level + 1, key_history)
+            
+    
+    
+if __name__ == "__main__":
+    da = CapnobaseMatDataAdapter(
+        {"data_root_dir": CAPNOBASE_DATASET_MAT_DIR})
+    file_names = da.inspect()
+    subject_ids = da.extract_subject_ids_from_file_names(file_names)
+    print(file_names, len(file_names))
+    print(subject_ids)
+    idx = 0
+    da.load_data(subject_ids[idx])
