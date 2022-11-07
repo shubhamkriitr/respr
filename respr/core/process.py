@@ -348,6 +348,13 @@ class MultiparameterSmartFusion(object):
 
         return signal_
     
+    def fuse_rr_estimates(self, rr_riav, rr_rifv, rr_riiv):
+        rrs = np.array([rr_riav, rr_rifv, rr_riiv])
+        stdv = np.std(rrs)
+        rr_aggregated = np.mean(rrs)
+        if stdv > 4.0: # stddev > 4 breaths/min
+            return rr_aggregated, False # discard
+        return rr_aggregated, True
 class MultiparameterSmartFusion2(MultiparameterSmartFusion):
     def __init__(self, config):
         super().__init__(config)

@@ -128,7 +128,9 @@ class Pipeline(BasePipeline):
             "gt" : [],
             "rr_est_riav": [],
             "rr_est_riiv": [],
-            "rr_est_rifv": []
+            "rr_est_rifv": [],
+            "rr_fused": [],
+            "rr_fused_valid": [],
             
         }
         
@@ -151,7 +153,8 @@ class Pipeline(BasePipeline):
                     reference_rr=gt_resp_full, timestamps=gt_resp_timestamps,
                     t_start=t_start, t_end=t_end)
 
-            rr_est_riav, rr_est_riiv, rr_est_rifv = self.get_respiratory_rate(
+            rr_est_riav, rr_est_riiv, rr_est_rifv, rr_fused, rr_fused_valid\
+                = self.get_respiratory_rate(
                 data, proc, pulse_detector, model, fs, offset, end_)
             
             if gt_resp is None: # due to possible anomaly
@@ -165,6 +168,8 @@ class Pipeline(BasePipeline):
             results["rr_est_riav"].append(rr_est_riav)
             results["rr_est_riiv"].append(rr_est_riiv)
             results["rr_est_rifv"].append(rr_est_rifv)
+            results["rr_fused"].append(rr_fused)
+            results["rr_fused_valid"].append(rr_fused_valid)
         
         return results
 
@@ -209,7 +214,9 @@ class Pipeline(BasePipeline):
         #>>>     "rr_est_riiv": rr_est_riiv,
         #>>>     "rr_est_rifv": rr_est_rifv
         #>>> }
-        return rr_est_riav, rr_est_riiv, rr_est_rifv
+        rr_fused, is_valid = model.fuse_rr_estimates(
+            rr_est_riav, rr_est_rifv, rr_est_riiv)
+        return rr_est_riav, rr_est_riiv, rr_est_rifv, rr_fused, is_valid
         
         
         
