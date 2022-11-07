@@ -6,10 +6,9 @@ import heartpy as hp
 import pandas as pd
 import seaborn as sns
 from loguru import logger
-from respr.data import StandardDataRecord
+from respr.data import StandardDataRecord, BaseDataAdapter
 import numpy as np
 
-SIGNAL_DTYPE = np.float64
 
 # BIDMC Dataset : https://physionet.org/content/bidmc/1.0.0/
 # TODO: move all paths to external config
@@ -20,16 +19,15 @@ BIDMC_DATSET_CSV_DIR = DATASET_DIR / "bidmc-ppg-and-respiration-dataset-1.0.0"\
                         / "bidmc_csv"
 
 
-class BidmcDataAdapter:
+class BidmcDataAdapter(BaseDataAdapter):
     
     def __init__(self, config):
-        self.config = config
-        self.data_root_dir = self.config["data_root_dir"]
+        super().__init__(config)
         # do not change the order
         self.file_prefix = "bidmc_"
         self.file_suffixes = ["_Breaths.csv", "_Numerics.csv",
                               "_Signals.csv", "_Fix.txt"]
-        self.signal_dtype = SIGNAL_DTYPE
+        
         
     
     def inspect(self):

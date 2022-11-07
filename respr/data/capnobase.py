@@ -10,7 +10,7 @@ from scipy import signal
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-from respr.data import StandardDataRecord
+from respr.data import StandardDataRecord, BaseDataAdapter
 import h5py
 import copy
 
@@ -25,7 +25,7 @@ CAPNOBASE_DATASET_MAT_DIR = DATASET_DIR / "capnobase-dataverse" \
 logger.info(f"CAPNOBASE_DATASET_CSV_DIR:  {CAPNOBASE_DATASET_CSV_DIR}")
 
 
-class CapnobaseDataAdapter:
+class CapnobaseDataAdapter(BaseDataAdapter):
     
     def __init__(self, config):
         self.config = config
@@ -135,6 +135,16 @@ class CapnobaseMatDataAdapter(CapnobaseDataAdapter):
         mat_file_loc = paths[0]
         with  h5py.File(mat_file_loc, 'r') as f:
             self.print_keys(f, "f", 0, [])
+            data = self._extract_data_items(f)
+        
+        return data
+            
+    def _extract_data_items(self, file_handle):
+        raise NotImplementedError()
+        
+    def get(self, id_):
+        return self._load_data(id_)
+    
     
     def print_keys(self, current_item, name, level, key_history):
         prefix = level * "--" + "> "
