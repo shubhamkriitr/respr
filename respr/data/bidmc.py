@@ -71,7 +71,7 @@ class BidmcDataAdapter:
         return tuple(file_paths)
     
     
-    def load_data(self, id_):
+    def _load_data(self, id_):
         """Returns contents of the following files in order.
             `csv` files as `pandas.DataFrame` and `txt` file as `string`.
             'bidmc_<id_>_Breaths.csv',
@@ -95,7 +95,7 @@ class BidmcDataAdapter:
         return data
     
     def get(self, id_):
-        data = self.load_data(id_)
+        data = self._load_data(id_)
         data = self.to_standard_format(data, id_)
         return data
     

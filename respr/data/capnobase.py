@@ -80,7 +80,7 @@ class CapnobaseDataAdapter:
         return tuple(file_paths)
     
     
-    def load_data(self, id_):
+    def _load_data(self, id_):
         """Returns contents of the following files in order.
             <id_>_8min_labels.csv   
             <id_>_8min_meta.csv     
@@ -127,7 +127,7 @@ class CapnobaseMatDataAdapter(CapnobaseDataAdapter):
         return tuple(file_paths)
     
     
-    def load_data(self, id_):
+    def _load_data(self, id_):
         """Returns contents of the following file(s).
             <id_>_8min.mat
         """
@@ -168,4 +168,4 @@ if __name__ == "__main__":
     print(file_names, len(file_names))
     print(subject_ids)
     idx = 0
-    da.load_data(subject_ids[idx])
+    da._load_data(subject_ids[idx])
