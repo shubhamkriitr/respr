@@ -5,3 +5,9 @@ model:
   args: []
   kwargs:
     config: {}
+data_adapter:
+  name: "BidmcDataAdapter"
+  args: []
+  kwargs:
+    config:
+      data_root_dir: "../../Datasets/bidmc-ppg-and-respiration-dataset-1.0.0/bidmc_csv"

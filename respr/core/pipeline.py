@@ -5,6 +5,7 @@ import json
 from respr.util import logger
 from respr.util.common import (get_timestamp_str, PROJECT_ROOT)
 import pickle
+from respr.data import DATA_ADAPTER_FACTORY
 from respr.data.bidmc import BidmcDataAdapter, BIDMC_DATSET_CSV_DIR
 from respr.core.process import (PpgSignalProcessor, PROCESSOR_FACTORY)
 from respr.core.pulse import PulseDetector
@@ -30,8 +31,10 @@ class Pipeline(BasePipeline):
         os.makedirs(self._config["output_dir"], exist_ok=True)
     
     def run(self, *args, **kwargs):
-        bidmc_data_adapter = BidmcDataAdapter(
-            {"data_root_dir": BIDMC_DATSET_CSV_DIR})
+        # bidmc_data_adapter = BidmcDataAdapter(
+        #     {"data_root_dir": BIDMC_DATSET_CSV_DIR})
+        bidmc_data_adapter = DATA_ADAPTER_FACTORY.get(
+            self._config["data_adapter"])
         file_names = bidmc_data_adapter.inspect()
         subject_ids = bidmc_data_adapter.extract_subject_ids_from_file_names(file_names)
         
