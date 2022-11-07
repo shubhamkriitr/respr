@@ -139,8 +139,55 @@ class CapnobaseMatDataAdapter(CapnobaseDataAdapter):
         
         return data
             
-    def _extract_data_items(self, file_handle):
-        raise NotImplementedError()
+    def _extract_data_items(self, file_handle, id_):
+        f = file_handle
+        ppg_peak_x = np.array(
+            f['labels']['pleth']['peak']['x'][:, 0], dtype=np.int64)
+        ppg = np.array(
+            f['signal']['pleth']['y'][0, :], dtype=self.signal_dtype)
+        
+        signal_fs = 300 #Hz
+        t_duration_whole_signal = 8 * 60 # in secs
+        num_data_points = t_duration_whole_signal * signal_fs + 1 
+        # +1 for  t = 0
+        
+        t = np.linspace(0, t_duration_whole_signal, num_data_points)
+        
+        assert (t.shape == ppg.shape)
+        
+        data_std = {
+            "id": id_,
+            "signals": {
+                "ppg" : ppg,
+                "gt_resp": gt_resp
+            },
+            "time":{
+                "ppg": t,
+                "gt_resp": t_numerics
+            },
+            "_metadata": {
+                "signals":{
+                    "ppg" : {
+                        "fs" : signal_fs,
+                        "has_timestamps": True,
+                        "t_loc" : "time/ppg",
+                        "t_is_uniform": True, # indicates if signal is 
+                        # uniformly sampled everywhere
+                        "t_includes_start": True # if the sample includes 
+                        # signal value st t=0
+                    },
+                    "gt_resp": {
+                        "fs" : None,
+                        "t_is_uniform": False,
+                        "has_timestamps": True,
+                        "t_loc": "time/gt_resp",
+                        "t_includes_start": True
+                    }
+                }
+            }
+        }
+        
+        return StandardDataRecord(data_std)
         
     def get(self, id_):
         return self._load_data(id_)
