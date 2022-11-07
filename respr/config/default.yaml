@@ -1,2 +1,7 @@
 description: "This is a sample config to run the pipeline"
-workdir: "" #relative to `respr` directory
+# workdir: "" #relative to `respr` directory
+model:
+  name: "MultiparameterSmartFusion2"
+  args: []
+  kwargs:
+    config: {}

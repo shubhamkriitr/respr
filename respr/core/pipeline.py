@@ -3,16 +3,16 @@ from pathlib import Path
 import yaml
 import json
 from respr.util import logger
-from respr.util.common import get_timestamp_str
+from respr.util.common import (get_timestamp_str, PROJECT_ROOT)
 import pickle
 from respr.data.bidmc import BidmcDataAdapter, BIDMC_DATSET_CSV_DIR
-from respr.core.process import (PpgSignalProcessor, MultiparameterSmartFusion2,
-MultiparameterSmartFusion)
+from respr.core.process import (PpgSignalProcessor, PROCESSOR_FACTORY)
 from respr.core.pulse import PulseDetector
 import heartpy as hp
 import traceback
 
 CONF_FEATURE_RESAMPLING_FREQ = 4 # Hz. (for riav/ rifv/ riiv resampling)
+DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config" / "default.yaml"
 class BasePipeline:
     
     def __init__(self, config={}) -> None:
@@ -26,7 +26,7 @@ class Pipeline(BasePipeline):
         super().__init__(config)
         # TODO: remove the following override
         self._config["output_dir"] = Path("../../artifacts")
-        self._config["window_type"] = "hamming"
+        self._config["window_type"] = None #"hamming"
         os.makedirs(self._config["output_dir"], exist_ok=True)
     
     def run(self, *args, **kwargs):
@@ -74,7 +74,7 @@ class Pipeline(BasePipeline):
     def process_one_sample(self, data):
         proc = PpgSignalProcessor({}) # TODO : use config/ factory
         pulse_detector = PulseDetector()
-        model = MultiparameterSmartFusion2({})
+        model = PROCESSOR_FACTORY.get(self._config["model"])
         
         # params
         #125 # Sampling freq. TODO extract from data
@@ -196,5 +196,12 @@ class Pipeline(BasePipeline):
     
     
 if __name__ == "__main__":
-    p = Pipeline()
+    import yaml
+    config_path = DEFAULT_CONFIG_PATH
+    config_data = None
+    with open(config_path, 'r', encoding="utf-8") as f:
+        config_data = yaml.load(f, Loader=yaml.FullLoader)
+
+    logger.info(f"config = {config_data}")
+    p = Pipeline(config_data)
     p.run()

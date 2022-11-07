@@ -1,5 +1,6 @@
 import scipy
 import matplotlib.pyplot as plt
+import numpy as np
 
 def create_fir(stop1, start1, start2, stop2, fs, lp=False):
     nyq_rate = fs / 2.0

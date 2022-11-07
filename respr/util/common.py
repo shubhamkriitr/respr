@@ -1,4 +1,10 @@
 from datetime import datetime
+from pathlib import Path
+import os
+
+PROJECT_NAME = "respr"
+PROJECT_ROOT = Path(os.path.abspath('')) / PROJECT_NAME
+
 
 def get_timestamp_str(granularity=1000):
     if granularity != 1000:

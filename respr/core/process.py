@@ -5,7 +5,7 @@ from scipy import stats
 from respr.util import logger
 from scipy.fft import fft, fftfreq
 from respr.core.filter import create_fir
-
+from respr.util.common import BaseFactory
 # config keys
 CONF_ELIM_VHF = "eliminate_vhf"
 CONF_FS = "sampling_freq"
@@ -312,6 +312,9 @@ class MultiparameterSmartFusion2(MultiparameterSmartFusion):
         self._plot = False # For debugging only 
     
     def eliminate_non_respiratory_frequencies(self,  signal_, sampling_freq=None):
+        logger.info("Skipping: eliminate_non_respiratory_frequencies ")
+        # FIXME: adjust this function
+        return signal_
         # TODO: Use Kaiser Window Approach
         if sampling_freq is None:
             raise NotImplementedError()
@@ -375,6 +378,13 @@ class PpgSignalProcessor2(PpgSignalProcessor):
         rifv = rifv/np.mean(rifv)
         return rifv, rifv_t
 
+
+COMPONENTS_MAP = {
+    "MultiparameterSmartFusion2": MultiparameterSmartFusion2,
+    "MultiparameterSmartFusion": MultiparameterSmartFusion
+}
+
+PROCESSOR_FACTORY = BaseFactory({"resource_map" : COMPONENTS_MAP})
 if __name__ == "__main__":
     ppgproc = PpgSignalProcessor()
     
