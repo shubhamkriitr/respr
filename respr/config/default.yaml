@@ -1,0 +1,2 @@
+description: "This is a sample config to run the pipeline"
+workdir: "" #relative to `respr` directory
