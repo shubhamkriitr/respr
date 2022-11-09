@@ -12,6 +12,8 @@ from respr.core.pulse import PulseDetector
 import heartpy as hp
 import traceback
 import pandas as pd
+import numpy as np
+
 
 CONF_FEATURE_RESAMPLING_FREQ = 4 # Hz. (for riav/ rifv/ riiv resampling)
 DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config" / "default.yaml"
@@ -230,8 +232,17 @@ class Pipeline(BasePipeline):
     
 class DatasetBuilder:
     def __init__(self, config={}) -> None:
+        self._config = config
         self._config["output_dir"] = Path("../../artifacts")
         os.makedirs(self._config["output_dir"], exist_ok=True)
+        self.buffer = {
+            "x": [],
+            "y": [],
+            "id": []
+        }
+        self.max_buffer_size = 100
+        self.expected_feature_size = None
+        self.zero_padded_record_count = 0
     
     def run(self, *args, **kwargs):
         bidmc_data_adapter = DATA_ADAPTER_FACTORY.get(
@@ -252,15 +263,14 @@ class DatasetBuilder:
             
         # open store
         output_path = self._config["output_dir"] / \
-            f"dataset_{get_timestamp_str}.h5"
-        file_handle = pd.HDFStore(output_file)
+            f"dataset_{get_timestamp_str()}.csv"
 
         for idx, subject_id in enumerate(subject_ids):
 
             logger.info(f"Processing subject#{subject_id}")
             data = bidmc_data_adapter.get(subject_id)
             try:
-                self.process_one_sample(data, file_handle)
+                self.process_one_sample(data)
                 
             except KeyboardInterrupt:
                 logger.error(traceback.format_exc())
@@ -273,7 +283,8 @@ class DatasetBuilder:
         if len(errors) > 0:
             logger.error(errors)
             
-        
+        # save data
+        self.clean_and_close(output_path)
         # save results
         output_file = self._config["output_dir"] / \
             ("output_" + get_timestamp_str() + ".pkl")
@@ -281,7 +292,7 @@ class DatasetBuilder:
             pickle.dump(results, f)
         
         
-    def process_one_sample(self, data, file_handle: pd.HDFStore):
+    def process_one_sample(self, data):
         proc = PpgSignalProcessor({}) # TODO : use config/ factory
         
 
@@ -304,7 +315,7 @@ class DatasetBuilder:
         
         
         window_duration = 32 # in seconds
-        window_step_duration = 1 # second
+        window_step_duration = 16 # second
         window_size = window_duration * fs # in num data points
         window_step = window_step_duration * fs # in num data points
         num_windows = int((signal_length - window_size)//window_step + 1)
@@ -312,6 +323,9 @@ class DatasetBuilder:
         # point of window: from where the ground truth respiratory rate will 
         # be used
         expected_feature_size = window_size
+        
+        if self.expected_feature_size is None:
+            self.expected_feature_size = expected_feature_size
 
         
         for window_idx in range(num_windows):
@@ -338,7 +352,57 @@ class DatasetBuilder:
             if gt_resp is None: # due to possible anomaly
                 continue # do not add estimates to results
             
+            padded_signal_chunk = self.zero_pad(signal_chunk,
+                                                (self.expected_feature_size, ))
+            padded_signal_chunk = np.expand_dims(padded_signal_chunk, 0)
+            record = {
+                "x": padded_signal_chunk,
+                "y": gt_resp,
+                "id": data.get("id")
+            }
+            self.add_record(record)
             
+    def zero_pad(self, signal_chunk, expected_shape):
+        padded = np.zeros(expected_shape)
+        # FIXME: make efficient
+        pad_width = expected_shape[0] - signal_chunk.shape[0]
+        if pad_width == 0:
+            return signal_chunk
+        self.zero_padded_record_count += 1
+        if signal_chunk.shape[0] > expected_shape[0]:
+            return signal_chunk[0:expected_shape[0]]
+        signal_chunk = np.pad(signal_chunk, (pad_width, 0), 
+                              'constant', constant_values=(0, ))
+        
+        return signal_chunk
+    def add_record(self, record):
+        for k in record:
+            self.buffer[k].append(record[k])
+        # if len(self.buffer["y"]) == 5:
+        #     self.clean_and_close("test.csv")
+        
+        
+    
+    def clean_and_close(self, output_path):
+        x = np.concatenate(self.buffer["x"], axis=0)
+        y = np.array(self.buffer["y"])
+        y = np.reshape(y, (len(y), 1))
+        id_ = np.array(self.buffer["id"])
+        id_ = np.reshape(id_, (len(id_), 1))
+        
+        logger.info(f"Zeor padded records: {self.zero_padded_record_count}")
+        logger.info(f"X shape: {x.shape}")
+        
+        
+        
+        df = pd.DataFrame(x, columns=[f"x_{i}" for i in range(x.shape[1])])
+        
+        # x_path = Path(str(output_path) + "_x.csv")
+        df["y"] = y
+        df["id_"] = id_
+        df.to_csv(output_path, index=True)
+        logger.info("Done")
+        
             
 
 if __name__ == "__main__":
@@ -349,7 +413,8 @@ if __name__ == "__main__":
         config_data = yaml.load(f, Loader=yaml.FullLoader)
 
     if config_data["pipeline"]["name"] == "DatasetBuilder":
-        pass
+        p = DatasetBuilder(config_data)
+        p.run()
     else:
         logger.info(f"config = {config_data}")
         p = Pipeline(config_data)
