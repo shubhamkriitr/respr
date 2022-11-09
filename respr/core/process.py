@@ -293,14 +293,23 @@ class MultiparameterSmartFusion(object):
         #>>> plt.show()
         return bpm
 
-    def extract_bpm(self, resp_signal, N, T):
+    def extract_bpm(self, resp_signal, N, T, pad=True):
         
-        x = np.linspace(0.0, N*T, N, endpoint=False)
+        #>>> x = np.linspace(0.0, N*T, N, endpoint=False)
+        if pad:
+            pad_width_l = resp_signal.shape[0]
+            
+            pad_width_r = pad_width_l + pad_width_l % 2
+            
+            resp_signal = np.pad(resp_signal, (pad_width_l, pad_width_r), 
+                              'constant', constant_values=(0, 0))
+            N = resp_signal.shape[0]
+            
         
         y_fft = fft(resp_signal)
         x_fft = fftfreq(N, T)[:N//2]
 
-        print(f" N = {N}/ T = {T}/ x = {x.shape}/ resp = {resp_signal.shape}")
+        print(f" N = {N}/ T = {T}/ / resp = {resp_signal.shape}")
         print(f" x_fft = {x_fft.shape}/ y_fft = {y_fft.shape}")
         
         x_fft_per_min = x_fft *  60
@@ -363,12 +372,12 @@ class MultiparameterSmartFusion2(MultiparameterSmartFusion):
     def eliminate_non_respiratory_frequencies(self,  signal_, sampling_freq=None):
         logger.info("Skipping: eliminate_non_respiratory_frequencies ")
         # FIXME: adjust this function
-        return signal_
+        # return signal_
         # TODO: Use Kaiser Window Approach
         if sampling_freq is None:
             raise NotImplementedError()
 
-        # Bandpass filter signal
+        # Bandpass filter signalb
         cutoff_low = 2/60.0 #using 1bpm / TODO: add to config
         cutoff_high = 36/60.0 # using 36bpm / TODO: add to config
         cutoff_high_start = (36 - 1)/60.0
