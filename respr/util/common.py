@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(os.path.abspath('')) / PROJECT_NAME
 def get_timestamp_str(granularity=1000):
     if granularity != 1000:
         raise NotImplementedError()
-    return datetime.now().strftime("%Y-%m-%d_%H%M%S_")
+    return datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
 def save_yaml(data, file_path):
     with open(file_path, "w") as f:

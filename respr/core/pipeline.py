@@ -113,9 +113,6 @@ class Pipeline(BasePipeline):
         
     def process_one_sample(self, data):
         signal_name = "ppg"
-        proc = PpgSignalProcessor({}) # TODO : use config/ factory
-        pulse_detector = PulseDetector()
-        model = PROCESSOR_FACTORY.get(self._config["model"])
         
         # params
         #125 # Sampling freq. TODO extract from data
@@ -148,6 +145,8 @@ class Pipeline(BasePipeline):
         
         
         results = self.create_new_results_container()
+        context = self.create_new_context()
+        proc = context["signal_processor"]
         
         for window_idx in range(num_windows):
             
@@ -179,7 +178,7 @@ class Pipeline(BasePipeline):
                     t_start=t_start, t_end=t_end)
 
             rr_results = self.get_respiratory_rate(
-                data, proc, pulse_detector, model, fs, offset, end_)
+                data, context, fs, offset, end_)
             
             if gt_resp is None: # due to possible anomaly
                 continue # do not add estimates to results
@@ -193,6 +192,20 @@ class Pipeline(BasePipeline):
         
         return results
 
+    def create_new_context(self):
+        # TODO: make reusable objects shared for all the runs
+        proc = PpgSignalProcessor({}) # TODO : use config/ factory
+        pulse_detector = PulseDetector()
+        model = PROCESSOR_FACTORY.get(self._config["model"])
+        
+        context = {
+            "signal_processor": proc,
+            "pulse_detector": pulse_detector,
+            "model": model
+        }
+        
+        return context
+    
     def create_new_results_container(self):
         results = {
             "window_idx": [],
@@ -228,7 +241,11 @@ class Pipeline(BasePipeline):
         
         return results_container
 
-    def get_respiratory_rate(self, data, proc, pulse_detector, model, fs, offset, end_):
+    def get_respiratory_rate(self, data, context, fs, offset, end_):
+        
+        proc, pulse_detector, model = context["signal_processor"],\
+            context["pulse_detector"], context["model"]
+        
         re_riav, re_riiv, re_rifv = self.extract_respiratory_signal(
             data, proc, pulse_detector, fs, offset, end_)
         
