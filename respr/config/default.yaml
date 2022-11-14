@@ -4,7 +4,8 @@ pipeline:
   name: null
 instructions:
   sample_index_offset: 2
-  num_samples_to_process: null # if None then all samples are processed
+  num_samples_to_process: null # if None then all samples are processed and
+  # `sample_idx_offset` is ignore (not used)
   exclude_artifacts: True
   
 model:
