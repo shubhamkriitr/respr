@@ -147,21 +147,7 @@ class Pipeline(BasePipeline):
         # be used
         
         
-        results = {
-            "window_idx": [],
-            "offset": [],
-            "end_": [],
-            "t": [], # time elapsed from the start (of the signal) in `s`
-            # corresponding to gt_idx
-            "gt_idx" : [],
-            "gt" : [],
-            "rr_est_riav": [],
-            "rr_est_riiv": [],
-            "rr_est_rifv": [],
-            "rr_fused": [],
-            "rr_fused_valid": [],
-            
-        }
+        results = self.create_new_results_container()
         
         for window_idx in range(num_windows):
             
@@ -192,8 +178,7 @@ class Pipeline(BasePipeline):
                     reference_rr=gt_resp_full, timestamps=gt_resp_timestamps,
                     t_start=t_start, t_end=t_end)
 
-            rr_est_riav, rr_est_riiv, rr_est_rifv, rr_fused, rr_fused_valid\
-                = self.get_respiratory_rate(
+            rr_results = self.get_respiratory_rate(
                 data, proc, pulse_detector, model, fs, offset, end_)
             
             if gt_resp is None: # due to possible anomaly
@@ -204,15 +189,79 @@ class Pipeline(BasePipeline):
             results["t"].append(t)
             results["gt_idx"].append(gt_resp_idx)
             results["gt"].append(gt_resp)
-            results["rr_est_riav"].append(rr_est_riav)
-            results["rr_est_riiv"].append(rr_est_riiv)
-            results["rr_est_rifv"].append(rr_est_rifv)
-            results["rr_fused"].append(rr_fused)
-            results["rr_fused_valid"].append(rr_fused_valid)
+            self.append_results(results, rr_results)
         
         return results
 
+    def create_new_results_container(self):
+        results = {
+            "window_idx": [],
+            "offset": [],
+            "end_": [],
+            "t": [], # time elapsed from the start (of the signal) in `s`
+            # corresponding to gt_idx
+            "gt_idx" : [],
+            "gt" : [],
+            "rr_est_riav": [],
+            "rr_est_riiv": [],
+            "rr_est_rifv": [],
+            "rr_fused": [],
+            "rr_fused_valid": [],
+        }
+        
+        return results
+
+    def append_results(self, results_container, new_results):
+        last_number_of_records = None
+        for k in new_results:
+            if k in results_container:
+                n = len(results_container[k])
+                if last_number_of_records is None:
+                    last_number_of_records = len(results_container[k])
+                if last_number_of_records != n:
+                    raise AssertionError(f"Number of records mismatch. "
+                            f"expected {last_number_of_records} , but for "
+                            f" key {k} the number of records is {n}")
+                results_container[k].append(new_results[k])
+            else:
+                logger.warning(f"Key {k} was not expected")
+        
+        return results_container
+
     def get_respiratory_rate(self, data, proc, pulse_detector, model, fs, offset, end_):
+        re_riav, re_riiv, re_rifv = self.extract_respiratory_signal(
+            data, proc, pulse_detector, fs, offset, end_)
+        
+        rr_est_riav = model.estimate_respiratory_rate(
+            re_riav, CONF_FEATURE_RESAMPLING_FREQ, detrend=False,
+            window_type=self._config["window_type"])
+        rr_est_riiv = model.estimate_respiratory_rate(
+            re_riiv, CONF_FEATURE_RESAMPLING_FREQ, detrend=False,
+            window_type=self._config["window_type"])
+        rr_est_rifv = model.estimate_respiratory_rate(
+            re_rifv, CONF_FEATURE_RESAMPLING_FREQ, detrend=False,
+            window_type=self._config["window_type"])
+        
+        logger.info([rr_est_riav, rr_est_riiv, rr_est_rifv])
+        
+        #>>> {
+        #>>>     "rr_est_riav":  rr_est_riav,
+        #>>>     "rr_est_riiv": rr_est_riiv,
+        #>>>     "rr_est_rifv": rr_est_rifv
+        #>>> }
+        rr_fused, is_valid = model.fuse_rr_estimates(
+            rr_est_riav, rr_est_rifv, rr_est_riiv)
+        
+        results = {
+            "rr_est_riav": rr_est_riav,
+            "rr_est_riiv": rr_est_riiv,
+            "rr_est_rifv": rr_est_rifv,
+            "rr_fused": rr_fused,
+            "rr_fused_valid": is_valid
+        }
+        return results
+
+    def extract_respiratory_signal(self, data, proc, pulse_detector, fs, offset, end_):
         ppg = data.get("signals/ppg")
         filtered_signal = proc.eliminate_very_high_freq(ppg)
         signal_chunk = filtered_signal[offset:end_]
@@ -235,27 +284,8 @@ class Pipeline(BasePipeline):
                                              CONF_FEATURE_RESAMPLING_FREQ)
         re_rifv, re_rifv_t = proc.resample(rifv, rifv_t,
                                              CONF_FEATURE_RESAMPLING_FREQ)
-        
-        rr_est_riav = model.estimate_respiratory_rate(
-            re_riav, CONF_FEATURE_RESAMPLING_FREQ, detrend=False,
-            window_type=self._config["window_type"])
-        rr_est_riiv = model.estimate_respiratory_rate(
-            re_riiv, CONF_FEATURE_RESAMPLING_FREQ, detrend=False,
-            window_type=self._config["window_type"])
-        rr_est_rifv = model.estimate_respiratory_rate(
-            re_rifv, CONF_FEATURE_RESAMPLING_FREQ, detrend=False,
-            window_type=self._config["window_type"])
-        
-        logger.info([rr_est_riav, rr_est_riiv, rr_est_rifv])
-        
-        #>>> {
-        #>>>     "rr_est_riav":  rr_est_riav,
-        #>>>     "rr_est_riiv": rr_est_riiv,
-        #>>>     "rr_est_rifv": rr_est_rifv
-        #>>> }
-        rr_fused, is_valid = model.fuse_rr_estimates(
-            rr_est_riav, rr_est_rifv, rr_est_riiv)
-        return rr_est_riav, rr_est_riiv, rr_est_rifv, rr_fused, is_valid
+                                             
+        return re_riav,re_riiv,re_rifv
         
         
         
