@@ -5,7 +5,7 @@ pipeline:
 instructions:
   sample_index_offset: 2
   num_samples_to_process: null # if None then all samples are processed
-  exclude_artifacts: False
+  exclude_artifacts: True
   
 model:
   name: "MultiparameterSmartFusion"
