@@ -22,13 +22,6 @@ class BasePipeline:
     
     def __init__(self, config={}) -> None:
         self._config = config
-    
-    def run(self, *args, **kwargs):
-        pass
-    
-class Pipeline(BasePipeline):
-    def __init__(self, config={}) -> None:
-        super().__init__(config)
         # TODO: remove the following override
         self.creation_time = get_timestamp_str()
         self._config["output_dir"] = Path("../../artifacts")
@@ -37,6 +30,25 @@ class Pipeline(BasePipeline):
         self.root_output_dir = self._config["output_dir"]
         self.output_dir = self.root_output_dir / self.creation_time
         os.makedirs(self.output_dir, exist_ok=False)
+        self._log_path = self.output_dir / f"{self.creation_time}_logs.log"
+        self._log_sink = logger.add(self._log_path)
+        
+        
+    
+    def run(self, *args, **kwargs):
+        pass
+    
+    def close(self):
+        #clean up
+        self._close_log_sink()
+    
+    def _close_log_sink(self):
+        logger.remove(self._log_sink)
+    
+class Pipeline(BasePipeline):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+        
         
         self._config["window_type"] = "hamming"
         self._instructions = self._config["instructions"]
@@ -94,6 +106,9 @@ class Pipeline(BasePipeline):
             ("output_" + get_timestamp_str() + ".pkl")
         with open(output_file, "wb") as f:
             pickle.dump(results, f)
+        
+        # close the pipeline properly
+        self.close()
         
         
     def process_one_sample(self, data):
