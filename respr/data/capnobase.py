@@ -23,7 +23,7 @@ CAPNOBASE_DATASET_MAT_DIR = DATASET_DIR / "capnobase-dataverse" \
                         / "data" / "mat"
 
 logger.info(f"CAPNOBASE_DATASET_CSV_DIR:  {CAPNOBASE_DATASET_CSV_DIR}")
-
+INT_DTYPE = np.int32
 
 class CapnobaseDataAdapter(BaseDataAdapter):
     
@@ -156,7 +156,8 @@ class CapnobaseMatDataAdapter(CapnobaseDataAdapter):
         # respiratory signals (based on capnometry data)
         rr_timestamp = np.array(f['reference']['rr']['co2']['x'])[:, 0]
         rr_value = np.array(f['reference']['rr']['co2']['y'])[:, 0]
-        ppg_artifacts_time_chunks = None
+        ppg_artifacts_time_chunks, ppg_has_artifacts = \
+            self._extract_artifacts(f, timesteps=t) 
         
         data_std = {
             "id": id_,
@@ -168,6 +169,10 @@ class CapnobaseMatDataAdapter(CapnobaseDataAdapter):
                 "ppg_peak_time_index": ppg_peak_x, # currently not in use 
                 "ppg": t,
                 "gt_resp": rr_timestamp,
+                #PPG artifacts timings are stored as 
+                #[start_1, end_1, start_2, end_2....]
+                # start_i and end_i are start and end times of the 
+                # artifact chunks
                 "ppg_artifacts": ppg_artifacts_time_chunks
             },
             "_metadata": {
@@ -179,7 +184,7 @@ class CapnobaseMatDataAdapter(CapnobaseDataAdapter):
                         "t_is_uniform": True, # indicates if signal is 
                         # uniformly sampled everywhere
                         "t_includes_start": True, # if the sample includes 
-                        "has_artifacts": False,
+                        "has_artifacts": ppg_has_artifacts,
                         "artifacts_loc": "time/ppg_artifacts"
                         # signal value st t=0
                     },
@@ -195,6 +200,32 @@ class CapnobaseMatDataAdapter(CapnobaseDataAdapter):
         }
         
         return StandardDataRecord(data_std)
+    
+    
+    def _extract_artifacts(self, file_handle, timesteps):
+        ppg_artifacts_time_indices =\
+            file_handle['labels']['pleth']['artif']['x'][:]
+        ppg_artifacts_time_indices =  ppg_artifacts_time_indices.astype(
+            INT_DTYPE
+        )
+        
+        artifacts_timestep_chunk = None
+        has_artifacts = False
+        
+        # this is for no artifacts case
+        if len(ppg_artifacts_time_indices.shape) == 1:
+            if not np.all( ppg_artifacts_time_indices == 0):
+                logger.warning(f"Unexpected format")
+            if ppg_artifacts_time_indices.shape[0] != 2:
+                logger.warning(f"Unexpected shape")
+            return artifacts_timestep_chunk, has_artifacts
+            
+        ppg_artifacts_time_indices = np.ravel(ppg_artifacts_time_indices)
+        has_artifacts = True
+        artifacts_timestep_chunk = timesteps[ppg_artifacts_time_indices]
+        
+        return artifacts_timestep_chunk, has_artifacts
+            
         
     def get(self, id_):
         return self._load_data(id_)
