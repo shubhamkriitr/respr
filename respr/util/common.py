@@ -1,6 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 import os
+import yaml
 
 PROJECT_NAME = "respr"
 PROJECT_ROOT = Path(os.path.abspath('')) / PROJECT_NAME
@@ -11,6 +12,9 @@ def get_timestamp_str(granularity=1000):
         raise NotImplementedError()
     return datetime.now().strftime("%Y-%m-%d_%H%M%S_")
 
+def save_yaml(data, file_path):
+    with open(file_path, "w") as f:
+        yaml.dump(data, f)
 class BaseFactory(object):
     def __init__(self, config=None) -> None:
         self.config = {} if config is None else config 

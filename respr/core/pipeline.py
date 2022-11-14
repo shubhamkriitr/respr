@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import yaml
 import json
+import respr.util.common as cutl
 from respr.util import logger
 from respr.util.common import (get_timestamp_str, PROJECT_ROOT)
 import pickle
@@ -39,6 +40,8 @@ class Pipeline(BasePipeline):
         
         self._config["window_type"] = "hamming"
         self._instructions = self._config["instructions"]
+        
+        cutl.save_yaml(self._config, self.output_dir/"config.yaml")
     
     def run(self, *args, **kwargs):
         # bidmc_data_adapter = BidmcDataAdapter(
@@ -74,7 +77,7 @@ class Pipeline(BasePipeline):
                     "output": output
                     
                 })
-            except KeyboardInterrupt:
+            except Exception:
                 logger.error(traceback.format_exc())
                 errors.append({
                     "idx": idx,
@@ -87,7 +90,7 @@ class Pipeline(BasePipeline):
             
         
         # save results
-        output_file = self._config["output_dir"] / \
+        output_file = self.output_dir/ \
             ("output_" + get_timestamp_str() + ".pkl")
         with open(output_file, "wb") as f:
             pickle.dump(results, f)
