@@ -221,6 +221,10 @@ class CapnobaseMatDataAdapter(CapnobaseDataAdapter):
             return artifacts_timestep_chunk, has_artifacts
             
         ppg_artifacts_time_indices = np.ravel(ppg_artifacts_time_indices)
+        
+        # make index start from zero (in the raw dataset index is assumed to 
+        # start from 1)
+        ppg_artifacts_time_indices = ppg_artifacts_time_indices - 1
         has_artifacts = True
         artifacts_timestep_chunk = timesteps[ppg_artifacts_time_indices]
         
