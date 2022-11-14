@@ -12,7 +12,9 @@ model:
   name: "MultiparameterSmartFusion"
   args: []
   kwargs:
-    config: {}
+    config:
+      resp_rate_cutoff_high: 90 # in breaths per min. Used for removing non-respiratory frequencies
+      resp_rate_cutoff_low: 2
 data_adapter:
   name: "CapnobaseMatDataAdapter"
   args: []

@@ -318,10 +318,7 @@ import matplotlib.pyplot as plt
 class MultiparameterSmartFusion(object):
     
     def __init__(self, config):
-        # TODO: remove this override
-        self._config = {
-            ""
-        }
+        self._config = config
 
     def extract_riav(self):
         pass
@@ -404,8 +401,8 @@ class MultiparameterSmartFusion(object):
             raise NotImplementedError()
 
         # Bandpass filter signal
-        cutoff_low = 2/60.0 #using 1bpm / TODO: add to config
-        cutoff_high = 36/60.0 # using 36bpm / TODO: add to config
+        cutoff_low = self._config["resp_rate_cutoff_low"]/60.0
+        cutoff_high = self._config["resp_rate_cutoff_high"]/60.0
         
         [b, a] = butter(5, [cutoff_low / sampling_freq * 2, cutoff_high / sampling_freq * 2],
                         btype='bandpass', analog=False)
