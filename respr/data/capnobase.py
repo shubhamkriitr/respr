@@ -156,6 +156,7 @@ class CapnobaseMatDataAdapter(CapnobaseDataAdapter):
         # respiratory signals (based on capnometry data)
         rr_timestamp = np.array(f['reference']['rr']['co2']['x'])[:, 0]
         rr_value = np.array(f['reference']['rr']['co2']['y'])[:, 0]
+        ppg_artifacts_time_chunks = None
         
         data_std = {
             "id": id_,
@@ -166,7 +167,8 @@ class CapnobaseMatDataAdapter(CapnobaseDataAdapter):
             "time":{
                 "ppg_peak_time_index": ppg_peak_x, # currently not in use 
                 "ppg": t,
-                "gt_resp": rr_timestamp
+                "gt_resp": rr_timestamp,
+                "ppg_artifacts": ppg_artifacts_time_chunks
             },
             "_metadata": {
                 "signals":{
@@ -176,7 +178,9 @@ class CapnobaseMatDataAdapter(CapnobaseDataAdapter):
                         "t_loc" : "time/ppg",
                         "t_is_uniform": True, # indicates if signal is 
                         # uniformly sampled everywhere
-                        "t_includes_start": True # if the sample includes 
+                        "t_includes_start": True, # if the sample includes 
+                        "has_artifacts": False,
+                        "artifacts_loc": "time/ppg_artifacts"
                         # signal value st t=0
                     },
                     "gt_resp": {
