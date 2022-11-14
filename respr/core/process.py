@@ -10,7 +10,7 @@ from respr.util.common import BaseFactory
 CONF_ELIM_VHF = "eliminate_vhf"
 CONF_FS = "sampling_freq"
 CONF_CUTOFF_HIGH = "cutoff_high"
-
+from respr.data.base import StandardDataRecord, DATAKEYS
 
 
 class BasePpgSignalProcessor:
@@ -251,6 +251,64 @@ class PpgSignalProcessor(BasePpgSignalProcessor):
         
         # TODO: may also return aprox. timestamp
         return y_overall
+    
+    def check_if_chunk_has_artifacts(self, data: StandardDataRecord,
+                                     start_time, end_time, signal_name="ppg"):
+        # TODO: doc string
+        """_summary_
+
+        Args:
+            data (StandardDataRecord): current signal data record
+            start_time (float): start time of the window (chunk)
+            end_time (float): end time of the window (chunk)
+
+        Raises:
+            NotImplementedError: _description_
+            NotImplementedError: _description_
+
+        Returns:
+            _type_: _description_
+        """
+        meta_key = f"{DATAKEYS.META}/{DATAKEYS.SIG}/{signal_name}"
+        meta = data.get(meta_key)
+        if DATAKEYS.HAS_ARTIFACTS in meta:
+            if not meta[DATAKEYS.HAS_ARTIFACTS]:
+                return False
+        else:
+            return False
+                
+        # case: signal has artifacts 
+        # check if the queried chunk has artifacts
+        artifact_key = data.get(f"{meta_key}/{DATAKEYS.AF_LOC}")
+        artifact_times = data.get(artifact_key)
+        
+        assert artifact_times.shape[0] % 2 == 0 #even num. of elements expected
+        
+        # init
+        artifact_start_times = [] # in sec
+        artifact_end_times = [] # in sec
+        has_artifact_in_this_chunk = False
+        
+        idx = 0
+
+        while idx < artifact_times.shape[0]-1:
+            current_start_time = artifact_times[idx]
+            current_end_time = artifact_times[idx + 1]
+            if not ((end_time < current_start_time) 
+                    or (start_time > current_end_time)):
+                artifact_start_times.append(current_start_time)
+                artifact_end_times.append(current_end_time)
+            idx += 2
+
+        if len(artifact_start_times) > 0:
+            has_artifact_in_this_chunk = True
+            artifact_start_times[0] = max(artifact_start_times[0], start_time)
+            artifact_end_times[-1] = min(artifact_end_times[-1], end_time)
+            
+            
+        # TODO: may also compute and return fraction of the chunk 
+        # that is artifact
+        return has_artifact_in_this_chunk
         
             
 

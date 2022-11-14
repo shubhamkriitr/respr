@@ -32,6 +32,7 @@ class Pipeline(BasePipeline):
         self._config["output_dir"] = Path("../../artifacts")
         self._config["window_type"] = "hamming"
         os.makedirs(self._config["output_dir"], exist_ok=True)
+        self._instructions = self._config["instructions"]
     
     def run(self, *args, **kwargs):
         # bidmc_data_adapter = BidmcDataAdapter(
@@ -87,6 +88,7 @@ class Pipeline(BasePipeline):
         
         
     def process_one_sample(self, data):
+        signal_name = "ppg"
         proc = PpgSignalProcessor({}) # TODO : use config/ factory
         pulse_detector = PulseDetector()
         model = PROCESSOR_FACTORY.get(self._config["model"])
@@ -145,6 +147,16 @@ class Pipeline(BasePipeline):
             t_start = offset * 1/fs
             t_end = end_ * 1/fs
             t = ((offset + end_)//2) * 1/fs
+            
+            # CHECK artifacts 
+            if self._instructions["exclude_artifacts"]:
+                has_artifacts = proc.check_if_chunk_has_artifacts(
+                    data, start_time=t_start, end_time=t_end,
+                    signal_name=signal_name
+                )
+                if has_artifacts:
+                    # ignore chunks with artifacts
+                    continue
             
             if resp_fs is not None:
                 gt_resp_idx = int(t * resp_fs)

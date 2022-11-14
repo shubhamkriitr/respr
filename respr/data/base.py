@@ -1,6 +1,16 @@
 import numpy as np
+from dataclasses import dataclass
 SIGNAL_DTYPE = np.float64
 
+@dataclass(frozen=True)
+class DATAKEYS:
+    HAS_ARTIFACTS = "has_artifacts"
+    SIG = "signals"
+    PPG = "ppg"
+    TIME = "time"
+    HAS_TS = "has_timestamps"
+    META = "_metadata"
+    AF_LOC = "artifacts_loc"
 class BaseDataAdapter:
     
     def __init__(self, config):
@@ -35,7 +45,11 @@ class StandardDataRecord:
         
     
     def get(self, key = ""):
-        value = self._data
+        value = self.extract(self._data, key)
+        return value
+    
+    def extract(self, root, key):
+        value = root
         for k in key.split("/"):
             value = value[k]
         return value
