@@ -29,9 +29,15 @@ class Pipeline(BasePipeline):
     def __init__(self, config={}) -> None:
         super().__init__(config)
         # TODO: remove the following override
+        self.creation_time = get_timestamp_str()
         self._config["output_dir"] = Path("../../artifacts")
-        self._config["window_type"] = "hamming"
         os.makedirs(self._config["output_dir"], exist_ok=True)
+        
+        self.root_output_dir = self._config["output_dir"]
+        self.output_dir = self.root_output_dir / self.creation_time
+        os.makedirs(self.output_dir, exist_ok=False)
+        
+        self._config["window_type"] = "hamming"
         self._instructions = self._config["instructions"]
     
     def run(self, *args, **kwargs):
