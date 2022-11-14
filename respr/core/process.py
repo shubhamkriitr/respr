@@ -242,7 +242,7 @@ class PpgSignalProcessor(BasePpgSignalProcessor):
             if np.isnan(y_overall):
                 logger.warning(f"nan encountered : [{start_idx}, {end_idx})")
                 return None
-            if y_overall > 40:
+            if y_overall > 120:
                 logger.warning(
                     f"Possible anomaly: rr > 40: [{start_idx}, {end_idx})")
                 return None
