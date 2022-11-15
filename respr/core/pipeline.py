@@ -614,6 +614,7 @@ if __name__ == "__main__":
     with open(config_path, 'r', encoding="utf-8") as f:
         config_data = yaml.load(f, Loader=yaml.FullLoader)
     pipeline_name = config_data["pipeline"]["name"]
+    logger.info(f"Using pipeline: {pipeline_name}")
     if pipeline_name is None:
         pipeline_name = DEFAULT_PIPELINE
     pipeline_class = REGISTERED_PIPELINES[pipeline_name]
