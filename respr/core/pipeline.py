@@ -146,6 +146,8 @@ class Pipeline(BasePipeline):
         
         results = self.create_new_results_container()
         context = self.create_new_context()
+        
+        self.apply_preprocessing_on_whole_signal(data=data, context=context)
         proc = context["signal_processor"]
         
         for window_idx in range(num_windows):
@@ -177,7 +179,7 @@ class Pipeline(BasePipeline):
                     reference_rr=gt_resp_full, timestamps=gt_resp_timestamps,
                     t_start=t_start, t_end=t_end)
 
-            rr_results = self.get_respiratory_rate(
+            rr_results = self.process_one_signal_window(
                 data, context, fs, offset, end_)
             
             if gt_resp is None: # due to possible anomaly
@@ -241,7 +243,7 @@ class Pipeline(BasePipeline):
         
         return results_container
 
-    def get_respiratory_rate(self, data, context, fs, offset, end_):
+    def process_one_signal_window(self, data, context, fs, offset, end_):
         
         proc, pulse_detector, model = context["signal_processor"],\
             context["pulse_detector"], context["model"]
@@ -305,13 +307,34 @@ class Pipeline(BasePipeline):
         return re_riav,re_riiv,re_rifv
         
         
-        
+    def apply_preprocessing_on_whole_signal(self, data, context):
+        """Transformations that are supposed to be done before the signal
+        is processed window by window. Modifies `context`."""
+        return context
     
     def accumulate_results(self, new_result, results_container):
         pass
     
     def summarize_results(self, result_container):
         pass
+
+
+class Pipeline2(Pipeline):
+    def __init__(self, config={}) -> None:
+        """Pipeline to extract respiratory signals RIAV, RIFV and RIIV
+        for the whole signal before analysing it window by window"""
+        super().__init__(config)
+    
+    
+    def process_one_signal_window(self, data, context, fs, offset, end_):
+        pass
+    
+    def apply_preprocessing_on_whole_signal(self, data, context):
+        
+        ppg = data.get("signals/ppg")
+        raise NotImplementedError()
+        
+    
     
 class DatasetBuilder:
     def __init__(self, config={}) -> None:
@@ -486,19 +509,23 @@ class DatasetBuilder:
         df.to_csv(output_path, index=True)
         logger.info("Done")
         
-            
+        
+REGISTERED_PIPELINES = {
+    "Pipeline": Pipeline,
+    "Pipeline2": Pipeline2,
+    "DatasetBuilder": DatasetBuilder
+}  
 
 if __name__ == "__main__":
     import yaml
+    DEFAULT_PIPELINE = "Pipeline"
     config_path = DEFAULT_CONFIG_PATH
     config_data = None
     with open(config_path, 'r', encoding="utf-8") as f:
         config_data = yaml.load(f, Loader=yaml.FullLoader)
-
-    if config_data["pipeline"]["name"] == "DatasetBuilder":
-        p = DatasetBuilder(config_data)
-        p.run()
-    else:
-        logger.info(f"config = {config_data}")
-        p = Pipeline(config_data)
-        p.run()
+    pipeline_name = config_data["pipeline"]["name"]
+    if pipeline_name is None:
+        pipeline_name = DEFAULT_PIPELINE
+    pipeline_class = REGISTERED_PIPELINES[pipeline_name]
+    p = pipeline_class(config_data)
+    p.run()
