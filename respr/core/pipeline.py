@@ -375,8 +375,8 @@ class Pipeline2(Pipeline):
         proc, pulse_detector, model = context["signal_processor"],\
             context["pulse_detector"], context["model"]
         
-        re_riav, re_riiv, re_rifv = self.extract_respiratory_signal(
-            data, proc, pulse_detector, fs, offset, end_)
+        re_riav, re_riiv, re_rifv = self._get_induced_signal_chunk(
+            data, context, fs, offset, end_)
         
         rr_est_riav = model.estimate_respiratory_rate(
             re_riav, CONF_FEATURE_RESAMPLING_FREQ, detrend=False,
@@ -403,8 +403,28 @@ class Pipeline2(Pipeline):
         }
         return results
         
+    def _get_induced_signal_chunk(self, data, context, fs, offset, end_):
+        re_riav = context["ppg_riav"]
+        re_rifv = context["ppg_rifv"]
+        re_riiv = context["ppg_riiv"]
         
+        idx_start = offset*(CONF_FEATURE_RESAMPLING_FREQ/fs)
+        idx_end = end_*(CONF_FEATURE_RESAMPLING_FREQ/fs)
     
+        idx_start = np.floor(idx_start).astype(int)
+        idx_end = np.ceil(idx_end).astype(int)
+        idx_start = max(0, idx_start)
+        idx_end = min(idx_end, re_riav.shape[0])
+        
+        re_riav_chunk = re_riav[idx_start:idx_end]
+        re_rifv_chunk = re_rifv[idx_start:idx_end]
+        re_riiv_chunk = re_riiv[idx_start:idx_end]
+        
+        
+        return re_riav_chunk, re_riiv_chunk, re_rifv_chunk
+        
+        
+        
     
 class DatasetBuilder:
     def __init__(self, config={}) -> None:
