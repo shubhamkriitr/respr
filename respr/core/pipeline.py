@@ -298,11 +298,11 @@ class Pipeline(BasePipeline):
                                          new_troughlist, None)
         
         re_riav, re_riav_t = proc.resample(riav, riav_t,
-                                             CONF_FEATURE_RESAMPLING_FREQ)
+                                        CONF_FEATURE_RESAMPLING_FREQ, None)
         re_riiv, re_riiv_t = proc.resample(riiv, riiv_t,
-                                             CONF_FEATURE_RESAMPLING_FREQ)
+                                        CONF_FEATURE_RESAMPLING_FREQ, None)
         re_rifv, re_rifv_t = proc.resample(rifv, rifv_t,
-                                             CONF_FEATURE_RESAMPLING_FREQ)
+                                        CONF_FEATURE_RESAMPLING_FREQ, None)
                                              
         return re_riav,re_riiv,re_rifv
         
@@ -332,7 +332,33 @@ class Pipeline2(Pipeline):
     def apply_preprocessing_on_whole_signal(self, data, context):
         
         ppg = data.get("signals/ppg")
-        raise NotImplementedError()
+        fs = data.get("_metadata/signals/ppg/fs")
+        offset = 0
+        end_ = ppg.shape[0] # end_ index in exclusive
+        proc, pulse_detector, model = context["signal_processor"],\
+            context["pulse_detector"], context["model"]
+        re_riav,re_riiv,re_rifv = self.extract_respiratory_signal(
+            data, proc, pulse_detector, fs, offset, end_)
+        
+        context["ppg_riav"] = re_riav
+        context["ppg_rifv"] = re_rifv
+        context["ppg_riiv"] = re_riiv
+        
+        return context
+    
+    def zero_pad_signal(self, signal_, t_, size_after_padding: int):
+        """_summary_
+
+        Args:
+            signal_ (_type_): signal values
+            t_ (_type_): corresponding time stamps
+            size_after_padding (int): expected output size
+
+        Returns:
+            _type_: _description_
+        """
+        pass
+        
         
     
     

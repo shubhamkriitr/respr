@@ -122,10 +122,26 @@ class PpgSignalProcessor(BasePpgSignalProcessor):
         return rifv, rifv_t
     
     
-    def resample(self, signal_data, timesteps, output_sampling_freq):
-        time_interval = timesteps[-1] - timesteps[0]
-        num_points = round(time_interval * output_sampling_freq) + 1
-        logger.debug(f"num_points={num_points} / freq: {output_sampling_freq}")
+    def resample(self, signal_data, timesteps, output_sampling_freq, number_of_points):
+        """_summary_
+
+        Args:
+            signal_data (_type_): _description_
+            timesteps (_type_): _description_
+            output_sampling_freq (_type_): Resampling frequency. (this argument
+                is not used if `number_of_points` is provided)
+            number_of_points (_type_): number of points expected in output.
+                (It takes precedence over `output_sampling_freq`)
+
+        Returns:
+            _type_: _description_
+        """
+        if number_of_points is None:
+            time_interval = timesteps[-1] - timesteps[0]
+            num_points = round(time_interval * output_sampling_freq) + 1
+            logger.debug(f"num_points={num_points} / freq: {output_sampling_freq}")
+        else:
+            num_points = number_of_points
         resampled_signal, new_timesteps = scipy.signal.resample(
                                             x=signal_data, num=num_points,
                                             t=timesteps)
