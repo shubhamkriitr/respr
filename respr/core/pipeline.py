@@ -297,13 +297,19 @@ class Pipeline(BasePipeline):
         riiv, riiv_t = proc.extract_riiv(signal_chunk, timesteps, new_peaklist,
                                          new_troughlist, None)
         
+        re_riav, re_riiv, re_rifv = self.resample_resp_induced_signals(
+            proc, riav, riav_t, rifv, rifv_t, riiv, riiv_t)
+                                             
+        return re_riav,re_riiv,re_rifv
+
+    def resample_resp_induced_signals(self, proc, riav, riav_t, rifv, rifv_t, riiv, riiv_t):
         re_riav, re_riav_t = proc.resample(riav, riav_t,
                                         CONF_FEATURE_RESAMPLING_FREQ, None)
         re_riiv, re_riiv_t = proc.resample(riiv, riiv_t,
                                         CONF_FEATURE_RESAMPLING_FREQ, None)
         re_rifv, re_rifv_t = proc.resample(rifv, rifv_t,
                                         CONF_FEATURE_RESAMPLING_FREQ, None)
-                                             
+                                        
         return re_riav,re_riiv,re_rifv
         
         
