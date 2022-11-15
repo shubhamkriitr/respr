@@ -369,6 +369,39 @@ class Pipeline2(Pipeline):
                                         None, expected_length)
                                         
         return re_riav,re_riiv,re_rifv
+    
+    def process_one_signal_window(self, data, context, fs, offset, end_):
+        
+        proc, pulse_detector, model = context["signal_processor"],\
+            context["pulse_detector"], context["model"]
+        
+        re_riav, re_riiv, re_rifv = self.extract_respiratory_signal(
+            data, proc, pulse_detector, fs, offset, end_)
+        
+        rr_est_riav = model.estimate_respiratory_rate(
+            re_riav, CONF_FEATURE_RESAMPLING_FREQ, detrend=False,
+            window_type=self._config["window_type"])
+        rr_est_riiv = model.estimate_respiratory_rate(
+            re_riiv, CONF_FEATURE_RESAMPLING_FREQ, detrend=False,
+            window_type=self._config["window_type"])
+        rr_est_rifv = model.estimate_respiratory_rate(
+            re_rifv, CONF_FEATURE_RESAMPLING_FREQ, detrend=False,
+            window_type=self._config["window_type"])
+        
+        logger.info([rr_est_riav, rr_est_riiv, rr_est_rifv])
+        
+        
+        rr_fused, is_valid = model.fuse_rr_estimates(
+            rr_est_riav, rr_est_rifv, rr_est_riiv)
+        
+        results = {
+            "rr_est_riav": rr_est_riav,
+            "rr_est_riiv": rr_est_riiv,
+            "rr_est_rifv": rr_est_rifv,
+            "rr_fused": rr_fused,
+            "rr_fused_valid": is_valid
+        }
+        return results
         
         
     
