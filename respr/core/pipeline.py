@@ -297,12 +297,18 @@ class Pipeline(BasePipeline):
         riiv, riiv_t = proc.extract_riiv(signal_chunk, timesteps, new_peaklist,
                                          new_troughlist, None)
         
+        resp_signals_and_times = [riav, riav_t, rifv, rifv_t, riiv, riiv_t]
+        
+        expected_length = np.ceil(
+            (end_ - offset)*CONF_FEATURE_RESAMPLING_FREQ/fs).astype(int)
         re_riav, re_riiv, re_rifv = self.resample_resp_induced_signals(
-            proc, riav, riav_t, rifv, rifv_t, riiv, riiv_t)
+            proc, resp_signals_and_times, expected_length)
                                              
         return re_riav,re_riiv,re_rifv
 
-    def resample_resp_induced_signals(self, proc, riav, riav_t, rifv, rifv_t, riiv, riiv_t):
+    def resample_resp_induced_signals(self, proc, resp_signals_and_times,
+                                      expected_length):
+        riav, riav_t, rifv, rifv_t, riiv, riiv_t = resp_signals_and_times
         re_riav, re_riav_t = proc.resample(riav, riav_t,
                                         CONF_FEATURE_RESAMPLING_FREQ, None)
         re_riiv, re_riiv_t = proc.resample(riiv, riiv_t,
@@ -352,18 +358,17 @@ class Pipeline2(Pipeline):
         
         return context
     
-    def zero_pad_signal(self, signal_, t_, size_after_padding: int):
-        """_summary_
-
-        Args:
-            signal_ (_type_): signal values
-            t_ (_type_): corresponding time stamps
-            size_after_padding (int): expected output size
-
-        Returns:
-            _type_: _description_
-        """
-        pass
+    def resample_resp_induced_signals(self, proc, resp_signals_and_times,
+                                      expected_length):
+        riav, riav_t, rifv, rifv_t, riiv, riiv_t = resp_signals_and_times
+        re_riav, re_riav_t = proc.resample(riav, riav_t,
+                                        None, expected_length)
+        re_riiv, re_riiv_t = proc.resample(riiv, riiv_t,
+                                        None, expected_length)
+        re_rifv, re_rifv_t = proc.resample(rifv, rifv_t,
+                                        None, expected_length)
+                                        
+        return re_riav,re_riiv,re_rifv
         
         
     
@@ -550,7 +555,7 @@ REGISTERED_PIPELINES = {
 
 if __name__ == "__main__":
     import yaml
-    DEFAULT_PIPELINE = "Pipeline"
+    DEFAULT_PIPELINE = "Pipeline2"
     config_path = DEFAULT_CONFIG_PATH
     config_data = None
     with open(config_path, 'r', encoding="utf-8") as f:
