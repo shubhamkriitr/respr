@@ -526,11 +526,19 @@ class TrainingPipeline(BasePipeline):
         import pytorch_lightning as pl
         from torch.utils.data import DataLoader
         
-        dataset = DATA_ADAPTER_FACTORY.get(self._config["dataset"])
-        model = ML_FACTORY.get(self._config["model"])
-        train_data_loader = DataLoader(dataset=dataset, batch_size=16)
-        trainer = pl.Trainer(default_root_dir=self.output_dir)
-        trainer.fit(model=model, train_dataloaders=train_data_loader)
+        
+        dataloader_composer = DATA_ADAPTER_FACTORY.get(
+                                            self._config["dataloading"])
+        
+        for fold in range(dataloader_composer.num_folds):
+            model = ML_FACTORY.get(self._config["model"])
+            train_loader, val_loader, test_loader \
+                = dataloader_composer.get_data_loaders(current_fold=fold)
+            trainer = pl.Trainer(default_root_dir=self.output_dir,
+                                 **self._config["trainer"]["kwargs"])
+            trainer.fit(model=model, train_dataloaders=train_loader,
+                        val_dataloaders=val_loader)
+            trainer.test(model=model, dataloaders=test_loader)
         
         
         

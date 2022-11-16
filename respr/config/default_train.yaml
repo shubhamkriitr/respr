@@ -3,17 +3,31 @@ description: "This is a sample config to run the pipeline"
 pipeline:
   name: "TrainingPipeline"
 instructions: {}
-  
+
+trainer: # currently using trainer from pytorch lightning 
+  name: null
+  args: []
+  kwargs:
+    max_epochs: 5
+    
+
 model:
   name: "LitResprVanillaMLP"
   args: []
   kwargs: {}
-dataset:
-  name: "BaseResprCsvDataset"
+dataloading:
+  name: "ResprDataLoaderComposer"
   args: []
   kwargs:
     config:
-      dataset_path: "../../artifacts/2022-11-16_165306/dataset.csv"
+      dataset: "BaseResprCsvDataset"
+      dataset_path: "../../artifacts/2022-11-16_211952/dataset.csv"
+      batch_size: 16
+      augmentation: null # to be added later #TODO
+      num_folds: 5
+      val_split: 0.1
+      test_split: 0.1
+
 
 # data_adapter:
 #   name: "CapnobaseMatDataAdapter"
