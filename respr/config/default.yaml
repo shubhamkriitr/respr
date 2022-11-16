@@ -1,10 +1,10 @@
 description: "This is a sample config to run the pipeline"
 # workdir: "" #relative to `respr` directory
 pipeline:
-  name: "Pipeline2"
+  name: "DatasetBuilder"
 instructions:
   sample_index_offset: 2
-  num_samples_to_process: null # if None then all samples are processed and
+  num_samples_to_process: 2 # if None then all samples are processed and
   # `sample_idx_offset` is ignore (not used)
   exclude_artifacts: False
   
