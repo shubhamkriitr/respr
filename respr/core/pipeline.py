@@ -32,6 +32,7 @@ class BasePipeline:
         os.makedirs(self.output_dir, exist_ok=False)
         self._log_path = self.output_dir / f"{self.creation_time}_logs.log"
         self._log_sink = logger.add(self._log_path)
+        self._buffer = {}
         
         
     
@@ -100,6 +101,10 @@ class Pipeline(BasePipeline):
         if len(errors) > 0:
             logger.error(errors)
             
+        
+        # add results 
+        self._buffer["results"] = results
+        self._buffer["errors"] = errors
         
         # save results
         output_file = self.output_dir/ \
@@ -423,10 +428,96 @@ class Pipeline2(Pipeline):
         
         return re_riav_chunk, re_riiv_chunk, re_rifv_chunk
         
+
+class DatasetBuilder(Pipeline2):
+    
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+    
+    def process_one_signal_window(self, data, context, fs, offset, end_):
         
+        proc, pulse_detector, model = context["signal_processor"],\
+            context["pulse_detector"], context["model"]
+        
+        re_riav, re_riiv, re_rifv = self._get_induced_signal_chunk(
+            data, context, fs, offset, end_)
+        
+        ppg_chunk = data.get("signals/ppg")[offset:end_]
+        
+        results = {
+            "ppg_chunk": ppg_chunk,
+            "riiv_chunk": re_riiv,
+            "rifv_chunk": re_rifv,
+            "riav_chunk": re_riav
+        }
+        return results
+    
+    def create_new_results_container(self):
+        results = {
+            "window_idx": [],
+            "offset": [],
+            "end_": [],
+            "t": [], # time elapsed from the start (of the signal) in `s`
+            # corresponding to gt_idx
+            "gt_idx" : [],
+            "gt" : [],
+            "riav_chunk": [],
+            "riiv_chunk": [],
+            "rifv_chunk": [],
+            "ppg_chunk": []
+        }
+        
+        return results
+    
+    
+    def close(self):
+        self.save_dataset()
+        super().close()
+        
+    def save_dataset(self):
+        
+        results = self._buffer["results"]
+        errors = self._buffer["errors"]
+        
+        if len(errors) > 0:
+            logger.error(f"Following samples had errors: {errors}")
+        
+        num_subs = len(results)
+        sub_ids = []
+        sub_idx = []
+        y = [] # ground truth
+        x = [] # signals
+        for i in range(num_subs):
+            r = results.pop()
+            id_ = r["sample_id"]
+            idx = r["idx"]
+            v = r["output"]
+            
+            window_signals = v["ppg_chunk"]
+            num_windows = len(window_signals)
+            sub_ids = sub_ids + [id_] * num_windows
+            sub_idx = sub_idx + [idx] * num_windows
+            x = x + window_signals
+            y = y + v["gt"] # ground truth
+        
+        df = pd.DataFrame(data=sub_idx, columns=["subject_idx"])
+        df["subject_ids"] = sub_ids
+        df["y"] = y
+        x = np.stack(x, axis=0)
+        x = pd.DataFrame(x, 
+                         columns=["x_"+str(i).zfill(5) for i in range(x.shape[1])])
+        df = pd.concat([x, df], axis=1)
+        
+        save_path = self.output_dir / "dataset.csv"
+        df.to_csv(save_path)
+        
+        return df
+
+            
+            
         
     
-class DatasetBuilder:
+class _DatasetBuilder:
     def __init__(self, config={}) -> None:
         self._config = config
         self._config["output_dir"] = Path("../../artifacts")
