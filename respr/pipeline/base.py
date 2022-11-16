@@ -524,6 +524,7 @@ class TrainingPipeline(BasePipeline):
         logger.info("Starting")
         from respr.core.ml.models import ML_FACTORY
         import pytorch_lightning as pl
+        from pytorch_lightning.callbacks import ModelCheckpoint
         from torch.utils.data import DataLoader
         
         
@@ -533,9 +534,12 @@ class TrainingPipeline(BasePipeline):
         for fold in range(dataloader_composer.num_folds):
             model = ML_FACTORY.get(self._config["model"])
             default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"
+            checkpoint_callback = ModelCheckpoint(monitor="val_mae")
+            callbacks = [checkpoint_callback]
             train_loader, val_loader, test_loader \
                 = dataloader_composer.get_data_loaders(current_fold=fold)
             trainer = pl.Trainer(default_root_dir=default_root_dir,
+                                 callbacks=callbacks,
                                  **self._config["trainer"]["kwargs"])
             trainer.fit(model=model, train_dataloaders=train_loader,
                         val_dataloaders=val_loader)
