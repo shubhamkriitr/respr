@@ -687,7 +687,7 @@ class _DatasetBuilder:
         # x_path = Path(str(output_path) + "_x.csv")
         df["y"] = y
         df["id_"] = id_
-        df.to_csv(output_path, index=True)
+        df.to_csv(output_path, index=False)
         logger.info("Done")
         
         
