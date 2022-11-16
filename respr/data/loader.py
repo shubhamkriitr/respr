@@ -97,7 +97,8 @@ class BaseResprCsvDataset(Dataset):
 
     def __getitem__(self, index: int):
         x, y = self.data.loc[index, self.x_cols], self.data.loc[index, "y"]
-        x = x.to_numpy()
+        x = x.to_numpy().astype(DTYPE_FLOAT)
+        y = np.array([y], dtype=DTYPE_FLOAT)
         
         return x, y
     

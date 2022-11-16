@@ -513,12 +513,36 @@ class DatasetBuilder(Pipeline2):
         
         return df
 
+
+class TrainingPipeline(BasePipeline):
+    
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+    
+    
+    def run(self, *args, **kwargs):
+        logger.info("Starting")
+        from respr.core.ml.models import ML_FACTORY
+        import pytorch_lightning as pl
+        from torch.utils.data import DataLoader
+        
+        dataset = DATA_ADAPTER_FACTORY.get(self._config["dataset"])
+        model = ML_FACTORY.get(self._config["model"])
+        train_data_loader = DataLoader(dataset=dataset, batch_size=16)
+        trainer = pl.Trainer(default_root_dir=self.output_dir)
+        trainer.fit(model=model, train_dataloaders=train_data_loader)
+        
+        
+        
+        
+        
             
         
 REGISTERED_PIPELINES = {
     "Pipeline": Pipeline,
     "Pipeline2": Pipeline2,
-    "DatasetBuilder": DatasetBuilder
+    "DatasetBuilder": DatasetBuilder,
+    "TrainingPipeline":TrainingPipeline
 }  
 
 

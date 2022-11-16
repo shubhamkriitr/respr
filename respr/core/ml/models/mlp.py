@@ -11,7 +11,7 @@ class ResprVanillaMLP(nn.Module):
 
         
         self.pre_embedding_dim = 125
-        self.embedding_dim = 64
+        self.embedding_dim = self.pre_embedding_dim
         self._build_network()
 
             

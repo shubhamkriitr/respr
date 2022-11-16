@@ -1,0 +1,23 @@
+description: "This is a sample config to run the pipeline"
+
+pipeline:
+  name: "TrainingPipeline"
+instructions: {}
+  
+model:
+  name: "LitResprVanillaMLP"
+  args: []
+  kwargs: {}
+dataset:
+  name: "BaseResprCsvDataset"
+  args: []
+  kwargs:
+    config:
+      dataset_path: "../../artifacts/2022-11-16_165306/dataset.csv"
+
+# data_adapter:
+#   name: "CapnobaseMatDataAdapter"
+#   args: []
+#   kwargs:
+#     config:
+#       data_root_dir: "../../Datasets/bidmc-ppg-and-respiration-dataset-1.0.0/bidmc_csv"
