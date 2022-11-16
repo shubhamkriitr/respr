@@ -7,3 +7,5 @@ scikit-learn
 loguru
 pandas
 PyYAML==6.0
+h5py==3.7.0
+pytorch-lightning==1.8.1
