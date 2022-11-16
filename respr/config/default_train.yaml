@@ -29,8 +29,8 @@ dataloading:
   kwargs:
     config:
       dataset: "BaseResprCsvDataset"
-      dataset_path: "../../artifacts/2022-11-16_211952/dataset.csv"
-      batch_size: 16
+      dataset_path: "../../artifacts/frozen/dataset_capnobase_w32_s1_artif_cleaned_commit_c4dec47.csv"
+      batch_size: 100
       augmentation: null # to be added later #TODO
       num_folds: 5
       val_split: 0.1
