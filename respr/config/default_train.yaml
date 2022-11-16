@@ -8,11 +8,11 @@ trainer: # currently using trainer from pytorch lightning
   name: null
   args: []
   kwargs:
-    max_epochs: 5
+    max_epochs: 50
     # not use `check_val_every_n_epoch` if using `val_check_interval`
     # check_val_every_n_epoch: 1
     val_check_interval: 0.25 
-    fast_dev_run: true # for debugging only
+    # fast_dev_run: true # for debugging only
     # limit_train_batches: 0.01 # for debugging only
     # overfit_batches=0.01 # for debugging only
     enable_progress_bar: false
