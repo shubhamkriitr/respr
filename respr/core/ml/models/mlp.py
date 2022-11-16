@@ -96,6 +96,7 @@ class LitResprVanillaMLP(pl.LightningModule):
         self.model_module = ResprVanillaMLP({})
         
         self.loss_module = nn.MSELoss()
+        self.metric_mae = nn.L1Loss(reduction="mean")
        
     def forward(self, x):
         # Forward function that is run when visualizing the graph
@@ -112,8 +113,10 @@ class LitResprVanillaMLP(pl.LightningModule):
         x, labels = batch
         preds = self.model_module(x)
         loss = self.loss_module(preds, labels)
+        mae = self.metric_mae(preds, labels)
 
         self.log(f"{step_name}_loss", loss)
+        self.log(f"{step_name}_mae", mae)
         return loss
 
     def validation_step(self, batch, batch_idx):
