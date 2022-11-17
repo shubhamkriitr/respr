@@ -47,7 +47,7 @@ def conv2_x_block(num_channels, num_sub_blocks, num_out_channels):
         def __init__(self) -> None:
             super().__init__()
             
-            self.blocks = [            ]
+            self.blocks = nn.ModuleList()
             
             for i in range(num_sub_blocks):
                 out_ch = num_channels
@@ -88,6 +88,8 @@ class ResprResnet18(nn.Module):
                 for b, ch in
                 self.block_structure
             ]
+        
+        self.blocks = nn.ModuleList(self.blocks)
         
         bs = self.block_structure
         self.adjust_ch = [
@@ -187,6 +189,6 @@ if __name__=="__main__":
     model = ResprResnet18()
     print(model)
     z = model(x)
-    print("Done")
+    print(f"Done: {z}")
     
     

@@ -31,7 +31,7 @@ dataloading:
       dataset: "BaseResprCsvDataset"
       dataset_path: "../../artifacts/frozen/dataset_capnobase_w32_s1_artif_cleaned_commit_c4dec47.csv"
       batch_size: 16
-      num_workers: 8
+      num_workers: 0
       augmentation: null # to be added later #TODO
       num_folds: 5
       val_split: 0.1
