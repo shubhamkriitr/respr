@@ -539,7 +539,11 @@ class TrainingPipeline(BasePipeline):
             default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"
             
             if not self._instructions["do_only_test"]:
-                checkpoint_callback = ModelCheckpoint(monitor="val_mae")
+                ckpt_filename\
+                    = "model-{epoch:02d}-s-{step}-{val_mae:.2f}"
+                # TODO: add mode explicitly
+                checkpoint_callback = ModelCheckpoint(
+                    monitor="val_mae", save_top_k=4, filename=ckpt_filename)
                 callbacks = [checkpoint_callback]
             else:
                 assert self._instructions["ckpt_path"] != None
@@ -552,8 +556,9 @@ class TrainingPipeline(BasePipeline):
             if not self._instructions["do_only_test"]:
                 trainer.fit(model=model, train_dataloaders=train_loader,
                             val_dataloaders=val_loader)
+                logger.info(f"Using best model@: {checkpoint_callback.best_model_path}")
                 trainer.test(model=model, dataloaders=test_loader, ckpt_path="best")
-                trainer.test(model=model, dataloaders=test_loader, ckpt_path="last")
+                
             else:
                 trainer.test(model=model, dataloaders=test_loader, 
                              ckpt_path=self._instructions["ckpt_path"])

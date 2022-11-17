@@ -187,7 +187,7 @@ def lightning_wrapper(model_module_class):
             std = denormalize_std(std)
             mean_std = torch.mean(std)
             
-            self.log(f"{step_name}_{self.respr_loss_name}_loss", loss)
+            self.log(f"{step_name}{self.respr_loss_name}_loss", loss)
             self.log(f"{step_name}_mae", mae)
             self.log(f"{step_name}_uncertainty", mean_std)
             return loss
