@@ -542,7 +542,7 @@ class TrainingPipeline(BasePipeline):
                 checkpoint_callback = ModelCheckpoint(monitor="val_mae")
                 callbacks = [checkpoint_callback]
             else:
-                assert self._config["trainer"]["kwargs"]["ckpt_path"] != None
+                assert self._instructions["ckpt_path"] != None
                 callbacks = None
             train_loader, val_loader, test_loader \
                 = dataloader_composer.get_data_loaders(current_fold=fold)
@@ -552,7 +552,11 @@ class TrainingPipeline(BasePipeline):
             if not self._instructions["do_only_test"]:
                 trainer.fit(model=model, train_dataloaders=train_loader,
                             val_dataloaders=val_loader)
-            trainer.test(model=model, dataloaders=test_loader)
+                trainer.test(model=model, dataloaders=test_loader)
+            else:
+                trainer.test(model=model, dataloaders=test_loader, 
+                             ckpt_path=self._instructions["ckpt_path"])
+                
             
         
         
