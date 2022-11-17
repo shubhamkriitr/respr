@@ -8,6 +8,7 @@ import numpy as np
 from loguru import logger
 
 DTYPE_FLOAT = np.float32
+
 # TODO: set seeds for random 
 
 def create_train_val_test_split(sample_ids: list, val=0.2, test=0.2):
@@ -123,6 +124,7 @@ class ResprDataLoaderComposer:
         self.val_split = self._config["val_split"]
         self.test_split = self._config["test_split"]
         self.batch_size = self._config["batch_size"]
+        self.num_workers = self._config["num_workers"]
         self.prepare()
         
     
@@ -186,7 +188,7 @@ class ResprDataLoaderComposer:
         dataset_class = REGISTERED_DATASET_CLASSES[self.dataset]
         dataset = dataset_class(datasource=df)
         dataloader = DataLoader(dataset=dataset, batch_size=self.batch_size,
-                                shuffle=shuffle)
+                                shuffle=shuffle, num_workers=self.num_workers)
         return dataloader
         
 

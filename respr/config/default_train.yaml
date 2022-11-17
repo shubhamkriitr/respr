@@ -15,12 +15,12 @@ trainer: # currently using trainer from pytorch lightning
     # fast_dev_run: true # for debugging only
     # limit_train_batches: 0.01 # for debugging only
     # overfit_batches=0.01 # for debugging only
-    enable_progress_bar: false
+    enable_progress_bar: true
     # resume_from_checkpoint: null
 
 
 model:
-  name: "LitResprVanillaMLP"
+  name: "LitResprResnet18"
   args: []
   kwargs: {}
 dataloading:
@@ -30,11 +30,21 @@ dataloading:
     config:
       dataset: "BaseResprCsvDataset"
       dataset_path: "../../artifacts/frozen/dataset_capnobase_w32_s1_artif_cleaned_commit_c4dec47.csv"
-      batch_size: 100
+      batch_size: 16
+      num_workers: 8
       augmentation: null # to be added later #TODO
       num_folds: 5
       val_split: 0.1
       test_split: 0.1
+    # MINI DATASET FOR DEV
+    # config:
+    #   dataset: "BaseResprCsvDataset"
+    #   dataset_path: "../../artifacts/frozen/mini/dataset_capnobase_w32_s1_4_subjects.csv"
+    #   batch_size: 16
+    #   augmentation: null # to be added later #TODO
+    #   num_folds: 2
+    #   val_split: 0.25
+    #   test_split: 0.25
 
 
 # data_adapter:
