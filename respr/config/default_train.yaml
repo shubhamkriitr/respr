@@ -2,7 +2,8 @@ description: "This is a sample config to run the pipeline"
 
 pipeline:
   name: "TrainingPipeline"
-instructions: {}
+instructions:
+  do_only_test: true # make sure to set `ckpt_path`
 
 trainer: # currently using trainer from pytorch lightning 
   name: null
@@ -40,6 +41,7 @@ dataloading:
       start_fold: 0
       val_split: 0.2
       test_split: 0.2
+      ckpt_path: ../../artifacts/2022-11-17_050120/fold_00/lightning_logs/version_2482287/checkpoints/epoch=7-step=6717.ckpt
     # MINI DATASET FOR DEV
     # config:
     #   dataset: "BaseResprCsvDataset"

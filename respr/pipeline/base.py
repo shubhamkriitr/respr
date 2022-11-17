@@ -14,6 +14,10 @@ import heartpy as hp
 import traceback
 import pandas as pd
 import numpy as np
+import pytorch_lightning as pl
+from pytorch_lightning.callbacks import ModelCheckpoint
+from respr.core.ml.models import ML_FACTORY
+from torch.utils.data import DataLoader
 
 
 CONF_FEATURE_RESAMPLING_FREQ = 4 # Hz. (for riav/ rifv/ riiv resampling)
@@ -518,14 +522,11 @@ class TrainingPipeline(BasePipeline):
     
     def __init__(self, config={}) -> None:
         super().__init__(config)
+        self._instructions = self._config["instructions"]
     
     
     def run(self, *args, **kwargs):
         logger.info("Starting")
-        from respr.core.ml.models import ML_FACTORY
-        import pytorch_lightning as pl
-        from pytorch_lightning.callbacks import ModelCheckpoint
-        from torch.utils.data import DataLoader
         
         
         dataloader_composer = DATA_ADAPTER_FACTORY.get(
@@ -536,16 +537,23 @@ class TrainingPipeline(BasePipeline):
             logger.info(f"Running fold number {fold}")
             model = ML_FACTORY.get(self._config["model"])
             default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"
-            checkpoint_callback = ModelCheckpoint(monitor="val_mae")
-            callbacks = [checkpoint_callback]
+            
+            if not self._instructions["do_only_test"]:
+                checkpoint_callback = ModelCheckpoint(monitor="val_mae")
+                callbacks = [checkpoint_callback]
+            else:
+                assert self._config["trainer"]["kwargs"]["ckpt_path"] != None
+                callbacks = None
             train_loader, val_loader, test_loader \
                 = dataloader_composer.get_data_loaders(current_fold=fold)
             trainer = pl.Trainer(default_root_dir=default_root_dir,
                                  callbacks=callbacks,
                                  **self._config["trainer"]["kwargs"])
-            trainer.fit(model=model, train_dataloaders=train_loader,
-                        val_dataloaders=val_loader)
+            if not self._instructions["do_only_test"]:
+                trainer.fit(model=model, train_dataloaders=train_loader,
+                            val_dataloaders=val_loader)
             trainer.test(model=model, dataloaders=test_loader)
+            
         
         
         
