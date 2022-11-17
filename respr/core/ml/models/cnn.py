@@ -71,13 +71,16 @@ class ResprResnet18(nn.Module):
     
     def __init__(self, config={}) -> None:
         super().__init__()
-        self.block_structure = [
+        self.block_structure = self.get_block_structure()
+        self._build()
+
+    def get_block_structure(self):
+        return [
             (2, 64) , #conv2_x
             (2, 128) , #conv3_x
             (2, 256) , #conv4_x
             (2, 512)   #conv5_x
         ]
-        self._build()
         
         
     def _build(self):
@@ -122,7 +125,20 @@ class ResprResnet18(nn.Module):
         log_sig = self.fc_log_var(z)
         
         return mu, log_sig
+
+
+class ResprResnet18Small(ResprResnet18):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
     
+    def get_block_structure(self):
+        return [
+            (1, 64) , #conv2_x
+            (1, 128) , #conv3_x
+            (1, 256) , #conv4_x
+            (1, 512)   #conv5_x
+        ]
+
 def normalize_y(y):
     return (y - CAPNOBASE_RR_MEAN)/CAPNOBASE_RR_STD
 
@@ -195,6 +211,7 @@ def lightning_wrapper(model_module_class):
     return _LitModule
 
 LitResprResnet18 = lightning_wrapper(ResprResnet18)
+LitResprResnet18Small = lightning_wrapper(ResprResnet18Small)
 
 if __name__=="__main__":
     x = torch.zeros(size=(10, 9600))
