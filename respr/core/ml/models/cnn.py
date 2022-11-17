@@ -97,6 +97,8 @@ class ResprResnet18(nn.Module):
             for i in range(len(bs)-1)
         ]
         
+        self.adjust_ch = nn.ModuleList(self.adjust_ch)
+        
         self.avgpool = nn.AdaptiveAvgPool1d(1)
         self.fc_mu = nn.Linear(512, 1)
         self.fc_log_var = nn.Linear(512, 1)
