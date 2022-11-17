@@ -137,6 +137,8 @@ class LitResprResnet18(pl.LightningModule):
         self.model_module = ResprResnet18({})
         
         self.metric_mae = nn.L1Loss(reduction="mean")
+        self.respr_loss_name = ""
+        
         
     def compute_loss(self, mu, log_var, y_true):
         delta = (y_true - mu)
@@ -158,6 +160,8 @@ class LitResprResnet18(pl.LightningModule):
     def _shared_step(self, batch, step_name):
         x, labels = batch
         mu, log_var = self.model_module(x)
+        mu = torch.squeeze(mu)
+        log_var = torch.squeeze(log_var)
         loss = self.compute_loss(mu, log_var, normalize_y(labels))
         mae = self.metric_mae(denormalize_y(mu), labels)
         
@@ -165,7 +169,7 @@ class LitResprResnet18(pl.LightningModule):
         std = denormalize_std(std)
         mean_std = torch.mean(std)
         
-        self.log(f"{step_name}_loss", loss)
+        self.log(f"{step_name}_{self.respr_loss_name}_loss", loss)
         self.log(f"{step_name}_mae", mae)
         self.log(f"{step_name}_uncertainty", mean_std)
         return loss

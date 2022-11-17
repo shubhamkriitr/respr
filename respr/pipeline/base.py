@@ -523,7 +523,7 @@ class TrainingPipeline(BasePipeline):
     def __init__(self, config={}) -> None:
         super().__init__(config)
         self._instructions = self._config["instructions"]
-    
+        self._start_fold = self._config["dataloading"]["kwargs"]["config"]["start_fold"]
     
     def run(self, *args, **kwargs):
         logger.info("Starting")
@@ -531,7 +531,7 @@ class TrainingPipeline(BasePipeline):
         
         dataloader_composer = DATA_ADAPTER_FACTORY.get(
                                             self._config["dataloading"])
-        start_fold = self._config["dataloading"]["kwargs"]["config"]["start_fold"]
+        start_fold = self._start_fold
         for fold_num in range(dataloader_composer.num_folds):
             fold = start_fold + fold_num
             logger.info(f"Running fold number {fold}")

@@ -136,6 +136,7 @@ class ResprDataLoaderComposer:
     
     def prepare(self):
         self.data = pd.read_csv(self._config["dataset_path"])
+        self.data = self.normalize_x(self.data)
         
         # num unique subjects
         self.subject_ids = list(self.data["subject_ids"].unique())
@@ -143,9 +144,14 @@ class ResprDataLoaderComposer:
             self.compute_split_sizes(n = len(self.subject_ids))
             
         assert self.num_folds <= len(self.subject_ids)/self.num_test_ids
+    
+    
+    def normalize_x(self, data):
+        data.iloc[:, 1:9601] = \
+            (data.iloc[:, 1:9601] - data.iloc[:, 1:9601].mean(axis=0))\
+                /(1e-8 + data.iloc[:, 1:9601].std(axis=0))
         
-        
-            
+        return data
         
     def compute_split_sizes(self, n):
         """ Number of subjects alloted to each of the split"""
