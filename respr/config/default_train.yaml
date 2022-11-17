@@ -17,6 +17,9 @@ trainer: # currently using trainer from pytorch lightning
     # overfit_batches=0.01 # for debugging only
     enable_progress_bar: true
     # resume_from_checkpoint: null
+    # <<< FOR GPU >>>
+    # accelerator: gpu
+    # devices: 1
 
 
 model:
