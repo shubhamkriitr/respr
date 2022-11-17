@@ -552,7 +552,8 @@ class TrainingPipeline(BasePipeline):
             if not self._instructions["do_only_test"]:
                 trainer.fit(model=model, train_dataloaders=train_loader,
                             val_dataloaders=val_loader)
-                trainer.test(model=model, dataloaders=test_loader)
+                trainer.test(model=model, dataloaders=test_loader, ckpt_path="best")
+                trainer.test(model=model, dataloaders=test_loader, ckpt_path="last")
             else:
                 trainer.test(model=model, dataloaders=test_loader, 
                              ckpt_path=self._instructions["ckpt_path"])
