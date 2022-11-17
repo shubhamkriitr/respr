@@ -131,64 +131,70 @@ def denormalize_y(y):
 
 def denormalize_std(std):
     return std*CAPNOBASE_RR_STD
-class LitResprResnet18(pl.LightningModule):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.model_module = ResprResnet18({})
-        
-        self.metric_mae = nn.L1Loss(reduction="mean")
-        self.respr_loss_name = ""
-        
-        
-    def compute_loss(self, mu, log_var, y_true):
-        delta = (y_true - mu)
-        loss = (delta*delta)/torch.exp(log_var) + log_var
-        loss = torch.mean(loss)
-        return loss
-       
-    def forward(self, x):
-        # Forward function that is run when visualizing the graph
-        return self.model_module(x)
-    
-    def configure_optimizers(self):
-        optimizer = optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-4)
-        return optimizer
 
-    def training_step(self, batch, batch_idx):
-        return self._shared_step(batch, step_name="train")
+def lightning_wrapper(model_module_class):
+    class _LitModule(pl.LightningModule):
+        def __init__(self, *args, **kwargs) -> None:
+            super().__init__(*args, **kwargs)
+            self.model_module = model_module_class({})
+            
+            self.metric_mae = nn.L1Loss(reduction="mean")
+            self.respr_loss_name = ""
+            
+            
+        def compute_loss(self, mu, log_var, y_true):
+            delta = (y_true - mu)
+            loss = (delta*delta)/torch.exp(log_var) + log_var
+            loss = torch.mean(loss)
+            return loss
+        
+        def forward(self, x):
+            # Forward function that is run when visualizing the graph
+            return self.model_module(x)
+        
+        def configure_optimizers(self):
+            optimizer = optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-4)
+            return optimizer
 
-    def _shared_step(self, batch, step_name):
-        x, labels = batch
-        mu, log_var = self.model_module(x)
-        mu = torch.squeeze(mu)
-        log_var = torch.squeeze(log_var)
-        loss = self.compute_loss(mu, log_var, normalize_y(labels))
-        mae = self.metric_mae(denormalize_y(mu), labels)
-        
-        std = torch.sqrt(torch.exp(log_var))
-        std = denormalize_std(std)
-        mean_std = torch.mean(std)
-        
-        self.log(f"{step_name}_{self.respr_loss_name}_loss", loss)
-        self.log(f"{step_name}_mae", mae)
-        self.log(f"{step_name}_uncertainty", mean_std)
-        return loss
+        def training_step(self, batch, batch_idx):
+            return self._shared_step(batch, step_name="train")
 
-    def validation_step(self, batch, batch_idx):
-        return self._shared_step(batch, step_name="val")
+        def _shared_step(self, batch, step_name):
+            x, labels = batch
+            mu, log_var = self.model_module(x)
+            mu = torch.squeeze(mu)
+            log_var = torch.squeeze(log_var)
+            loss = self.compute_loss(mu, log_var, normalize_y(labels))
+            mae = self.metric_mae(denormalize_y(mu), labels)
+            
+            std = torch.sqrt(torch.exp(log_var))
+            std = denormalize_std(std)
+            mean_std = torch.mean(std)
+            
+            self.log(f"{step_name}_{self.respr_loss_name}_loss", loss)
+            self.log(f"{step_name}_mae", mae)
+            self.log(f"{step_name}_uncertainty", mean_std)
+            return loss
 
-    def test_step(self, batch, batch_idx):
-        return self._shared_step(batch, step_name="test")
-    
-    def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
-        x, _ = batch
-        mu, log_var = self.model_module(x)
-        y = denormalize_y(mu)
+        def validation_step(self, batch, batch_idx):
+            return self._shared_step(batch, step_name="val")
+
+        def test_step(self, batch, batch_idx):
+            return self._shared_step(batch, step_name="test")
         
-        std = torch.sqrt(torch.exp(log_var))
-        std = denormalize_std(std)
-        
-        return y, std
+        def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
+            x, _ = batch
+            mu, log_var = self.model_module(x)
+            y = denormalize_y(mu)
+            
+            std = torch.sqrt(torch.exp(log_var))
+            std = denormalize_std(std)
+            
+            return y, std
+
+    return _LitModule
+
+LitResprResnet18 = lightning_wrapper(ResprResnet18)
 
 if __name__=="__main__":
     x = torch.zeros(size=(10, 9600))
