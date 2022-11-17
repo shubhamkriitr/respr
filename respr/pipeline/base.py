@@ -530,8 +530,10 @@ class TrainingPipeline(BasePipeline):
         
         dataloader_composer = DATA_ADAPTER_FACTORY.get(
                                             self._config["dataloading"])
-        
-        for fold in range(dataloader_composer.num_folds):
+        start_fold = self._config["dataloading"]["kwargs"]["config"]["start_fold"]
+        for fold_num in range(dataloader_composer.num_folds):
+            fold = start_fold + fold_num
+            logger.info(f"Running fold number {fold}")
             model = ML_FACTORY.get(self._config["model"])
             default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"
             checkpoint_callback = ModelCheckpoint(monitor="val_mae")

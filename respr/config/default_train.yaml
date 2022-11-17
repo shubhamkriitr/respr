@@ -8,7 +8,7 @@ trainer: # currently using trainer from pytorch lightning
   name: null
   args: []
   kwargs:
-    max_epochs: 50
+    max_epochs: 100
     # not use `check_val_every_n_epoch` if using `val_check_interval`
     # check_val_every_n_epoch: 1
     val_check_interval: 0.25 
@@ -18,12 +18,12 @@ trainer: # currently using trainer from pytorch lightning
     enable_progress_bar: true
     # resume_from_checkpoint: null
     # <<< FOR GPU >>>
-    # accelerator: gpu
-    # devices: 1
+    accelerator: gpu
+    devices: 1
 
 
 model:
-  name: "LitResprResnet18"
+  name: "LitResprVanillaMLP"
   args: []
   kwargs: {}
 dataloading:
@@ -37,8 +37,9 @@ dataloading:
       num_workers: 0
       augmentation: null # to be added later #TODO
       num_folds: 5
-      val_split: 0.1
-      test_split: 0.1
+      start_fold: 0
+      val_split: 0.2
+      test_split: 0.2
     # MINI DATASET FOR DEV
     # config:
     #   dataset: "BaseResprCsvDataset"
