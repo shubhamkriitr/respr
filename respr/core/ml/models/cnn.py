@@ -1,7 +1,6 @@
 import torch
 from torch import nn, optim
 import pytorch_lightning as pl
-from torchvision.models import resnet18
 
 
 CAPNOBASE_RR_MEAN = 14.954692
