@@ -101,18 +101,24 @@ class BaseResprCsvDataset(Dataset):
         self.num_samples = df["y"].shape[0]
         
         self.data = df
-         
-
+        
+        x, y = self.data.loc[:, self.x_cols], \
+            self.data.loc[:, "y"]
+            
+        self.x = x.to_numpy().astype(DTYPE_FLOAT)
+        self.y = y.to_numpy().astype(DTYPE_FLOAT)
+        self.data = None
     
     def __len__(self) -> int:
         return self.num_samples
 
     def __getitem__(self, index: int):
-        x, y = self.data.loc[:, self.x_cols].iloc[index], \
-            self.data.loc[:, "y"].iloc[index]
-        x = x.to_numpy().astype(DTYPE_FLOAT)
-        y = np.array([y], dtype=DTYPE_FLOAT)
-        
+        # x, y = self.data.loc[:, self.x_cols].iloc[index], \
+        #     self.data.loc[:, "y"].iloc[index]
+        # x = x.to_numpy().astype(DTYPE_FLOAT)
+        # y = np.array([y], dtype=DTYPE_FLOAT)
+        x = self.x[index, :]
+        y = self.y[index]
         return x, y
     
 class ResprDataLoaderComposer:
