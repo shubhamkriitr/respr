@@ -93,6 +93,9 @@ class Pipeline(BasePipeline):
             sample_idx_end = sample_idx_offset + n_samples
             subject_ids = subject_ids[sample_idx_offset:sample_idx_end]
 
+        # make sure all ids are unique
+        assert len(set(subject_ids)) == len(subject_ids)
+        
         for idx, subject_id in enumerate(subject_ids):
             # if subject_id != "41": FIXME: investigate this
             #     continue
@@ -232,7 +235,8 @@ class Pipeline(BasePipeline):
         
         
         for k in current_window_data:
-            results_container[k].append(current_window_data[k])
+            if k in results_container:
+                results_container[k].append(current_window_data[k])
         #>>> results["window_idx"].append(window_idx)
         #>>> results["offset"].append(offset)
         #>>> results["end_"].append(end_)
@@ -610,10 +614,99 @@ class TrainingPipeline(BasePipeline):
 class IndexedDatasetBuilder(DatasetBuilder):
     def __init__(self, config={}) -> None:
         super().__init__(config)
+        self.indexed_dataset = self.create_indexed_dataset_struct()
+        
+    def create_indexed_dataset_struct(self):
+        return {
+            
+            "index": [], # idx to (dataset_id, sample_id, sample_offset) map
+            "_metadata": {
+                "vector_length": self._instructions["vector_length"]
+            },
+            "dataset_index_to_id": {0: self._instructions["dataset_id"]},
+            "dataset_id_to_index": {self._instructions["dataset_id"]: 0},
+            "datasets": {
+                # map of dataset_id : <dataset_obj>
+                # <dataset_obj> looks like this:
+                # { "dataset_id": <str>, 
+                #   "sample_ids": <list of sample ids> # to be used for partitioning
+                #                initially it should be sorted. But later can be suffled.
+                #   "samples": { 
+                #           <sample_id> : {"x": <np.array> },
+                #           <sample_id> : {"x": <np.array> },
+                #           <sample_id> ...
+                #            },
+                #  "y": {
+                #           <sample_id> : {<sample_offset>: <y_value>, <sample_offset>: <y_value> ....},
+                #           <sample_id> : {...},
+                #           <sample_id> ...
+                # }
+                self._instructions["dataset_id"]: {
+                    "dataset_id": self._instructions["dataset_id"],
+                    "sample_ids": [],
+                    "samples": {},
+                    "y": {}
+                }
+                
+            }
+        }
+        
+
     
     
     def process_one_signal_window(self, data, context, fs, offset, end_):
-        return super().process_one_signal_window(data, context, fs, offset, end_)
+        current_window_info = context["current_window"]
+        ppg = data.get("signals/ppg")
+        
+        sample_id = data.get("id")
+        
+        y = current_window_info["gt"] # ground truth respiratory rate
+        
+        if self._instructions["resample_ppg"]:
+            if self._instructions["resampling_frequency"] != fs:
+                # resample only if needed
+                raise NotImplementedError()
+        
+        
+        assert (end_ - offset ) == self._instructions["vector_length"]
+        
+        current_dataset_state = self.indexed_dataset["datasets"][
+            self._instructions["dataset_id"]]
+        
+        
+        if sample_id not in current_dataset_state["samples"]:
+            current_dataset_state["samples"][sample_id] = {
+                "x" : ppg
+            }
+            current_dataset_state["sample_ids"].append(sample_id)
+            current_dataset_state["y"][sample_id] = {}
+        
+        
+        dataset_index = self.indexed_dataset["dataset_id_to_index"][
+            self._instructions["dataset_id"]]
+        
+        
+        
+        # using offset as key in window to ground truth map
+        current_dataset_state["y"][sample_id][offset] = y
+        
+        
+        
+        self.indexed_dataset["index"].append(
+            (dataset_index, sample_id, offset)
+        )
+        
+    def append_results(self, results_container, new_results):
+        pass # not required for this pipeline
+        
+    def close(self):
+        import pickle
+        with open("__temp__.pkl", "wb") as f:
+            pickle.dump(self.indexed_dataset, f, 
+                        protocol=pickle.HIGHEST_PROTOCOL)
+        return super().close()
+        
+        
             
         
         
