@@ -55,11 +55,24 @@ class Pipeline(BasePipeline):
         super().__init__(config)
         
         
-        self._config["window_type"] = "hamming"
+        self._fill_missing_instructions()
         self._instructions = self._config["instructions"]
-        # self.include_window_info = True
         
         cutl.save_yaml(self._config, self.output_dir/"config.yaml")
+    
+    def _fill_missing_instructions(self):
+        default_values = {
+            "window_duration" : 32, # in seconds
+            "window_step_duration" : 1, # window stride in seconds
+            "expected_signal_duration" : 480,
+            "window_type": "hamming"
+        }
+        
+        for k, v in default_values.items():
+            if k not in self._config["instructions"]:
+                self._config["instructions"][k] = v
+        
+        return self._config
     
     def run(self, *args, **kwargs):
         # bidmc_data_adapter = BidmcDataAdapter(

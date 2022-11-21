@@ -12,9 +12,13 @@ description: "This is a sample config to run the pipeline"
 pipeline:
   name: "IndexedDatasetBuilder"
 instructions:
-  vector_length: 9600 
-  resampling_frequency: 300
+  window_duration: 32 # in seconds
+  window_step_duration: 1 # window stride in seconds
+  expected_signal_duration: 480 # total length of signal in seconds (for assertion)
+  vector_length: 9600 # desired vector length (used for assertion) / and in case the
+  # the signal needs to be resampled it is used as the number of points
   resample_ppg: False # `False` for Capnobase / `True` for BIDMC (which is @125Hz)
+  resampling_frequency: 300 # used only if `resample_ppg` is set
   sample_index_offset: 0
   num_samples_to_process: null # if None then all samples are processed and
   # `sample_idx_offset` is ignore (not used)
