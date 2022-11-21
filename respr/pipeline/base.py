@@ -57,6 +57,7 @@ class Pipeline(BasePipeline):
         
         self._config["window_type"] = "hamming"
         self._instructions = self._config["instructions"]
+        # self.include_window_info = True
         
         cutl.save_yaml(self._config, self.output_dir/"config.yaml")
     
@@ -193,13 +194,18 @@ class Pipeline(BasePipeline):
             
             if gt_resp is None: # due to possible anomaly
                 continue # do not add estimates to results
-            results["window_idx"].append(window_idx)
-            results["offset"].append(offset)
-            results["end_"].append(end_)
-            results["t"].append(t)
-            results["gt_idx"].append(gt_resp_idx)
-            results["gt"].append(gt_resp)
+            results = self.add_current_window_info_to_results(gt_resp_idx, results, window_idx, offset, end_, t, gt_resp)
             self.append_results(results, rr_results)
+        
+        return results
+
+    def add_current_window_info_to_results(self, gt_resp_idx, results, window_idx, offset, end_, t, gt_resp):
+        results["window_idx"].append(window_idx)
+        results["offset"].append(offset)
+        results["end_"].append(end_)
+        results["t"].append(t)
+        results["gt_idx"].append(gt_resp_idx)
+        results["gt"].append(gt_resp)
         
         return results
 
