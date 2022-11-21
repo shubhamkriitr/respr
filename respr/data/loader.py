@@ -6,7 +6,9 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
 from loguru import logger
-
+import copy
+import random
+from collections import defaultdict
 DTYPE_FLOAT = np.float32
 
 # TODO: set seeds for random 
@@ -281,6 +283,7 @@ class BaseResprDataLoaderComposer:
         self.test_split = self._config["test_split"]
         self.batch_size = self._config["batch_size"]
         self.num_workers = self._config["num_workers"]
+        self.random_state = 0
         self.prepare()
     
     def prepare(self):
@@ -304,6 +307,27 @@ class BaseResprDataLoaderComposer:
         
         
         return num_train_ids, num_val_ids, num_test_ids
+    
+    def split_list(self, input_list, num_fold):
+        """Partition `input_list` into three.
+        """
+        num_train_ids, num_val_ids, num_test_ids = self.compute_split_sizes(
+            len(input_list))
+        l =  copy.deepcopy(input_list)
+        num_max_folds = int(len(input_list)/num_test_ids)
+        
+        shuffle_times = int(num_fold/num_max_folds)
+        r = random.Random(self.random_state)
+        
+        for i in range(shuffle_times):
+            r.shuffle(l)
+        
+        train_ids = l[0:num_train_ids]
+        val_ids = l[num_train_ids:num_train_ids+num_val_ids]
+        test_ids = l[num_train_ids+num_val_ids:]
+        
+        return train_ids, val_ids, test_ids
+        
 class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
     
     def __init__(self, config) -> None:
@@ -399,6 +423,79 @@ class ResprDataLoaderComposer(BaseResprDataLoaderComposer):
         container = ResprStandardIndexedDataContainer(config={
             "dataset_file_path": self.dataset_path
         })
+        
+        self.container = container
+    
+    
+    def get_data_loaders(self, current_fold=-1):
+        if current_fold == -1:
+            raise NotImplementedError()
+        train_split, val_split, test_split = self._partition_dataset_and_samples(current_fold)
+        
+        train_loader = self.create_loader(train_split, shuffle=True)
+        val_loader = self.create_loader(val_split, shuffle=False)
+        test_loader = self.create_loader(test_split, shuffle=False)
+        
+        
+        
+        return train_loader, val_loader, test_loader
+        
+    
+    
+    def _partition_dataset_and_samples(self, current_fold):
+        d = self.container.indexed_data
+        train_split = defaultdict(lambda  : None )
+        val_split =  defaultdict(lambda  : None )
+        test_split =  defaultdict(lambda  : None )
+        for dataset_id in d["dataset_id_to_index"]:
+            dataset = d["datasets"][dataset_id]
+            dataset_index = d["dataset_id_to_index"][dataset_id]
+            sample_ids = dataset["sample_ids"]
+            
+            train_ids, val_ids, test_ids = \
+                self.split_list(sample_ids, num_fold=current_fold)
+                
+            train_split[dataset_index] = set(train_ids)
+            val_split[dataset_index] = set(val_ids)
+            test_split[dataset_index] = set(test_ids)
+            
+        return train_split, val_split, test_split
+                
+            
+            
+        
+    def create_loader(self, split_info, shuffle):
+        original_index_map = self.container.indexed_data["index"]
+        new_idx_map = self.select_by_dataset_and_sample_ids(
+            original_index_map, split_info)
+        # TODO: may take dataset class from config
+        dataset = ResprIndexedDataset(index_info=new_idx_map,
+                                      data_container=self.container)
+        
+        dataloader = DataLoader(dataset=dataset, batch_size=self.batch_size,
+                                shuffle=shuffle, num_workers=self.num_workers)
+        
+        return dataloader
+        
+    
+    def select_by_dataset_and_sample_ids(self, index_map, split_info):
+        """ `index_map` is a list of `(<dataset_id>, <sample_id>, <offset>)`
+        `split_info` is a map {<dataset_id>:  set of <sample_ids> ...}
+        Returns: selected values from index_map
+        
+        """
+        new_idx_map = []
+   
+        for item in index_map:
+            current_dataset_idx, current_sample_id, _ = item
+            
+            if (current_dataset_idx in split_info) and \
+                (current_sample_id in split_info[current_dataset_idx]):
+                new_idx_map.append(item)
+            
+            
+        return new_idx_map
+        
         
         
         
