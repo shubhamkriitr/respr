@@ -275,12 +275,20 @@ class BaseResprDataLoaderComposer:
     def __init__(self, config) -> None:
         self._config = config
         self.dataset = self._config["dataset"] # dataset class name
+        self.dataset_path = self._config["dataset_path"]
         self.num_folds = self._config["num_folds"]
         self.val_split = self._config["val_split"]
         self.test_split = self._config["test_split"]
         self.batch_size = self._config["batch_size"]
         self.num_workers = self._config["num_workers"]
         self.prepare()
+    
+    def prepare(self):
+        raise NotImplementedError()
+    
+    
+    def get_data_loaders(self, current_fold=-1):
+        raise NotImplementedError()
         
     def compute_split_sizes(self, n):
         """ Number of subjects alloted to each of the split"""
@@ -296,7 +304,7 @@ class BaseResprDataLoaderComposer:
         
         
         return num_train_ids, num_val_ids, num_test_ids
-class ResprDataLoaderComposer(BaseResprDataLoaderComposer):
+class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
     
     def __init__(self, config) -> None:
         super().__init__(config)
@@ -358,6 +366,41 @@ class ResprDataLoaderComposer(BaseResprDataLoaderComposer):
                                 shuffle=shuffle, num_workers=self.num_workers)
         return dataloader
         
+
+class ResprIndexedDataset(Dataset):
+    def __init__(self, index_info, data_container) -> None:
+        super().__init__()
+        self._index_info = index_info
+        # this object will be shared (read only)
+        self._container: ResprStandardIndexedDataContainer = data_container 
+        self.x_vector_length = self._container.indexed_data[
+            "_metadata"]["vector_length"]
+        
+    def __getitem__(self, index) :
+        dataset_idx, sample_id, offset = self._index_info[index]
+        dataset_id = self._container.indexed_data['dataset_index_to_id']
+        x = self._container.indexed_data["datasets"][dataset_id]["samples"][sample_id]["x"]
+        x = x[offset:self.x_vector_length]
+        y = None
+    
+    def __len__(self) -> int:
+        return len(self._index_info)
+class ResprDataLoaderComposer(BaseResprDataLoaderComposer):
+    def __init__(self, config) -> None:
+        super().__init__(config)
+        
+    def prepare(self):
+        if isinstance(self.dataset_path, (list, tuple)):
+            raise NotImplementedError() # multiple datasets support
+
+        container = ResprStandardIndexedDataContainer(config={
+            "dataset_file_path": self.dataset_path
+        })
+        
+        
+        
+    
+    
 
 REGISTERED_DATASET_CLASSES = {
     "BaseResprCsvDataset": BaseResprCsvDataset
