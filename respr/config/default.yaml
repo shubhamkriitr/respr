@@ -1,12 +1,25 @@
 description: "This is a sample config to run the pipeline"
 # workdir: "" #relative to `respr` directory
+# pipeline:
+#   name: "DatasetBuilder"
+# instructions:
+#   sample_index_offset: 0
+#   num_samples_to_process: null # if None then all samples are processed and
+#   # `sample_idx_offset` is ignore (not used)
+#   exclude_artifacts: true
+
+
 pipeline:
-  name: "DatasetBuilder"
+  name: "IndexedDatasetBuilder"
 instructions:
+  vector_length: 9600 
+  resampling_frequency: 300
+  resample_ppg: False # `False` for Capnobase / `True` for BIDMC (which is @125Hz)
   sample_index_offset: 0
   num_samples_to_process: null # if None then all samples are processed and
   # `sample_idx_offset` is ignore (not used)
   exclude_artifacts: true
+  dataset_id: "capnobase-win32-stride1"
   
 model:
   name: "MultiparameterSmartFusion"
