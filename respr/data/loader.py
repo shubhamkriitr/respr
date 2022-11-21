@@ -87,8 +87,8 @@ class ResprStandardIndexedDataContainer:
             new_entry = {
                 'dataset_id': new_id,
                 'sample_ids': other.indexed_data['datasets'][old_id]['sample_ids'],
-                'samples': other.indexed_data['datasets'][old_id]['samples'],
-                'y': other.indexed_data['datasets'][old_id]['y']
+                'samples': other.indexed_data['datasets'][old_id]['samples']
+                #>>> old: 'y': other.indexed_data['datasets'][old_id]['y']
             }
             d1['datasets'][new_id] =  new_entry
         
@@ -430,10 +430,10 @@ if __name__ == "__main__":
     
     def test_container():
         c1 = ResprStandardIndexedDataContainer(config={
-            "dataset_file_path": "../../artifacts/__test/capnobase-win32-stride1-resp-mean-offset-0-num-4.pkl"
+            "dataset_file_path": "../../artifacts/__test/capnobase-win32-stride1-resp-mini-01.pkl"
         })
         c2 = ResprStandardIndexedDataContainer(config={
-            "dataset_file_path": "../../artifacts/__test/capnobase-win32-stride1-resp-mean-offset-4-num-4.pkl"
+            "dataset_file_path": "../../artifacts/__test/capnobase-win32-stride1-resp-mini-02.pkl"
         })
     
         c = c1 + c2

@@ -645,7 +645,6 @@ class IndexedDatasetBuilder(DatasetBuilder):
                     "dataset_id": self._instructions["dataset_id"],
                     "sample_ids": [],
                     "samples": {},
-                    "y": {}
                 }
                 
             }
@@ -676,10 +675,11 @@ class IndexedDatasetBuilder(DatasetBuilder):
         
         if sample_id not in current_dataset_state["samples"]:
             current_dataset_state["samples"][sample_id] = {
-                "x" : ppg
+                "x" : ppg,
+                "y" : {}
             }
             current_dataset_state["sample_ids"].append(sample_id)
-            current_dataset_state["y"][sample_id] = {}
+            #>>> old: current_dataset_state["y"][sample_id] = {}
         
         
         dataset_index = self.indexed_dataset["dataset_id_to_index"][
@@ -688,7 +688,9 @@ class IndexedDatasetBuilder(DatasetBuilder):
         
         
         # using offset as key in window to ground truth map
-        current_dataset_state["y"][sample_id][offset] = y
+        #>>> old: current_dataset_state["y"][sample_id][offset] = y
+        
+        current_dataset_state["samples"][sample_id]["y"][offset] = y
         
         
         
