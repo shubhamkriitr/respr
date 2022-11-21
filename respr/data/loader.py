@@ -281,6 +281,21 @@ class BaseResprDataLoaderComposer:
         self.batch_size = self._config["batch_size"]
         self.num_workers = self._config["num_workers"]
         self.prepare()
+        
+    def compute_split_sizes(self, n):
+        """ Number of subjects alloted to each of the split"""
+        
+        assert 0 <= self.test_split < 0.9
+        assert 0 <= self.val_split < 0.9
+        assert (self.val_split + self.test_split) < 0.9
+        num_train_ids = int(math.ceil(n * (1-self.test_split-self.val_split)))
+        num_val_ids = int(round(n * self.val_split))
+        num_test_ids = n - num_train_ids - num_val_ids
+        
+        assert num_val_ids > 0 and num_test_ids > 0
+        
+        
+        return num_train_ids, num_val_ids, num_test_ids
 class ResprDataLoaderComposer(BaseResprDataLoaderComposer):
     
     def __init__(self, config) -> None:
@@ -306,20 +321,7 @@ class ResprDataLoaderComposer(BaseResprDataLoaderComposer):
         
         return data
         
-    def compute_split_sizes(self, n):
-        """ Number of subjects alloted to each of the split"""
-        
-        assert 0 <= self.test_split < 0.9
-        assert 0 <= self.val_split < 0.9
-        assert (self.val_split + self.test_split) < 0.9
-        num_train_ids = int(math.ceil(n * (1-self.test_split-self.val_split)))
-        num_val_ids = int(round(n * self.val_split))
-        num_test_ids = n - num_train_ids - num_val_ids
-        
-        assert num_val_ids > 0 and num_test_ids > 0
-        
-        
-        return num_train_ids, num_val_ids, num_test_ids
+
         
         
     def get_data_loaders(self, current_fold=-1):
