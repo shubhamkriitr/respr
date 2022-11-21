@@ -162,7 +162,7 @@ class Pipeline(BasePipeline):
         
         for window_idx in range(num_windows):
             
-            
+            context["current_window"] = None # reset current window info
             offset = window_idx * window_step # index offset
             end_ = offset + window_size
             t_start = offset * 1/fs
@@ -194,24 +194,31 @@ class Pipeline(BasePipeline):
                 # proceed to process the current signal window only if 
                 # ground truth value was obtained
             
-            rr_results = self.process_one_signal_window(
-                data, context, fs, offset, end_)
-            
-            results = self.add_current_window_info_to_results(gt_resp_idx, results, window_idx, offset, end_, t, gt_resp)
-            self.append_results(results, rr_results)
-        
-        return results
-
-    def add_current_window_info_to_results(self, gt_resp_idx, results, window_idx, offset, end_, t, gt_resp):
-        current_window_data = {"window_idx": window_idx,
+            current_window_data = {"window_idx": window_idx,
                                 "offset": offset,
                                 "end_": end_,
                                 "t": t,
                                 "gt_idx": gt_resp_idx,
                                 "gt": gt_resp}
+            
+            context["current_window"] = current_window_data
+            results = self.add_current_window_info_to_results(results,
+                                                    current_window_data)
+            
+            
+            
+            rr_results = self.process_one_signal_window(
+                data, context, fs, offset, end_)
+            
+            self.append_results(results, rr_results)
+        
+        return results
+
+    def add_current_window_info_to_results(self, results_container, current_window_data):
+        
         
         for k in current_window_data:
-            results[k].append(current_window_data[k])
+            results_container[k].append(current_window_data[k])
         #>>> results["window_idx"].append(window_idx)
         #>>> results["offset"].append(offset)
         #>>> results["end_"].append(end_)
@@ -219,7 +226,7 @@ class Pipeline(BasePipeline):
         #>>> results["gt_idx"].append(gt_resp_idx)
         #>>> results["gt"].append(gt_resp)
         
-        return results
+        return results_container
 
     def create_new_context(self):
         # TODO: make reusable objects shared for all the runs
@@ -227,10 +234,13 @@ class Pipeline(BasePipeline):
         pulse_detector = PulseDetector()
         model = PROCESSOR_FACTORY.get(self._config["model"])
         
+        # context object for each sample
         context = {
             "signal_processor": proc,
             "pulse_detector": pulse_detector,
-            "model": model
+            "model": model,
+            "current_window": None # this attribute must be created afresh
+            # for every new window
         }
         
         return context
