@@ -23,7 +23,7 @@ instructions:
   num_samples_to_process: null # if None then all samples are processed and
   # `sample_idx_offset` is ignore (not used)
   exclude_artifacts: true
-  dataset_id: "capnobase-win32-stride1"
+  dataset_id: "capnobase-win32-stride1-resp-mean"
   
 model:
   name: "MultiparameterSmartFusion"

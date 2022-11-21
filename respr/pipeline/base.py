@@ -701,10 +701,13 @@ class IndexedDatasetBuilder(DatasetBuilder):
         
     def close(self):
         import pickle
-        with open("__temp__.pkl", "wb") as f:
+        output_path = self.output_dir / \
+            (self._instructions["dataset_id"] + ".pkl")
+        logger.info(f"Saving indexed dataset at: {output_path}")
+        with open(output_path, "wb") as f:
             pickle.dump(self.indexed_dataset, f, 
                         protocol=pickle.HIGHEST_PROTOCOL)
-        return super().close()
+        
         
         
             
