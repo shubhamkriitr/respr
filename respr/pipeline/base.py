@@ -189,11 +189,14 @@ class Pipeline(BasePipeline):
                     reference_rr=gt_resp_full, timestamps=gt_resp_timestamps,
                     t_start=t_start, t_end=t_end)
 
+            if gt_resp is None: # due to possible anomaly
+                continue # do not add estimates to results
+                # proceed to process the current signal window only if 
+                # ground truth value was obtained
+            
             rr_results = self.process_one_signal_window(
                 data, context, fs, offset, end_)
             
-            if gt_resp is None: # due to possible anomaly
-                continue # do not add estimates to results
             results = self.add_current_window_info_to_results(gt_resp_idx, results, window_idx, offset, end_, t, gt_resp)
             self.append_results(results, rr_results)
         
@@ -571,7 +574,14 @@ class TrainingPipeline(BasePipeline):
                 
             
         
-        
+class IndexedDatasetBuilder(DatasetBuilder):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+    
+    
+    def process_one_signal_window(self, data, context, fs, offset, end_):
+        return super().process_one_signal_window(data, context, fs, offset, end_)
+            
         
         
         
@@ -581,7 +591,8 @@ REGISTERED_PIPELINES = {
     "Pipeline": Pipeline,
     "Pipeline2": Pipeline2,
     "DatasetBuilder": DatasetBuilder,
-    "TrainingPipeline":TrainingPipeline
+    "TrainingPipeline":TrainingPipeline,
+    "IndexedDatasetBuilder": IndexedDatasetBuilder
 }  
 
 
