@@ -46,10 +46,11 @@ class ResprStandardIndexedDataContainer:
         suffixed with integer (starting from 1 and increasing by 1) 
         until a unique id is found.
         """
-        d1 = self.indexed_data
-        d2 = other.indexed_data
-        d1 = self._fuse_metadata(other)
-        self._resolve_dataset_ids_and_indices(other)
+       
+        self.indexed_data = self._fuse_metadata(other)
+        self.indexed_data, d2_id_to_new_id_map = \
+            self._resolve_dataset_ids_and_indices(other)
+        
         
         
     
@@ -85,6 +86,24 @@ class ResprStandardIndexedDataContainer:
                                             d1['dataset_id_to_index'])
         self._sanity_check_index_to_id_maps(d2['dataset_index_to_id'],
                                             d2['dataset_id_to_index'])
+        
+        current_max_idx = -1
+        
+        for k in d1['dataset_index_to_id']:
+            current_max_idx = max(k, current_max_idx)
+        
+        
+
+        
+        current_idx = current_max_idx
+        for dataset_id in sorted(new_id_to_d2_id_map.keys()):
+            current_idx += 1
+            assert dataset_id not in d1['dataset_id_to_index']
+            d1['dataset_id_to_index'][dataset_id] = current_idx
+            assert current_idx not in d1['dataset_index_to_id']
+            d1['dataset_index_to_id'][current_idx] = dataset_id
+            
+        return self.indexed_data, d2_id_to_new_id_map
         
         
         
