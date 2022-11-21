@@ -203,12 +203,21 @@ class Pipeline(BasePipeline):
         return results
 
     def add_current_window_info_to_results(self, gt_resp_idx, results, window_idx, offset, end_, t, gt_resp):
-        results["window_idx"].append(window_idx)
-        results["offset"].append(offset)
-        results["end_"].append(end_)
-        results["t"].append(t)
-        results["gt_idx"].append(gt_resp_idx)
-        results["gt"].append(gt_resp)
+        current_window_data = {"window_idx": window_idx,
+                                "offset": offset,
+                                "end_": end_,
+                                "t": t,
+                                "gt_idx": gt_resp_idx,
+                                "gt": gt_resp}
+        
+        for k in current_window_data:
+            results[k].append(current_window_data[k])
+        #>>> results["window_idx"].append(window_idx)
+        #>>> results["offset"].append(offset)
+        #>>> results["end_"].append(end_)
+        #>>> results["t"].append(t)
+        #>>> results["gt_idx"].append(gt_resp_idx)
+        #>>> results["gt"].append(gt_resp)
         
         return results
 
