@@ -19,7 +19,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from respr.core.ml.models import ML_FACTORY
 from torch.utils.data import DataLoader
 
-
+DTYPE_FLOAT = np.float32
 CONF_FEATURE_RESAMPLING_FREQ = 4 # Hz. (for riav/ rifv/ riiv resampling)
 DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config" / "default.yaml"
 class BasePipeline:
@@ -660,6 +660,10 @@ class IndexedDatasetBuilder(DatasetBuilder):
         sample_id = data.get("id")
         
         y = current_window_info["gt"] # ground truth respiratory rate
+        
+        # adjust datat types
+        ppg = np.array(ppg, dtype=DTYPE_FLOAT)
+        y = np.array([y], dtype=DTYPE_FLOAT)
         
         if self._instructions["resample_ppg"]:
             if self._instructions["resampling_frequency"] != fs:
