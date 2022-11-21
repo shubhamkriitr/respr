@@ -21,8 +21,39 @@ def create_train_val_test_split(sample_ids: list, val=0.2, test=0.2):
     
     return train_samples, val_samples, test_samples
 
-
-class ResprDataset(Dataset):
+class ResprStandardIndexedDataContainer:
+    """ 
+    Interface to access the dataset file created by `IndexedDatasetBuilder`
+    This container is supposed to be shared across multiple indexed `Dataset` 
+    (torch.utils.data.Dataset). In such dataset only part of the index will be 
+    available and data will be sourced for this container.
+    """
+    
+    def __init__(self, config) -> None:
+        self._config = config
+        self.dataset_file_path = self._config["dataset_file_path"]
+        self.indexed_data = self.load_data()
+    
+    def load_data(self):
+        import pickle
+        with open(self.dataset_file_path, "rb") as f:
+            data = pickle.load(f)
+        return data
+    
+    def __add__(self, other):
+        """Merges this container with the `other` and returns `self`.
+        In case of dataset_id conflict, the dataset_id in the `other` is
+        suffixed with integer (starting from 1 and increasing by 1) 
+        until a unique id is found.
+        """
+        
+        
+        
+        
+        
+    
+    
+class _ResprDataset(Dataset):
     def __init__(self, config, datasource: BaseDataAdapter, sample_ids: list) -> None:
         """_summary_
         #TODO: complete doc string
@@ -210,19 +241,24 @@ REGISTERED_DATASET_CLASSES = {
         
         
     
+
+
 if __name__ == "__main__":
     
-    ds = BaseResprCsvDataset({"dataset_path": \
-        "../artifacts/2022-11-16_161146/dataset.csv"})
+    def test_csv_dataset(create_train_val_test_split, BaseResprCsvDataset):
+        ds = BaseResprCsvDataset({"dataset_path": \
+            "../artifacts/2022-11-16_161146/dataset.csv"})
+        
+        dl = DataLoader(dataset=ds, batch_size=3)
+        
+        for batch in dl:
+            b = batch
+            print(type(b))
+        sample_ids = [i for i in range(10)]
+        train_samples, val_samples, test_samples = \
+            create_train_val_test_split(sample_ids, 0.2, 0.2)
+        print("Done")
     
-    dl = DataLoader(dataset=ds, batch_size=3)
-    
-    for batch in dl:
-        b = batch
-        print(type(b))
-    sample_ids = [i for i in range(10)]
-    train_samples, val_samples, test_samples = \
-        create_train_val_test_split(sample_ids, 0.2, 0.2)
-    print("Done")
+    test_csv_dataset(create_train_val_test_split, BaseResprCsvDataset)
     
         
