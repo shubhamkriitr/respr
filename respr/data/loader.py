@@ -51,7 +51,28 @@ class ResprStandardIndexedDataContainer:
         self.indexed_data, d2_id_to_new_id_map = \
             self._resolve_dataset_ids_and_indices(other)
         
+        # Translate and merge incoming datasets
+        self.indexed_data = self._merge_datasets(other, d2_id_to_new_id_map)
         
+        # Translate and merge the incoming indices 
+        
+        return self
+        
+    def _merge_datasets(self, other, other_id_to_new_id_map):
+        d1 = self.indexed_data
+        m = other_id_to_new_id_map
+        
+        for old_id in m:
+            new_id = m[old_id]
+            new_entry = {
+                'dataset_id': new_id,
+                'sample_ids': other.indexed_data['datasets'][old_id]['sample_ids'],
+                'samples': other.indexed_data['datasets'][old_id]['samples'],
+                'y': other.indexed_data['datasets'][old_id]['y']
+            }
+            d1['datasets'][new_id] =  new_entry
+        
+        return self.indexed_data
         
     
     def _fuse_metadata(self, other):
