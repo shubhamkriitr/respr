@@ -152,13 +152,13 @@ class Pipeline(BasePipeline):
             gt_resp_timestamps = data.get_t("gt_resp")
             assert gt_resp_full.shape == gt_resp_timestamps.shape    
         
-        expected_signal_duration = 8*60 # in seconds #TODO: add in/read from data
+        expected_signal_duration = self._instructions["expected_signal_duration"] # in seconds #TODO: add in/read from data
         signal_length = ppg.shape[0] # in number of samples
         assert signal_length == 1 + fs * expected_signal_duration
         
         
-        window_duration = 32 # in seconds
-        window_step_duration = 1 # second
+        window_duration = self._instructions["window_duration"] # in seconds
+        window_step_duration = self._instructions["window_step_duration"] # second
         window_size = window_duration * fs # in num data points
         window_step = window_step_duration * fs # in num data points
         num_windows = int((signal_length - window_size)//window_step + 1)
@@ -181,7 +181,7 @@ class Pipeline(BasePipeline):
             t_start = offset * 1/fs
             t_end = end_ * 1/fs
             t = ((offset + end_)//2) * 1/fs
-            
+            has_artifacts = None
             # CHECK artifacts 
             if self._instructions["exclude_artifacts"]:
                 has_artifacts = proc.check_if_chunk_has_artifacts(
@@ -212,7 +212,8 @@ class Pipeline(BasePipeline):
                                 "end_": end_,
                                 "t": t,
                                 "gt_idx": gt_resp_idx,
-                                "gt": gt_resp}
+                                "gt": gt_resp,
+                                "has_artifacts": has_artifacts}
             
             context["current_window"] = current_window_data
             results = self.add_current_window_info_to_results(results,
