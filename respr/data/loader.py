@@ -46,6 +46,64 @@ class ResprStandardIndexedDataContainer:
         suffixed with integer (starting from 1 and increasing by 1) 
         until a unique id is found.
         """
+        d1 = self.indexed_data
+        d2 = other.indexed_data
+        d1 = self._fuse_metadata(other)
+        self._resolve_dataset_ids_and_indices(other)
+        
+        
+    
+    def _fuse_metadata(self, other):
+        """Correctly merge old _metadata and create new one. At 
+        present just checks if vector length matches"""
+        m1 = self.indexed_data["_metadata"]
+        m2 = other.indexed_data["_metadata"]
+        
+        assert m1["vector_length"] == m2["vector_length"]
+        return self.indexed_data
+        
+    def _resolve_dataset_ids_and_indices(self, other):
+        """Find unique dataset_id in case of id conflict and 
+        indices for the incoming datasets (from the `other`)"""
+        d1 = self.indexed_data
+        d2 = other.indexed_data
+        existing_ids = d1['dataset_id_to_index']
+        
+        d2_id_to_new_id_map = {}
+        new_id_to_d2_id_map = {}
+        
+        for id_ in  d2['dataset_id_to_index']:
+            new_id = id_
+            if (id_ in existing_ids) or \
+                (id_ in new_id_to_d2_id_map):
+                new_id = self._generate_new_id(id_, existing_ids,
+                                               new_id_to_d2_id_map)
+            d2_id_to_new_id_map[id_] = new_id
+            new_id_to_d2_id_map[new_id] = id_
+            
+        self._sanity_check_index_to_id_maps(d1['dataset_index_to_id'],
+                                            d1['dataset_id_to_index'])
+        self._sanity_check_index_to_id_maps(d2['dataset_index_to_id'],
+                                            d2['dataset_id_to_index'])
+        
+        
+        
+            
+    def _generate_new_id(self, id_, m1, m2):
+        start = 0
+        while True:
+            start += 1
+            suffix = str(start).zfill(4)
+            new_id = f"{id_}_{suffix}"
+            if not ((new_id in m1) or (new_id in m2)):
+                return new_id
+    
+    def _sanity_check_index_to_id_maps(self, idx_to_id, id_to_idx):
+        assert len(idx_to_id) == len(id_to_idx)
+        for k in idx_to_id:
+            assert k == id_to_idx[idx_to_id[k]]
+        
+        
         
         
         
@@ -259,6 +317,16 @@ if __name__ == "__main__":
             create_train_val_test_split(sample_ids, 0.2, 0.2)
         print("Done")
     
-    test_csv_dataset(create_train_val_test_split, BaseResprCsvDataset)
+    # test_csv_dataset(create_train_val_test_split, BaseResprCsvDataset)
     
+    def test_container():
+        c1 = ResprStandardIndexedDataContainer(config={
+            "dataset_file_path": "../../artifacts/__test/capnobase-win32-stride1-resp-mean-offset-0-num-4.pkl"
+        })
+        c2 = ResprStandardIndexedDataContainer(config={
+            "dataset_file_path": "../../artifacts/__test/capnobase-win32-stride1-resp-mean-offset-4-num-4.pkl"
+        })
+    
+        c = c1 + c2
         
+    test_container()
