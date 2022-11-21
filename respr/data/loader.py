@@ -269,9 +269,9 @@ class BaseResprCsvDataset(Dataset):
         x = self.x[index, :]
         y = self.y[index]
         return x, y
-    
-class ResprDataLoaderComposer:
-    
+   
+
+class BaseResprDataLoaderComposer:
     def __init__(self, config) -> None:
         self._config = config
         self.dataset = self._config["dataset"] # dataset class name
@@ -281,6 +281,10 @@ class ResprDataLoaderComposer:
         self.batch_size = self._config["batch_size"]
         self.num_workers = self._config["num_workers"]
         self.prepare()
+class ResprDataLoaderComposer(BaseResprDataLoaderComposer):
+    
+    def __init__(self, config) -> None:
+        super().__init__(config)
         
     
     def prepare(self):
