@@ -255,19 +255,20 @@ class PpgSignalProcessor(BasePpgSignalProcessor):
         
         if mode == "mean":
             y_overall = np.mean(y)
-            if np.isnan(y_overall):
-                logger.warning(f"nan encountered : [{start_idx}, {end_idx})")
-                return None
-            if y_overall > 120:
-                logger.warning(
-                    f"Possible anomaly: rr > 40: [{start_idx}, {end_idx})")
-                return None
+            
         elif mode == "mid":
             t_ = timestamps[start_idx:end_idx]
             y_overall = self.extract_ground_truth_rr_as_mid(y, t_)
         else:
             raise NotImplementedError()
         
+        if np.isnan(y_overall):
+            logger.warning(f"nan encountered : [{start_idx}, {end_idx})")
+            return None
+        if y_overall > 120:
+            logger.warning(
+                f"Possible anomaly: rr > 120: [{start_idx}, {end_idx})")
+            return None
         # TODO: may also return aprox. timestamp
         return y_overall
     
