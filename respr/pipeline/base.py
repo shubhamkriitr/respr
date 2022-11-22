@@ -96,6 +96,12 @@ class Pipeline(BasePipeline):
         # make sure all ids are unique
         assert len(set(subject_ids)) == len(subject_ids)
         
+        # give access to subject ids and data adapter to subclasses, in case
+        # some precomputation are required. e.g. calculation of global statis-
+        # tics
+        self.on_data_loaded(subject_ids, bidmc_data_adapter)
+        
+        
         for idx, subject_id in enumerate(subject_ids):
             # if subject_id != "41": FIXME: investigate this
             #     continue
@@ -136,6 +142,8 @@ class Pipeline(BasePipeline):
         # close the pipeline properly
         self.close()
         
+    def on_data_loaded(self, subject_ids, data_adapter):
+        pass
         
     def process_one_sample(self, data):
         signal_name = "ppg"
@@ -615,6 +623,81 @@ class IndexedDatasetBuilder(DatasetBuilder):
     def __init__(self, config={}) -> None:
         super().__init__(config)
         self.indexed_dataset = self.create_indexed_dataset_struct()
+        self.data_statistics = None # TODO: read from config - 
+        # to be used for normalizing data etc.
+        
+        
+    def on_data_loaded(self, subject_ids, data_adapter):
+        if self.data_statistics is None:
+            self.data_statistics = self.compute_global_statistics(
+                subject_ids, data_adapter)
+        
+    
+    def compute_global_statistics(self, subject_ids, data_adapter):
+        ppg = []
+        gt_resp = []
+        for idx, subject_id in enumerate(subject_ids):
+            # if subject_id != "41": FIXME: investigate this
+            
+            
+            logger.info(f"Processing subject#{subject_id}")
+            data = data_adapter.get(subject_id)
+            ppg.append(data.get("signals/ppg"))
+            gt_resp.append(data.get("signals/gt_resp"))
+        
+        # concat arrays of shape (signal_length, )
+        ppg = np.concatenate(ppg, axis=0) 
+        # concat arrays of shape (num_gt, ): num_gt(number of ground truth
+        # labels) may not stay fixed
+        gt_resp = np.concatenate(gt_resp, axis=0)
+        
+        ppg_info = self.compute_stats(ppg)
+        gt_info = self.compute_stats(gt_resp)
+        
+        self.data_statistics = {
+            "ppg": ppg_info,
+            "gt_resp": gt_info
+        }
+        logger.info(f"Updated self.data_statistics to: {self.data_statistics}")
+        
+        
+    def compute_stats(self, a):
+        
+        if np.isnan(a).any():
+            mean_func = np.nanmean
+            std_func = np.nanstd
+            med_func = np.nanmedian
+            min_func = np.nanmin
+            max_func = np.nanmax
+        else:
+            mean_func = np.mean
+            std_func = np.std
+            med_func = np.median
+            min_func = np.min
+            max_func = np.max
+        
+        if np.isinf(a).any():
+            logger.warning(f"Array (shape={a.shape}) has inf values")
+            a = a[np.isfinite(a)]
+            logger.warning(f"Shape after removing infs: shape={a.shape}")
+    
+            
+        
+        mean = mean_func(a)
+        std = std_func(a)
+        med = med_func(a)
+        min_ = min_func(a)
+        max_ = max_func(a)
+        
+        return {
+            "min": min_,
+            "max": max_,
+            "median": med,
+            "std": std,
+            "mean": mean
+        }
+    
+        
         
     def create_indexed_dataset_struct(self):
         return {
