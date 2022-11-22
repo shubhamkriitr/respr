@@ -408,10 +408,10 @@ class ResprIndexedDataset(Dataset):
         
     def __getitem__(self, index) :
         dataset_idx, sample_id, offset = self._index_info[index]
-        dataset_id = self._container.indexed_data['dataset_index_to_id']
+        dataset_id = self._container.indexed_data['dataset_index_to_id'][dataset_idx]
         sample = self._container.indexed_data["datasets"][dataset_id]["samples"][sample_id]
         
-        x = sample["x"][offset:self.x_vector_length]
+        x = sample["x"][offset:offset+self.x_vector_length]
         y = sample["y"][offset]
         
         return x, y

@@ -17,7 +17,7 @@ trainer: # currently using trainer from pytorch lightning
     # limit_train_batches: 0.01 # for debugging only
     # overfit_batches=0.01 # for debugging only
     enable_progress_bar: true
-    overfit_batches: 5 #batches
+    # overfit_batches: 5 #batches
     # resume_from_checkpoint: null
     # <<< FOR GPU >>>
     # accelerator: gpu
@@ -46,13 +46,13 @@ dataloading:
     # MINI DATASET FOR DEV
     config:
       dataset: null #"BaseResprCsvDataset"
-      dataset_path: "../../artifacts/__test/capnobase-win32-stride1-resp-mini-01.pkl"
-      batch_size: 1
+      dataset_path: "../../artifacts/frozen/indexed/01/capnobase-win32-stride1-resp-mean-full.pkl"
+      batch_size: 16
       augmentation: null # to be added later #TODO
       num_folds: 2
-      start_fold: 16
-      val_split: 0.25
-      test_split: 0.25
+      start_fold: 2
+      val_split: 0.2
+      test_split: 0.2
       num_workers: 0
 
 
