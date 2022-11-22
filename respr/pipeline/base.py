@@ -18,6 +18,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from respr.core.ml.models import ML_FACTORY
 from torch.utils.data import DataLoader
+import copy
 
 DTYPE_FLOAT = np.float32
 CONF_FEATURE_RESAMPLING_FREQ = 4 # Hz. (for riav/ rifv/ riiv resampling)
@@ -620,6 +621,16 @@ class TrainingPipeline(BasePipeline):
             
         
 class IndexedDatasetBuilder(DatasetBuilder):
+    """Creates a single output dataset `self.indexed_dataset`
+    containing preprocessed signals (based on the provided signal processing
+    object). Signal windows are not copied, rather only (dataset_id, sample_id,
+    window_offset) are maintained along with one copy of the actual signal.
+    Refer `self.create_indexed_dataset_struct` for detailed structure.
+    The dataset created is supposed to be loaded as
+    `ResprStandardIndexedDataContainer` which in turn can be used as the source
+    to serve multiple torch.utils.data.Dataset by providing a copy of (partial
+    or full ) index.
+    """
     def __init__(self, config={}) -> None:
         super().__init__(config)
         self.indexed_dataset = self.create_indexed_dataset_struct()
@@ -633,6 +644,10 @@ class IndexedDatasetBuilder(DatasetBuilder):
         if self.data_statistics is None:
             self.data_statistics = self.compute_global_statistics(
                 subject_ids, data_adapter)
+        
+        # Store data statistics in indexed_dataset
+        self.indexed_dataset["datasets"][self._instructions["dataset_id"]]\
+            ["data_statistics"] = copy.deepcopy(self.data_statistics)
         
     
     def compute_global_statistics(self, subject_ids, data_adapter):
@@ -713,9 +728,14 @@ class IndexedDatasetBuilder(DatasetBuilder):
             "dataset_index_to_id": {0: self._instructions["dataset_id"]},
             "dataset_id_to_index": {self._instructions["dataset_id"]: 0},
             "datasets": {
+                
                 # map of dataset_id : <dataset_obj>
+                # NOTE: This class currently will add only
+                # one `dataset` (i.e. just one entry in `datasets`)
                 # <dataset_obj> looks like this:
                 # { "dataset_id": <str>, 
+                #   "data_statistics": {"x" : {"mean": <>, "min":  <>, 
+                # "max": <>, "std": }, "y": {"mean": <>, ....}}
                 #   "sample_ids": <list of sample ids> # to be used for partitioning
                 #                initially it should be sorted. But later can be suffled.
                 #   "samples": { 
@@ -729,6 +749,7 @@ class IndexedDatasetBuilder(DatasetBuilder):
                 #           <sample_id> ...
                 # }
                 self._instructions["dataset_id"]: {
+                    "data_statistics": {},
                     "dataset_id": self._instructions["dataset_id"],
                     "sample_ids": [],
                     "samples": {},
