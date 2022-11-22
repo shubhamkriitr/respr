@@ -31,6 +31,8 @@ class BasePipeline:
         self.creation_time = get_timestamp_str()
         if "output_dir" not in self._config:
             self._config["output_dir"] = Path("../../artifacts")
+        else:
+            self._config["output_dir"] = Path(self._config["output_dir"])
         os.makedirs(self._config["output_dir"], exist_ok=True)
         
         self.root_output_dir = self._config["output_dir"]
