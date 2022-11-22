@@ -9,7 +9,7 @@ trainer: # currently using trainer from pytorch lightning
   name: null
   args: []
   kwargs:
-    max_epochs: 100
+    max_epochs: 2
     # not use `check_val_every_n_epoch` if using `val_check_interval`
     # check_val_every_n_epoch: 1
     val_check_interval: 0.25 
@@ -25,7 +25,7 @@ trainer: # currently using trainer from pytorch lightning
 
 
 model:
-  name: "LitResprResnet18"
+  name: "LitResprResnet18Small"
   args: []
   kwargs: {}
 dataloading:
@@ -45,12 +45,12 @@ dataloading:
       # ckpt_path: ../../artifacts/2022-11-17_050120/fold_00/lightning_logs/version_2482287/checkpoints/epoch=7-step=6717.ckpt
     # MINI DATASET FOR DEV
     config:
-      dataset: "BaseResprCsvDataset"
-      dataset_path: "../../artifacts/frozen/mini/dataset_capnobase_w32_s1_4_subjects.csv"
-      batch_size: 16
+      dataset: null #"BaseResprCsvDataset"
+      dataset_path: "../../artifacts/__test/capnobase-win32-stride1-resp-mini-01.pkl"
+      batch_size: 1
       augmentation: null # to be added later #TODO
       num_folds: 2
-      start_fold: 0
+      start_fold: 16
       val_split: 0.25
       test_split: 0.25
       num_workers: 0

@@ -317,10 +317,16 @@ class BaseResprDataLoaderComposer:
         num_max_folds = int(len(input_list)/num_test_ids)
         
         shuffle_times = int(num_fold/num_max_folds)
+        rotate_times = (num_fold % num_max_folds)*num_test_ids
+
         r = random.Random(self.random_state)
         
         for i in range(shuffle_times):
             r.shuffle(l)
+        
+        l = collections.deque(l)
+        l.rotate(rotate_times)
+        l = list(l)
         
         train_ids = l[0:num_train_ids]
         val_ids = l[num_train_ids:num_train_ids+num_val_ids]
@@ -431,6 +437,9 @@ class ResprDataLoaderComposer(BaseResprDataLoaderComposer):
         if current_fold == -1:
             raise NotImplementedError()
         train_split, val_split, test_split = self._partition_dataset_and_samples(current_fold)
+        
+        logger.info(f"Subjects -> Train: {train_split} / Val: {val_split}"
+                    f"/ Test: {test_split}")
         
         train_loader = self.create_loader(train_split, shuffle=True)
         val_loader = self.create_loader(val_split, shuffle=False)

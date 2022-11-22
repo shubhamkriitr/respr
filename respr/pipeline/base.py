@@ -717,7 +717,64 @@ class IndexedDatasetBuilder(DatasetBuilder):
         
         
             
+class DummyIndexedDatasetBuilder(IndexedDatasetBuilder):
+    """ Creates dummy dataset for testing"""
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+        self.num_dummy_datasets = 5
+        self.num_dummy_samples_range = (5, 10) # in (a, b) both inclusive
+        self.sample_id_prefixes = ["sample", "s", "smpl"]
+        self.random_state = 0
         
+    def run(self, *args, **kwargs):
+        import random
+        rn = random.Random(self.random_state)
+        self.indexed_dataset = None
+        v_len = self._instructions["vector_length"]
+        d_id = self._instructions["dataset_id"]
+        
+        dataset_id_to_index = {}
+        dataset_index_to_id = {}
+        datasets = {}
+        index = []
+        for i in range(self.num_dummy_datasets):
+            dataset_id = f"{d_id}_{str(i).zfill(4)}"
+            dataset_id_to_index[dataset_id] = i
+            dataset_index_to_id[i] = dataset_id
+            num_samples = rn.randint(*self.num_dummy_samples_range)
+            sample_id_prefix = rn.choice(self.sample_id_prefixes)
+            
+            sample_ids = []
+            samples = {}
+            
+            for j in range(num_samples):
+                sid = f"{sample_id_prefix}_{j}"
+                offsets = rn.sample(range(1, 1000), rn.randint(5, 10))
+                samples[sid] = {
+                    "x": np.arange(1, 1000, 1),
+                    "y": {i: i for i in offsets}
+                }
+                sample_ids.append(sid)
+                index = index + [(i, sid, x_i) for x_i in offsets]
+                
+            datasets[dataset_id] = {
+                "dataset_id": dataset_id,
+                "sample_ids": sample_ids,
+                "samples": samples,
+            }
+        self.indexed_dataset = {
+            
+            "index": index, # idx to (dataset_id, sample_id, sample_offset) map
+            "_metadata": {
+                "vector_length": v_len
+            },
+            "dataset_index_to_id": dataset_index_to_id,
+            "dataset_id_to_index": dataset_id_to_index,
+            "datasets": datasets
+        }
+        self.close()
+    
+            
         
         
             
@@ -727,7 +784,8 @@ REGISTERED_PIPELINES = {
     "Pipeline2": Pipeline2,
     "DatasetBuilder": DatasetBuilder,
     "TrainingPipeline":TrainingPipeline,
-    "IndexedDatasetBuilder": IndexedDatasetBuilder
+    "IndexedDatasetBuilder": IndexedDatasetBuilder,
+    "DummyIndexedDatasetBuilder": DummyIndexedDatasetBuilder
 }  
 
 
