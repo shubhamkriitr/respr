@@ -23,7 +23,7 @@ instructions:
   num_samples_to_process: null # if None then all samples are processed and
   # `sample_idx_offset` is ignore (not used)
   exclude_artifacts: true
-  dataset_id: "capnobase-win32-stride1-resp-mean-full-normalized"
+  dataset_id: "capnobase-win32-stride1-resp-mid-full-normalized"
   normalize_ppg: True
   ground_truth_mode: "mid" # indicates how the underlying signal processor
   # should compute the ground truth respiratory rate for signal windows.

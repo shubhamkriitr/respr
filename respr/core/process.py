@@ -261,7 +261,8 @@ class PpgSignalProcessor(BasePpgSignalProcessor):
             y_overall = self.extract_ground_truth_rr_as_mid(y, t_)
         else:
             raise NotImplementedError()
-        
+        if y_overall is None:
+            return None
         if np.isnan(y_overall):
             logger.warning(f"nan encountered : [{start_idx}, {end_idx})")
             return None
@@ -273,6 +274,8 @@ class PpgSignalProcessor(BasePpgSignalProcessor):
         return y_overall
     
     def extract_ground_truth_rr_as_mid(self, y_, t_):
+        if y_.shape[0] == 0:
+            return None
         if y_.shape[0] == 1:
             return y_[0]
         
