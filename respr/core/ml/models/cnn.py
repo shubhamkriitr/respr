@@ -1,10 +1,10 @@
 import torch
 from torch import nn, optim
 import pytorch_lightning as pl
+from respr.core.metrics import RMSELoss
 
-
-CAPNOBASE_RR_MEAN = 14.954692
-CAPNOBASE_RR_STD = 7.285640
+CAPNOBASE_RR_MEAN = 18.8806
+CAPNOBASE_RR_STD = 9.8441
 
 
 def get_conv_bn_relu_block(num_channels, num_out_channels):
@@ -155,6 +155,7 @@ def lightning_wrapper(model_module_class):
             self.model_module = model_module_class({})
             
             self.metric_mae = nn.L1Loss(reduction="mean")
+            self.metric_rmse = RMSELoss()
             self.respr_loss_name = ""
             
             
@@ -181,14 +182,17 @@ def lightning_wrapper(model_module_class):
             mu = torch.squeeze(mu)
             log_var = torch.squeeze(log_var)
             loss = self.compute_loss(mu, log_var, normalize_y(labels))
-            mae = self.metric_mae(denormalize_y(mu), labels)
             
+            d_mu = denormalize_y(mu)
+            mae = self.metric_mae(d_mu, labels)
+            rmse = self.metric_rmse(d_mu, labels)
             std = torch.sqrt(torch.exp(log_var))
             std = denormalize_std(std)
             mean_std = torch.mean(std)
             
             self.log(f"{step_name}{self.respr_loss_name}_loss", loss)
             self.log(f"{step_name}_mae", mae)
+            self.log(f"{step_name}_rmse", rmse)
             self.log(f"{step_name}_uncertainty", mean_std)
             return loss
 
