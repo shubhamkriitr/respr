@@ -337,7 +337,7 @@ class Pipeline(BasePipeline):
         #>>>     "rr_est_riiv": rr_est_riiv,
         #>>>     "rr_est_rifv": rr_est_rifv
         #>>> }
-        rr_fused, is_valid = model.fuse_rr_estimates(
+        rr_fused, is_valid, rr_std = model.fuse_rr_estimates(
             rr_est_riav, rr_est_rifv, rr_est_riiv)
         
         results = {
@@ -345,7 +345,8 @@ class Pipeline(BasePipeline):
             "rr_est_riiv": rr_est_riiv,
             "rr_est_rifv": rr_est_rifv,
             "rr_fused": rr_fused,
-            "rr_fused_valid": is_valid
+            "rr_fused_valid": is_valid,
+            "rr_std": rr_std
         }
         return results
 
@@ -460,7 +461,7 @@ class Pipeline2(Pipeline):
         logger.info([rr_est_riav, rr_est_riiv, rr_est_rifv])
         
         
-        rr_fused, is_valid = model.fuse_rr_estimates(
+        rr_fused, is_valid, rr_std = model.fuse_rr_estimates(
             rr_est_riav, rr_est_rifv, rr_est_riiv)
         
         results = {
@@ -468,7 +469,8 @@ class Pipeline2(Pipeline):
             "rr_est_riiv": rr_est_riiv,
             "rr_est_rifv": rr_est_rifv,
             "rr_fused": rr_fused,
-            "rr_fused_valid": is_valid
+            "rr_fused_valid": is_valid,
+            "rr_std": rr_std
         }
         return results
         

@@ -453,8 +453,8 @@ class MultiparameterSmartFusion(object):
         stdv = np.std(rrs)
         rr_aggregated = np.mean(rrs)
         if stdv > 4.0: # stddev > 4 breaths/min
-            return rr_aggregated, False # discard
-        return rr_aggregated, True
+            return rr_aggregated, False, stdv # discard
+        return rr_aggregated, True, stdv
 class MultiparameterSmartFusion2(MultiparameterSmartFusion):
     def __init__(self, config):
         super().__init__(config)
