@@ -29,7 +29,8 @@ class BasePipeline:
         self._config = config
         # TODO: remove the following override
         self.creation_time = get_timestamp_str()
-        self._config["output_dir"] = Path("../../artifacts")
+        if "output_dir" not in self._config:
+            self._config["output_dir"] = Path("../../artifacts")
         os.makedirs(self._config["output_dir"], exist_ok=True)
         
         self.root_output_dir = self._config["output_dir"]
