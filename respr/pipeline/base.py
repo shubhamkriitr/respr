@@ -625,6 +625,8 @@ class IndexedDatasetBuilder(DatasetBuilder):
         self.indexed_dataset = self.create_indexed_dataset_struct()
         self.data_statistics = None # TODO: read from config - 
         # to be used for normalizing data etc.
+        if "normalize_ppg" not in self._instructions:
+            self._instructions["normalize_ppg"] = False
         
         
     def on_data_loaded(self, subject_ids, data_adapter):
@@ -654,11 +656,13 @@ class IndexedDatasetBuilder(DatasetBuilder):
         ppg_info = self.compute_stats(ppg)
         gt_info = self.compute_stats(gt_resp)
         
-        self.data_statistics = {
+        data_statistics = {
             "ppg": ppg_info,
             "gt_resp": gt_info
         }
         logger.info(f"Updated self.data_statistics to: {self.data_statistics}")
+        
+        return data_statistics
         
         
     def compute_stats(self, a):
@@ -744,6 +748,10 @@ class IndexedDatasetBuilder(DatasetBuilder):
         
         y = current_window_info["gt"] # ground truth respiratory rate
         
+        # DO normalization if requested
+        if self._instructions["normalize_ppg"]:
+            ppg = self.normalize_data(data_name="ppg", data=ppg)
+        
         # adjust datat types
         ppg = np.array(ppg, dtype=DTYPE_FLOAT)
         y = np.array([y], dtype=DTYPE_FLOAT)
@@ -796,6 +804,15 @@ class IndexedDatasetBuilder(DatasetBuilder):
         with open(output_path, "wb") as f:
             pickle.dump(self.indexed_dataset, f, 
                         protocol=pickle.HIGHEST_PROTOCOL)
+    
+    def normalize_data(self, data_name, data):
+        """`data_name` is name of the signal/data. e.g. `ppg`, `gt_resp`"""
+        stats = self.data_statistics[data_name]
+        eps = 1e-7
+        
+        data = (data - stats["mean"])/(eps + stats["std"])
+        
+        return data
         
         
         
