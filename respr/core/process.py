@@ -262,11 +262,26 @@ class PpgSignalProcessor(BasePpgSignalProcessor):
                 logger.warning(
                     f"Possible anomaly: rr > 40: [{start_idx}, {end_idx})")
                 return None
+        elif mode == "mid":
+            t_ = timestamps[start_idx:end_idx]
+            y_overall = self.extract_ground_truth_rr_as_mid(y, t_)
         else:
             raise NotImplementedError()
         
         # TODO: may also return aprox. timestamp
         return y_overall
+    
+    def extract_ground_truth_rr_as_mid(self, y_, t_):
+        if y_.shape[0] == 1:
+            return y_[0]
+        
+        t_mid = (t_[0] + t_[-1])/2
+        
+        # takinf idx of timestamp closest to mid 
+        mid_idx = np.argmin(np.abs(t_ - t_mid))
+        #>>> other similar way: mid_idx = np.searchsorted(t_, t_mid, side="left")
+        
+        return y_[mid_idx]
     
     def check_if_chunk_has_artifacts(self, data: StandardDataRecord,
                                      start_time, end_time, signal_name="ppg"):
@@ -326,7 +341,8 @@ class PpgSignalProcessor(BasePpgSignalProcessor):
         # that is artifact
         return has_artifact_in_this_chunk
         
-            
+
+        
 
 from scipy.fft import fft, fftfreq
 import matplotlib.pyplot as plt

@@ -66,7 +66,8 @@ class Pipeline(BasePipeline):
             "window_duration" : 32, # in seconds
             "window_step_duration" : 1, # window stride in seconds
             "expected_signal_duration" : 480,
-            "window_type": "hamming"
+            "window_type": "hamming",
+            "ground_truth_mode": "mean"
         }
         
         for k, v in default_values.items():
@@ -212,7 +213,8 @@ class Pipeline(BasePipeline):
                 gt_resp_idx = -1 # it's a dummy value
                 gt_resp = proc.extract_ground_truth_rr(
                     reference_rr=gt_resp_full, timestamps=gt_resp_timestamps,
-                    t_start=t_start, t_end=t_end)
+                    t_start=t_start, t_end=t_end,
+                    mode=self._instructions["ground_truth_mode"])
 
             if gt_resp is None: # due to possible anomaly
                 continue # do not add estimates to results
