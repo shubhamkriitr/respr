@@ -10,7 +10,7 @@ description: "This is a sample config to run the pipeline"
 
 
 pipeline:
-  name: "IndexedDatasetBuilder"
+  name: "DatasetBuilder" # some of the instructions below are not ussed by `DatasetBuilder` pipeline
 instructions:
   window_duration: 32 # in seconds
   window_step_duration: 1 # window stride in seconds
