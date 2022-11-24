@@ -1,3 +1,18 @@
+import pickle
+import json
+import yaml
+import pandas as pd
+import heartpy
+from pathlib import Path
+import os
+from respr.util import logger
+import re
+import heartpy as hp
+from scipy import signal
+import scipy
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
 class BaseEvaluation:
     
     def __init__(self, config) -> None:
@@ -25,7 +40,7 @@ class BaseResprEvaluator:
         self._prediction_columns = [f"{self._prediction_prefix}{s}" for s in possible_suffixes]
         
     
-    def vary_std_cutoff(self, predictions: pd.DataFrame, std_devs):
+    def vary_std_cutoff(self, predictions, std_devs):
         # compute 1) percentage of windows retained
         # 2) MAE
         # 3) RMSE
