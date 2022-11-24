@@ -291,6 +291,7 @@ class Pipeline(BasePipeline):
             "rr_est_rifv": [],
             "rr_fused": [],
             "rr_fused_valid": [],
+            "std_rr_fused": []
         }
         
         return results
@@ -346,7 +347,7 @@ class Pipeline(BasePipeline):
             "rr_est_rifv": rr_est_rifv,
             "rr_fused": rr_fused,
             "rr_fused_valid": is_valid,
-            "rr_std": rr_std
+            "std_rr_fused": rr_std
         }
         return results
 
