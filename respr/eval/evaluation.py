@@ -13,6 +13,12 @@ import scipy
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from cycler import cycler
+
 class BaseEvaluation:
     
     def __init__(self, config) -> None:
@@ -119,8 +125,8 @@ class BaseResprEvaluator:
     
     
     
-    def plot_samples_retained(self, df):
-        fig, axs = plt.subplots(ncols=1, nrows=1, figsize=(5.5, 3.5),
+    def plot_samples_retained_vs_std_cutoff(self, df):
+        fig, axs = plt.subplots(ncols=1, nrows=1, figsize=(8,  6),
                         layout="constrained")
         axs.plot(df["std_rr_fused_cutoff"], df["retained_records_percent"])
         axs.axvline(x=4.0, color="red", linestyle="--")
@@ -129,7 +135,54 @@ class BaseResprEvaluator:
         axs.set_xlabel("Std. dev. cutoff (in breaths/min)")
         axs.set_ylim([0, 105])
         axs.set_yticks([i for i in range(0, 101, 5)])
+        axs.set_xticks([i for i in range(0, 35, 2)])
     
+    
+    def plot_y_vs_x(self, datalist, x_label, y_label, figsize=(8, 6), x_lim=None, y_lim=None, x_ticks=None, y_ticks=None, title=None):
+        """
+        [
+            {
+                "data": <a dataframe>,
+                "tag": <to be used in legend>
+                "y_colname": <column to be used for y values>,
+                "x_colnmae": <column to be used for x values>
+            }
+            ...
+        
+        ]
+        """
+        
+        fig, axs = plt.subplots(ncols=1, nrows=1, figsize=figsize,
+                        layout="constrained")
+        d = datalist[0]
+        
+        
+        
+        if title is not None: axs.set_title(title)
+        
+        handles = []
+        legend_items = []
+        
+        for d in datalist:
+            df = d["data"]
+            x_col = d["x_colname"]
+            y_col = d["y_colname"]
+            tag = d["tag"]
+            handle, =  axs.plot(df[x_col], df[y_col])
+            handles.append(handle)
+            legend_items.append(tag)
+        axs.set_ylabel(y_label)
+        axs.set_xlabel(x_label)
+            
+        if x_lim is not None: axs.set_xlim(x_lim)
+        if y_lim is not None: axs.set_ylim(y_lim)
+        if y_ticks is not None: axs.set_yticks(y_ticks)
+        if x_ticks is not None: axs.set_xticks(x_ticks)
+        
+        axs.legend(handles, legend_items)
+        
+        return (fig, axs)
+        
     
     
         
