@@ -623,8 +623,13 @@ class TrainingPipeline(BasePipeline):
                 trainer.test(model=model, dataloaders=test_loader, ckpt_path="best")
                 
             else:
+                ckpt_path = self._instructions["ckpt_path"]
+                if isinstance(ckpt_path, (dict, list)):
+                    ckpt_path = ckpt_path[fold]
+                logger.info(f"For current fold ({fold}) using "
+                            f" checkpoint: {ckpt_path}")
                 trainer.test(model=model, dataloaders=test_loader, 
-                             ckpt_path=self._instructions["ckpt_path"])
+                             ckpt_path=ckpt_path)
                 
             
         
