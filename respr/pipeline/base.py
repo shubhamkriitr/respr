@@ -19,6 +19,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from respr.core.ml.models import ML_FACTORY
 from torch.utils.data import DataLoader
 import copy
+import torch
 
 DTYPE_FLOAT = np.float32
 CONF_FEATURE_RESAMPLING_FREQ = 4 # Hz. (for riav/ rifv/ riiv resampling)
@@ -616,20 +617,95 @@ class TrainingPipeline(BasePipeline):
             trainer = pl.Trainer(default_root_dir=default_root_dir,
                                  callbacks=callbacks,
                                  **self._config["trainer"]["kwargs"])
+            ckpt_path = None
             if not self._instructions["do_only_test"]:
                 trainer.fit(model=model, train_dataloaders=train_loader,
                             val_dataloaders=val_loader)
                 logger.info(f"Using best model@: {checkpoint_callback.best_model_path}")
-                trainer.test(model=model, dataloaders=test_loader, ckpt_path="best")
+                ckpt_path="best" # set best
                 
             else:
                 ckpt_path = self._instructions["ckpt_path"]
                 if isinstance(ckpt_path, (dict, list)):
                     ckpt_path = ckpt_path[fold]
-                logger.info(f"For current fold ({fold}) using "
-                            f" checkpoint: {ckpt_path}")
-                trainer.test(model=model, dataloaders=test_loader, 
-                             ckpt_path=ckpt_path)
+            logger.info(f"For current fold ({fold}) using "
+                        f" checkpoint: {ckpt_path}")
+            # save predictions for all
+            trainer.test(model=model, dataloaders=test_loader, 
+                            ckpt_path=ckpt_path)
+            predictions = trainer.predict(model=model, dataloaders=test_loader, 
+                            ckpt_path=ckpt_path)
+            output_file_name = f"predictions_fold_{str(fold).zfill(4)}"
+            self.save_predictions(predictions, test_loader, output_file_name)
+    
+    def save_predictions(self, predictions, data_loader, output_file_name, extension=".csv"):
+        """_summary_
+
+        Args:
+            predictions (_type_): _description_
+            data_loader (_type_): (this data loader must not shuffle the data)
+            output_file_name ():
+
+        Raises:
+            NotImplementedError: _description_
+
+        Returns:
+            _type_: _description_
+        """
+        output_location = self.output_dir / (output_file_name + extension)
+        # concat predictions
+        gt = [] # ground truth
+        for batch in data_loader:
+            y_true = batch[1] # tensor of shape [batch, 1]
+            gt.append(y_true)
+        gt = torch.concat(gt, axis =0).numpy()
+        
+        df = self.predictions_to_dataframe(predictions)
+        
+        df["gt"] = gt # ground truth
+        
+        logger.info(f"Saving predecistions to: {output_location}")
+        df.to_csv(output_location)
+        
+        return df
+    
+    def predictions_to_dataframe(self, predictions):
+        model_name = "pnn"
+        rr_est_colname = f"rr_est_{model_name}" #TODO: use suffix from config
+        rr_est_std = f"std_{rr_est_colname}"
+        
+        y_pred = []
+        y_std = []
+        
+        for batch in predictions:
+            y, std = batch
+            
+            if len(y.shape) == 1:
+                # incase the last batch had only one sample
+                # the shape of y will be [1] and not [1, 1]# TODO: check
+                # pytorch ligtning implementation
+                y = y.unsqueeze(1)
+                std = std.unsqueeze(1)
+            
+            y_pred.append(y[:, :].numpy()) # dim: [batch, 1] -> [batch]
+            y_std.append(std[:, :].numpy())
+        
+        y_pred = np.concatenate(y_pred, axis=0)
+        y_std = np.concatenate(y_std, axis=0)
+        
+        data = np.concatenate([y_pred, y_std], axis=1)
+        
+        df = pd.DataFrame(data=data, columns=[rr_est_colname, rr_est_std])
+        
+        return df
+            
+        
+        
+        
+        
+        
+        
+        
                 
             
         
