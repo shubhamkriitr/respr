@@ -472,7 +472,7 @@ class Pipeline2(Pipeline):
             "rr_est_rifv": rr_est_rifv,
             "rr_est_fused": rr_est_fused,
             "rr_est_fused_valid": is_valid,
-            "rr_std": rr_std
+            "std_rr_est_fused": rr_std
         }
         return results
         
