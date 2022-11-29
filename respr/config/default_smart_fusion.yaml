@@ -1,0 +1,34 @@
+description: "This is a sample config for running smart fusion piepeline."
+# workdir: "" #relative to `respr` directory
+pipeline:
+  name: "Pipeline2"
+instructions:
+  sample_index_offset: 2
+  num_samples_to_process: null # if None then all samples are processed and
+  # `sample_idx_offset` is ignore (not used)
+  exclude_artifacts: True
+  ground_truth_mode: "mid" # indicates how the underlying signal processor
+  # should compute the ground truth respiratory rate for signal windows.
+  # e.g. `mean` => mean value over the window, `mid` =>" take label at 
+  # the middle of the window"
+window_type: hamming
+  
+model:
+  name: "MultiparameterSmartFusion"
+  args: []
+  kwargs:
+    config:
+      resp_rate_cutoff_high: 90 # in breaths per min. Used for removing non-respiratory frequencies
+      resp_rate_cutoff_low: 2
+data_adapter:
+  name: "CapnobaseMatDataAdapter"
+  args: []
+  kwargs:
+    config:
+      data_root_dir: "../../Datasets/capnobase-dataverse/data/mat"
+# data_adapter:
+#   name: "CapnobaseMatDataAdapter"
+#   args: []
+#   kwargs:
+#     config:
+#       data_root_dir: "../../Datasets/bidmc-ppg-and-respiration-dataset-1.0.0/bidmc_csv"
