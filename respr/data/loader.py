@@ -341,11 +341,13 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         self._config = self._fill_missing_config_values()
     
     def _fill_missing_config_values(self):
+        # For capnobase mean=-0.9175685194465276 , std=3.883640349389501
         defaults = {
+            "normalize_x": False,
             "normalization_stats" : {
                 "x" : {
-                    "mean": None,
-                    "std": None
+                    "mean": -0.91756,
+                    "std": 3.88364
                 }
             }
         }
@@ -361,7 +363,9 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
     
     def prepare(self):
         self.data = pd.read_csv(self._config["dataset_path"])
-        self.data = self.normalize_x(self.data)
+        if self._config["normalize_x"]:
+            logger.info("Normalizing x")
+            self.data = self.normalize_x(self.data)
         
         # num unique subjects
         self.subject_ids = list(self.data["subject_ids"].unique())
@@ -373,10 +377,16 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
     
     def normalize_x(self, data):
         
-        x_temp = data.iloc[:, 1:9601]
-        mu = x_temp.mean(axis=0).mean(axis=0)
-        var = ((x_temp - mu)**2).mean(axis=0).mean(axis=0)
-        std = np.sqrt(var)
+        x_stats = self._config["normalization_stats"]["x"]
+        mu = x_stats["mean"]
+        std = x_stats["std"]
+        if mu is None or std is None:
+            logger.info(f"Computing mean / std from data. Provided"
+                        f" mean={mu}, std={std}")
+            x_temp = data.iloc[:, 1:9601]
+            mu = x_temp.mean(axis=0).mean(axis=0)
+            var = ((x_temp - mu)**2).mean(axis=0).mean(axis=0)
+            std = np.sqrt(var)
         
         logger.info(f"Using mean={mu} , std={std} ")
         
