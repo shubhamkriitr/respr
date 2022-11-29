@@ -338,12 +338,11 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
     
     def __init__(self, config) -> None:
         super().__init__(config)
-        self._config = self._fill_missing_config_values()
     
     def _fill_missing_config_values(self):
         # For capnobase mean=-0.9175685194465276 , std=3.883640349389501
         defaults = {
-            "normalize_x": False,
+            "normalize_x": True,
             "normalization_stats" : {
                 "x" : {
                     "mean": -0.91756,
@@ -362,6 +361,7 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         
     
     def prepare(self):
+        self._config = self._fill_missing_config_values()
         self.data = pd.read_csv(self._config["dataset_path"])
         if self._config["normalize_x"]:
             logger.info("Normalizing x")
