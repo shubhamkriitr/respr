@@ -38,10 +38,23 @@ class BasePipeline:
         
         self.root_output_dir = self._config["output_dir"]
         self.output_dir = self.root_output_dir / self.creation_time
-        os.makedirs(self.output_dir, exist_ok=False)
+        self.output_dir = self._create_dir_with_conflict_resolution(
+            self.output_dir)
         self._log_path = self.output_dir / f"{self.creation_time}_logs.log"
         self._log_sink = logger.add(self._log_path)
         self._buffer = {}
+    
+    def _create_dir_with_conflict_resolution(self, dir_path):
+        counter = 0
+        suffix = ""
+        while True:
+            try:
+                new_path = Path(str(dir_path)+suffix)
+                os.makedirs(new_path, exist_ok=False)
+                return new_path
+            except OSError:
+                counter += 1
+                suffix = "_"+str(counter).zfill(4)
         
         
     
