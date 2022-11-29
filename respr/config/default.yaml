@@ -24,7 +24,7 @@ instructions:
   num_samples_to_process: null # if None then all samples are processed and
   # `sample_idx_offset` is ignore (not used)
   exclude_artifacts: true
-  ground_truth_mode: "mid" # indicates how the underlying signal processor
+  ground_truth_mode: "mean" # indicates how the underlying signal processor
   # should compute the ground truth respiratory rate for signal windows.
   # e.g. `mean` => mean value over the window, `mid` =>" take label at 
   # the middle of the window"
