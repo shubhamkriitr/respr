@@ -338,6 +338,25 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
     
     def __init__(self, config) -> None:
         super().__init__(config)
+        self._config = self._fill_missing_config_values()
+    
+    def _fill_missing_config_values(self):
+        defaults = {
+            "normalization_stats" : {
+                "x" : {
+                    "mean": None,
+                    "std": None
+                }
+            }
+        }
+        
+        for k, v in defaults.items():
+            if k not in self._config:
+                logger.warning(f"Key `{k}` was not provided. Using default"
+                               f" value: {v}")
+                self._config[k] = v
+        
+        return self._config
         
     
     def prepare(self):
@@ -353,9 +372,16 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
     
     
     def normalize_x(self, data):
+        
+        x_temp = data.iloc[:, 1:9601]
+        mu = x_temp.mean(axis=0).mean(axis=0)
+        var = ((x_temp - mu)**2).mean(axis=0).mean(axis=0)
+        std = np.sqrt(var)
+        
+        logger.info(f"Using mean={mu} , std={std} ")
+        
         data.iloc[:, 1:9601] = \
-            (data.iloc[:, 1:9601] - data.iloc[:, 1:9601].mean(axis=0))\
-                /(1e-8 + data.iloc[:, 1:9601].std(axis=0))
+            (data.iloc[:, 1:9601] - mu) / (1e-8 + std)
         
         return data
         
