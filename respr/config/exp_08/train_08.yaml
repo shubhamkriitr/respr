@@ -21,7 +21,7 @@ trainer: # currently using trainer from pytorch lightning
     # resume_from_checkpoint: null
     # <<< FOR GPU >>>
     accelerator: gpu
-    devices: [1]
+    devices: [0]
 
 
 model:
