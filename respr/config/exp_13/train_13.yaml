@@ -21,7 +21,7 @@ trainer: # currently using trainer from pytorch lightning
     # resume_from_checkpoint: null
     # <<< FOR GPU >>>
     accelerator: gpu
-    devices: [3]
+    devices: [2]
 
 
 model:
@@ -49,8 +49,8 @@ dataloading:
       dataset_path: "../../artifacts/frozen/dataset_capnobase_w32_s1_artif_cleaned_gt_mid_commit_1995ef9cc.csv"
       batch_size: 16
       augmentation: null # to be added later #TODO
-      num_folds: 10 # have to do for 42
-      start_fold: 0
+      num_folds: 16 # have to do for 42
+      start_fold: 26
       val_split: 0.2
       test_split: 0.023
       num_workers: 0
