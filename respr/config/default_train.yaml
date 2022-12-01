@@ -41,7 +41,7 @@ model: # model => actual model + lighting wrapper
         weight_decay: 1.0e-4
       module_config: # config for the actual pytorch model
       # it will be passed as config kwarg like so `model_module(config=...)`
-        input_channel: 3
+        input_channels: 3
         force_reshape_input: True
 
 
@@ -70,6 +70,7 @@ dataloading:
       x_length: 384 # dimension of input x
         # sample paths
         #"../../artifacts/frozen/mini/dataset_capnobase_w32_s1_4_subjects.csv"
+      normalize_x: false 
       batch_size: 2
       augmentation: null # to be added later #TODO
       num_folds: 2

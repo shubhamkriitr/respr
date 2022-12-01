@@ -120,7 +120,11 @@ class ResprResnet18(nn.Module):
     
     
     def forward(self, x):
-        z = torch.unsqueeze(x, 1) # N x D -> N x 1 x D
+        if self._config["force_reshape_input"]:
+            z = torch.reshape(x, 
+                              (x.shape[0], self._config["input_channels"], -1))
+        else:
+            z = torch.unsqueeze(x, 1) # N x D -> N x 1 x D
         z = self.block_0(z)
         
         for i in range(len(self.blocks) - 1):
@@ -171,7 +175,8 @@ def lightning_wrapper(model_module_class):
             self.model_util = ModelUtil()
             super().__init__(*args, **kwargs)
             logger.info(f"Final config being used: {self._config}")
-            self.model_module = model_module_class({})
+            self.model_module = model_module_class(
+                self._config["module_config"])
             
             
             self.metric_mae = nn.L1Loss(reduction="mean")
@@ -184,7 +189,8 @@ def lightning_wrapper(model_module_class):
                 "optimization": {
                     "lr": 1e-3,
                     "weight_decay": 1e-4
-                }
+                },
+                "module_config": {}
             }
             for k, v in defaults.items():
                 if k not in self._config:

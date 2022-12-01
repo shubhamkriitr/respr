@@ -23,7 +23,7 @@ def fill_missing_values(default_values: dict, target_container: dict,
         if k not in target_container:
             if warn:
                 logger.warning(f"Key {k} was not provided. Using default"
-                               " value : {v}")
+                               f" value : {v}")
             target_container[k] = v
     
     return target_container
