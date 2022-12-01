@@ -508,6 +508,29 @@ class Pipeline2(Pipeline):
         
         
         return re_riav_chunk, re_riiv_chunk, re_rifv_chunk
+    
+    def pad_or_truncate(self, x, expected_length, pad_value=0):
+        """Truncate or pad a 1D array(`x`) to get resulting array of
+        expected length."""
+        if len(x.shape) != 1:
+            raise ValueError("Only 1D array alowed")
+        if x.shape[0] == expected_length:
+            return x
+        
+        if x.shape[0] > expected_length:
+            return x[0:expected_length]
+        
+        pad_width = max(0, expected_length - x.shape[0])
+        pad_width_left = pad_width // 2
+        pad_width_right = pad_width - pad_width_left
+        
+        x_new = np.pad(x, (pad_width_left, pad_width_right), 
+                              'constant', constant_values=(0, 0))
+        
+        return x_new
+        
+        
+            
         
 
 class DatasetBuilder(Pipeline2):
