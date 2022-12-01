@@ -599,17 +599,20 @@ class DatasetBuilder(Pipeline2):
             idx = r["idx"]
             v = r["output"]
             
-            window_signals = v["ppg_chunk"]
-            num_windows = len(window_signals)
+            window_signals = self._prepare_signal_to_store(v)
+            num_windows = window_signals.shape[0]
             sub_ids = sub_ids + [id_] * num_windows
             sub_idx = sub_idx + [idx] * num_windows
-            x = x + window_signals
+            x.append(window_signals)
+            #>>> x = x + window_signals
             y = y + v["gt"] # ground truth
         
         df = pd.DataFrame(data=sub_idx, columns=["subject_idx"])
         df["subject_ids"] = sub_ids
         df["y"] = y
-        x = np.stack(x, axis=0)
+        
+        #>>> x = np.stack(x, axis=0)
+        x = np.concatenate(x, axis=0)
         x = pd.DataFrame(x, 
                          columns=["x_"+str(i).zfill(5) for i in range(x.shape[1])])
         df = pd.concat([x, df], axis=1)
@@ -620,18 +623,26 @@ class DatasetBuilder(Pipeline2):
         return df
     
     def _prepare_signal_to_store(self, value_container):
-        raise NotImplementedError()
         signals_to_include = self._config["signals_to_include"]
         if signals_to_include == "raw":
             window_signals = value_container["ppg_chunk"]
+            window_signals = np.array(window_signals, dtype=DTYPE_FLOAT)
             return window_signals
         if signals_to_include == "all_induced":
             riavs = value_container["riav_chunk"]
             rifvs = value_container["rifv_chunk"]
             riivs = value_container["riiv_chunk"]
-            concatenated = []
-            for i in range(len(riavs)):
-                pass
+            concatenated = None
+            
+            riavs = np.array(riavs, dtype=DTYPE_FLOAT)
+            rifvs = np.array(rifvs, dtype=DTYPE_FLOAT)
+            riivs = np.array(riivs, dtype=DTYPE_FLOAT)
+            
+            concatenated  = np.concatenate([riavs, rifvs, riivs], axis=1)
+            
+            return concatenated
+            
+            
         
 
 

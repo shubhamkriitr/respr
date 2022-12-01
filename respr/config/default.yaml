@@ -1,5 +1,5 @@
 description: "This is a sample config to run the pipeline"
-output_dir: "../../artifacts/store"
+output_dir: "../../artifacts/__temp__"
 # workdir: "" #relative to `respr` directory
 # pipeline:
 #   name: "DatasetBuilder"
@@ -13,6 +13,7 @@ output_dir: "../../artifacts/store"
 pipeline:
   name: "DatasetBuilder" # some of the instructions below are not ussed by `DatasetBuilder` pipeline
 instructions:
+  signals_to_include: raw # raw, all_induced
   window_duration: 32 # in seconds
   window_step_duration: 32 # window stride in seconds
   expected_signal_duration: 480 # total length of signal in seconds (for assertion)
@@ -21,7 +22,7 @@ instructions:
   resample_ppg: False # `False` for Capnobase / `True` for BIDMC (which is @125Hz)
   resampling_frequency: 300 # used only if `resample_ppg` is set
   sample_index_offset: 0
-  num_samples_to_process: null # if None then all samples are processed and
+  num_samples_to_process: 2 # if None then all samples are processed and
   # `sample_idx_offset` is ignore (not used)
   exclude_artifacts: true
   ground_truth_mode: "mid" # indicates how the underlying signal processor
