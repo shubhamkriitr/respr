@@ -2,6 +2,9 @@ import torch
 from torch import nn, optim
 import pytorch_lightning as pl
 from respr.core.metrics import RMSELoss
+from respr.util import logger
+from respr.core.ml.models.util import ModelUtil
+from respr.util.common import fill_missing_values
 
 CAPNOBASE_RR_MEAN = 18.8806
 CAPNOBASE_RR_STD = 9.8441
@@ -71,8 +74,17 @@ class ResprResnet18(nn.Module):
     
     def __init__(self, config={}) -> None:
         super().__init__()
+        self._config = config
+        defaults = {
+            "input_channels": 1,
+            "force_reshape_input": False # try to reshape input records to 
+            # get the desired number of input channels
+        }
+        self._config = fill_missing_values(default_values=defaults,
+                                           target_container=self._config)
         self.block_structure = self.get_block_structure()
         self._build()
+    
 
     def get_block_structure(self):
         return [
@@ -84,7 +96,7 @@ class ResprResnet18(nn.Module):
         
         
     def _build(self):
-        self.block_0 = get_first_block(1)
+        self.block_0 = get_first_block(self._config["input_channels"])
         self.blocks = [
                 conv2_x_block(
                     num_channels=ch, num_sub_blocks=b, num_out_channels=ch)
@@ -108,7 +120,11 @@ class ResprResnet18(nn.Module):
     
     
     def forward(self, x):
-        z = torch.unsqueeze(x, 1) # N x D -> N x 1 x D
+        if self._config["force_reshape_input"]:
+            z = torch.reshape(x, 
+                              (x.shape[0], self._config["input_channels"], -1))
+        else:
+            z = torch.unsqueeze(x, 1) # N x D -> N x 1 x D
         z = self.block_0(z)
         
         for i in range(len(self.blocks) - 1):
@@ -151,14 +167,39 @@ def denormalize_std(std):
 def lightning_wrapper(model_module_class):
     class _LitModule(pl.LightningModule):
         def __init__(self, *args, **kwargs) -> None:
+            self._config = {}
+            if "config" in kwargs:
+                self._config = kwargs.pop("config")
+            self._config = self._fill_missing_config_values()
+            
+            self.model_util = ModelUtil()
             super().__init__(*args, **kwargs)
-            self.model_module = model_module_class({})
+            logger.info(f"Final config being used: {self._config}")
+            self.model_module = model_module_class(
+                self._config["module_config"])
+            
             
             self.metric_mae = nn.L1Loss(reduction="mean")
             self.metric_rmse = RMSELoss()
             self.respr_loss_name = ""
             
-            
+        def _fill_missing_config_values(self):
+            defaults = {
+                # "cost_function": "mae"
+                "optimization": {
+                    "lr": 1e-3,
+                    "weight_decay": 1e-4
+                },
+                "module_config": {}
+            }
+            for k, v in defaults.items():
+                if k not in self._config:
+                    logger.warning(f"Key `{k}` not provided, using default"
+                                   f" value : {v}")
+                    self._config[k] = v
+                    
+            return self._config
+        
         def compute_loss(self, mu, log_var, y_true):
             delta = (y_true - mu)
             loss = (delta*delta)/torch.exp(log_var) + log_var
@@ -170,7 +211,9 @@ def lightning_wrapper(model_module_class):
             return self.model_module(x)
         
         def configure_optimizers(self):
-            optimizer = optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-4)
+            optim_config = self._config["optimization"]
+            optimizer = optim.AdamW(self.parameters(), lr=optim_config["lr"],
+                                    weight_decay=optim_config["weight_decay"])
             return optimizer
 
         def training_step(self, batch, batch_idx):

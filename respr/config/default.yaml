@@ -1,5 +1,5 @@
 description: "This is a sample config to run the pipeline"
-output_dir: "../../artifacts/store"
+output_dir: "../../artifacts/frozen"
 # workdir: "" #relative to `respr` directory
 # pipeline:
 #   name: "DatasetBuilder"
@@ -13,8 +13,9 @@ output_dir: "../../artifacts/store"
 pipeline:
   name: "DatasetBuilder" # some of the instructions below are not ussed by `DatasetBuilder` pipeline
 instructions:
+  signals_to_include: all_induced # raw, all_induced
   window_duration: 32 # in seconds
-  window_step_duration: 32 # window stride in seconds
+  window_step_duration: 16 # window stride in seconds
   expected_signal_duration: 480 # total length of signal in seconds (for assertion)
   vector_length: 9600 # desired vector length (used for assertion) / and in case the
   # the signal needs to be resampled it is used as the number of points
@@ -24,7 +25,7 @@ instructions:
   num_samples_to_process: null # if None then all samples are processed and
   # `sample_idx_offset` is ignore (not used)
   exclude_artifacts: true
-  ground_truth_mode: "mid" # indicates how the underlying signal processor
+  ground_truth_mode: "mean" # indicates how the underlying signal processor
   # should compute the ground truth respiratory rate for signal windows.
   # e.g. `mean` => mean value over the window, `mid` =>" take label at 
   # the middle of the window"

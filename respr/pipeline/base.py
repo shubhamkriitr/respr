@@ -506,14 +506,59 @@ class Pipeline2(Pipeline):
         re_rifv_chunk = re_rifv[idx_start:idx_end]
         re_riiv_chunk = re_riiv[idx_start:idx_end]
         
+        # for re_riav .. 
+        expected_length =\
+            (CONF_FEATURE_RESAMPLING_FREQ * 
+             self._config["instructions"]["window_duration"])
+        
+        # TODO: may use resample again
+        re_riav_chunk = self.pad_or_truncate(re_riav_chunk, expected_length)
+        re_rifv_chunk = self.pad_or_truncate(re_rifv_chunk, expected_length)
+        re_riiv_chunk = self.pad_or_truncate(re_riiv_chunk, expected_length)
+        
         
         return re_riav_chunk, re_riiv_chunk, re_rifv_chunk
+    
+    def pad_or_truncate(self, x, expected_length, pad_value=0):
+        """Truncate or pad a 1D array(`x`) to get resulting array of
+        expected length."""
+        if len(x.shape) != 1:
+            raise ValueError("Only 1D array alowed")
+        if x.shape[0] == expected_length:
+            return x
+        
+        if x.shape[0] > expected_length:
+            return x[0:expected_length]
+        
+        pad_width = max(0, expected_length - x.shape[0])
+        pad_width_left = pad_width // 2
+        pad_width_right = pad_width - pad_width_left
+        
+        x_new = np.pad(x, (pad_width_left, pad_width_right), 
+                              'constant', constant_values=(pad_value, pad_value))
+        
+        return x_new
+        
+        
+            
         
 
 class DatasetBuilder(Pipeline2):
     
     def __init__(self, config={}) -> None:
+        """
+        
+        If self._config["instructions"]["signals_to_include"] is `all_induced`:
+        The three respiratory induced signals will be concatenated. (so need
+        to parse back later into individual components)
+        
+        """
         super().__init__(config)
+        if "signals_to_include" not in self._config["instructions"]:
+            self._config["instructions"]["signals_to_include"] \
+                = "raw" # raw / all_induced
+        
+        
     
     def process_one_signal_window(self, data, context, fs, offset, end_):
         
@@ -574,17 +619,20 @@ class DatasetBuilder(Pipeline2):
             idx = r["idx"]
             v = r["output"]
             
-            window_signals = v["ppg_chunk"]
-            num_windows = len(window_signals)
+            window_signals = self._prepare_signal_to_store(v)
+            num_windows = window_signals.shape[0]
             sub_ids = sub_ids + [id_] * num_windows
             sub_idx = sub_idx + [idx] * num_windows
-            x = x + window_signals
+            x.append(window_signals)
+            #>>> x = x + window_signals
             y = y + v["gt"] # ground truth
         
         df = pd.DataFrame(data=sub_idx, columns=["subject_idx"])
         df["subject_ids"] = sub_ids
         df["y"] = y
-        x = np.stack(x, axis=0)
+        
+        #>>> x = np.stack(x, axis=0)
+        x = np.concatenate(x, axis=0)
         x = pd.DataFrame(x, 
                          columns=["x_"+str(i).zfill(5) for i in range(x.shape[1])])
         df = pd.concat([x, df], axis=1)
@@ -593,6 +641,26 @@ class DatasetBuilder(Pipeline2):
         df.to_csv(save_path)
         
         return df
+    
+    def _prepare_signal_to_store(self, value_container):
+        signals_to_include = self._config["instructions"]["signals_to_include"]
+        if signals_to_include == "raw":
+            window_signals = value_container["ppg_chunk"]
+            window_signals = np.array(window_signals, dtype=DTYPE_FLOAT)
+            return window_signals
+        if signals_to_include == "all_induced":
+            concatenated = None
+            
+            riavs = np.array(value_container["riav_chunk"], dtype=DTYPE_FLOAT)
+            rifvs = np.array(value_container["rifv_chunk"], dtype=DTYPE_FLOAT)
+            riivs = np.array(value_container["riiv_chunk"], dtype=DTYPE_FLOAT)
+            
+            concatenated  = np.concatenate([riavs, rifvs, riivs], axis=1)
+            
+            return concatenated
+            
+            
+        
 
 
 class TrainingPipeline(BasePipeline):
