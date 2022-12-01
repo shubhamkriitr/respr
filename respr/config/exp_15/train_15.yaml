@@ -55,8 +55,8 @@ dataloading:
     # MINI DATASET FOR DEV
     config:
       dataset: "BaseResprCsvDataset"
-      dataset_path: "../../artifacts/frozen/2022-12-01_235401-commit-w32s16
-        -mean-gt-bc3c31d08/dataset_capnobase_all_induced_w32_s32_artif_
+      dataset_path: "../../artifacts/frozen/2022-12-01_235401-commit-w32s16\
+        -mean-gt-bc3c31d08/dataset_capnobase_all_induced_w32_s32_artif_\
         cleaned_gt_mean_commit-bc3c31d08.csv"
       # >>> new config attrs added to support trainingin on RIAV RIFV RIIV>>>
       x_length: 384 # dimension of input x
