@@ -65,7 +65,7 @@ dataloading:
 
       batch_size: 16
       augmentation: null # to be added later #TODO
-      num_folds: 22 # do for 42
+      num_folds: 42 # do for 42
       start_fold: 0
       val_split: 0.2
       test_split: 0.023 # ~1/42
