@@ -506,6 +506,16 @@ class Pipeline2(Pipeline):
         re_rifv_chunk = re_rifv[idx_start:idx_end]
         re_riiv_chunk = re_riiv[idx_start:idx_end]
         
+        # for re_riav .. 
+        expected_length =\
+            (CONF_FEATURE_RESAMPLING_FREQ * 
+             self._config["instructions"]["window_duration"])
+        
+        # TODO: may use resample again
+        re_riav_chunk = self.pad_or_truncate(re_riav_chunk, expected_length)
+        re_rifv_chunk = self.pad_or_truncate(re_rifv_chunk, expected_length)
+        re_riiv_chunk = self.pad_or_truncate(re_riiv_chunk, expected_length)
+        
         
         return re_riav_chunk, re_riiv_chunk, re_rifv_chunk
     
@@ -536,10 +546,19 @@ class Pipeline2(Pipeline):
 class DatasetBuilder(Pipeline2):
     
     def __init__(self, config={}) -> None:
+        """
+        
+        If self._config["instructions"]["signals_to_include"] is `all_induced`:
+        The three respiratory induced signals will be concatenated. (so need
+        to parse back later into individual components)
+        
+        """
         super().__init__(config)
         if "signals_to_include" not in self._config["instructions"]:
             self._config["instructions"]["signals_to_include"] \
                 = "raw" # raw / all_induced
+        
+        
     
     def process_one_signal_window(self, data, context, fs, offset, end_):
         
@@ -630,14 +649,11 @@ class DatasetBuilder(Pipeline2):
             window_signals = np.array(window_signals, dtype=DTYPE_FLOAT)
             return window_signals
         if signals_to_include == "all_induced":
-            riavs = value_container["riav_chunk"]
-            rifvs = value_container["rifv_chunk"]
-            riivs = value_container["riiv_chunk"]
             concatenated = None
             
-            riavs = np.array(riavs, dtype=DTYPE_FLOAT)
-            rifvs = np.array(rifvs, dtype=DTYPE_FLOAT)
-            riivs = np.array(riivs, dtype=DTYPE_FLOAT)
+            riavs = np.array(value_container["riav_chunk"], dtype=DTYPE_FLOAT)
+            rifvs = np.array(value_container["rifv_chunk"], dtype=DTYPE_FLOAT)
+            riivs = np.array(value_container["riiv_chunk"], dtype=DTYPE_FLOAT)
             
             concatenated  = np.concatenate([riavs, rifvs, riivs], axis=1)
             
