@@ -3,11 +3,15 @@ description: "This is a sample config to run the pipeline"
 pipeline:
   name: "TrainingPipeline"
 instructions:
-  do_only_test: true # make sure to set `ckpt_path`
+  do_only_test: false # make sure to set `ckpt_path`
   ckpt_path:
     3: ../../artifacts/2022-11-24_150935/fold_00/lightning_logs/version_0/checkpoints/model-epoch=00-s-step=1-val_mae=9.01.ckpt
     4: ../../artifacts/2022-11-24_150935/fold_00/lightning_logs/version_0/checkpoints/model-epoch=00-s-step=2-val_mae=10.30.ckpt
     
+
+#checkpointing # monitor param etc. goes under this attribute
+
+
 trainer: # currently using trainer from pytorch lightning 
   name: null
   args: []
@@ -30,9 +34,13 @@ trainer: # currently using trainer from pytorch lightning
 model:
   name: "LitResprResnet18"
   args: []
-  kwargs: {}
+  kwargs:
+    config:
+      optimization:
+        lr: 1.0e-3
+        weight_decay: 1.0e-4
 dataloading:
-  name: "ResprDataLoaderComposer"
+  name: "ResprCsvDataLoaderComposer"
   args: []
   kwargs:
     # config:
@@ -48,14 +56,14 @@ dataloading:
       # ckpt_path: ../../artifacts/2022-11-17_050120/fold_00/lightning_logs/version_2482287/checkpoints/epoch=7-step=6717.ckpt
     # MINI DATASET FOR DEV
     config:
-      dataset: null #"BaseResprCsvDataset"
-      dataset_path: "../../artifacts/frozen/capnobase-win32-stride1-resp-mean-full-normalized-commit-c3a912f3e1.pkl"
-      batch_size: 16
+      dataset: "BaseResprCsvDataset"
+      dataset_path: "../../artifacts/frozen/mini/dataset_capnobase_w32_s1_4_subjects.csv"
+      batch_size: 2
       augmentation: null # to be added later #TODO
       num_folds: 2
-      start_fold: 3
-      val_split: 0.2
-      test_split: 0.2
+      start_fold: 0
+      val_split: 0.25
+      test_split: 0.25
       num_workers: 0
 
 

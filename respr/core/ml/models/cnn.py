@@ -2,6 +2,8 @@ import torch
 from torch import nn, optim
 import pytorch_lightning as pl
 from respr.core.metrics import RMSELoss
+from respr.util import logger
+from respr.core.ml.models.util import ModelUtil
 
 CAPNOBASE_RR_MEAN = 18.8806
 CAPNOBASE_RR_STD = 9.8441
@@ -151,14 +153,37 @@ def denormalize_std(std):
 def lightning_wrapper(model_module_class):
     class _LitModule(pl.LightningModule):
         def __init__(self, *args, **kwargs) -> None:
+            self._config = {}
+            if "config" in kwargs:
+                self._config = kwargs.pop("config")
+            self._config = self._fill_missing_config_values()
+            
+            self.model_util = ModelUtil()
             super().__init__(*args, **kwargs)
+            logger.info(f"Final config being used: {self._config}")
             self.model_module = model_module_class({})
+            
             
             self.metric_mae = nn.L1Loss(reduction="mean")
             self.metric_rmse = RMSELoss()
             self.respr_loss_name = ""
             
-            
+        def _fill_missing_config_values(self):
+            defaults = {
+                # "cost_function": "mae"
+                "optimization": {
+                    "lr": 1e-3,
+                    "weight_decay": 1e-4
+                }
+            }
+            for k, v in defaults.items():
+                if k not in self._config:
+                    logger.warning(f"Key `{k}` not provided, using default"
+                                   f" value : {v}")
+                    self._config[k] = v
+                    
+            return self._config
+        
         def compute_loss(self, mu, log_var, y_true):
             delta = (y_true - mu)
             loss = (delta*delta)/torch.exp(log_var) + log_var
@@ -170,7 +195,9 @@ def lightning_wrapper(model_module_class):
             return self.model_module(x)
         
         def configure_optimizers(self):
-            optimizer = optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-4)
+            optim_config = self._config["optimization"]
+            optimizer = optim.AdamW(self.parameters(), lr=optim_config["lr"],
+                                    weight_decay=optim_config["weight_decay"])
             return optimizer
 
         def training_step(self, batch, batch_idx):
