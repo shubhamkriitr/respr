@@ -525,7 +525,7 @@ class Pipeline2(Pipeline):
         pad_width_right = pad_width - pad_width_left
         
         x_new = np.pad(x, (pad_width_left, pad_width_right), 
-                              'constant', constant_values=(0, 0))
+                              'constant', constant_values=(pad_value, pad_value))
         
         return x_new
         
@@ -537,6 +537,8 @@ class DatasetBuilder(Pipeline2):
     
     def __init__(self, config={}) -> None:
         super().__init__(config)
+        if "signals_to_include" not in self._config:
+            self._config["signals_to_include"] = "raw" # raw / all_induced
     
     def process_one_signal_window(self, data, context, fs, offset, end_):
         
@@ -616,6 +618,21 @@ class DatasetBuilder(Pipeline2):
         df.to_csv(save_path)
         
         return df
+    
+    def _prepare_signal_to_store(self, value_container):
+        raise NotImplementedError()
+        signals_to_include = self._config["signals_to_include"]
+        if signals_to_include == "raw":
+            window_signals = value_container["ppg_chunk"]
+            return window_signals
+        if signals_to_include == "all_induced":
+            riavs = value_container["riav_chunk"]
+            rifvs = value_container["rifv_chunk"]
+            riivs = value_container["riiv_chunk"]
+            concatenated = []
+            for i in range(len(riavs)):
+                pass
+        
 
 
 class TrainingPipeline(BasePipeline):
