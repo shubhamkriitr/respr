@@ -13,7 +13,7 @@ output_dir: "../../artifacts/__temp__"
 pipeline:
   name: "DatasetBuilder" # some of the instructions below are not ussed by `DatasetBuilder` pipeline
 instructions:
-  signals_to_include: raw # raw, all_induced
+  signals_to_include: all_induced # raw, all_induced
   window_duration: 32 # in seconds
   window_step_duration: 32 # window stride in seconds
   expected_signal_duration: 480 # total length of signal in seconds (for assertion)
