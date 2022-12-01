@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 from respr.core.metrics import RMSELoss
 from respr.util import logger
 from respr.core.ml.models.util import ModelUtil
+from respr.util.common import fill_missing_values
 
 CAPNOBASE_RR_MEAN = 18.8806
 CAPNOBASE_RR_STD = 9.8441
@@ -73,8 +74,17 @@ class ResprResnet18(nn.Module):
     
     def __init__(self, config={}) -> None:
         super().__init__()
+        self._config = config
+        defaults = {
+            "input_channels": 1,
+            "force_reshape_input": False # try to reshape input records to 
+            # get the desired number of input channels
+        }
+        self._config = fill_missing_values(default_values=defaults,
+                                           target_container=self._config)
         self.block_structure = self.get_block_structure()
         self._build()
+    
 
     def get_block_structure(self):
         return [
@@ -86,7 +96,7 @@ class ResprResnet18(nn.Module):
         
         
     def _build(self):
-        self.block_0 = get_first_block(1)
+        self.block_0 = get_first_block(self._config["input_channels"])
         self.blocks = [
                 conv2_x_block(
                     num_channels=ch, num_sub_blocks=b, num_out_channels=ch)

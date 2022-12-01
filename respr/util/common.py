@@ -2,6 +2,7 @@ from datetime import datetime
 from pathlib import Path
 import os
 import yaml
+from respr.util import logger
 
 PROJECT_NAME = "respr"
 PROJECT_ROOT = Path(os.path.abspath('')) / PROJECT_NAME
@@ -15,6 +16,20 @@ def get_timestamp_str(granularity=1000):
 def save_yaml(data, file_path):
     with open(file_path, "w") as f:
         yaml.dump(data, f)
+
+def fill_missing_values(default_values: dict, target_container: dict,
+                        warn=True):
+    for k, v in default_values.items():
+        if k not in target_container:
+            if warn:
+                logger.warning(f"Key {k} was not provided. Using default"
+                               " value : {v}")
+            target_container[k] = v
+    
+    return target_container
+
+    
+            
 class BaseFactory(object):
     def __init__(self, config=None) -> None:
         self.config = {} if config is None else config 

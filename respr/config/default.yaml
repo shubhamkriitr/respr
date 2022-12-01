@@ -1,5 +1,5 @@
 description: "This is a sample config to run the pipeline"
-output_dir: "../../artifacts/__temp__"
+output_dir: "../../artifacts/frozen"
 # workdir: "" #relative to `respr` directory
 # pipeline:
 #   name: "DatasetBuilder"
@@ -22,7 +22,7 @@ instructions:
   resample_ppg: False # `False` for Capnobase / `True` for BIDMC (which is @125Hz)
   resampling_frequency: 300 # used only if `resample_ppg` is set
   sample_index_offset: 0
-  num_samples_to_process: 2 # if None then all samples are processed and
+  num_samples_to_process: 4 # if None then all samples are processed and
   # `sample_idx_offset` is ignore (not used)
   exclude_artifacts: true
   ground_truth_mode: "mid" # indicates how the underlying signal processor
