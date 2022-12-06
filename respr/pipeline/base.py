@@ -649,10 +649,26 @@ class DatasetBuilder(Pipeline2):
                 value_container)
             return window_signals
         if signals_to_include == "all_induced":
-            concatenated = self._prepare_induced_singals_to_store(
+            all_induced = self._prepare_induced_singals_to_store(
                 value_container)
+            return all_induced
+        
+        if signals_to_include == "all":
+            logger.debug("Including all signals")
+            ppg_window = self._prepare_window_ppg_signal_to_store(
+                value_container)
+            logger.debug(f"ppg data shape: {ppg_window.shape}")
+            all_induced_signals_window =self._prepare_induced_singals_to_store(
+                value_container)
+            logger.debug(f"induced signal data shape: "
+                         f"{all_induced_signals_window.shape}")
+            all_signals = np.concatenate(
+                [ppg_window, all_induced_signals_window], axis=1)
+            logger.debug(f"combined data shape: "
+                         f"{all_signals.shape}")
             
-            return concatenated
+            
+            return all_signals
 
     def _prepare_induced_singals_to_store(self, value_container):
         concatenated = None
