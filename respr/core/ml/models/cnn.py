@@ -123,8 +123,10 @@ class ResprResnet18(nn.Module):
         if self._config["force_reshape_input"]:
             z = torch.reshape(x, 
                               (x.shape[0], self._config["input_channels"], -1))
-        else:
+        elif len(x.shape) == 2:
             z = torch.unsqueeze(x, 1) # N x D -> N x 1 x D
+        else:
+            z = x
         z = self.block_0(z)
         
         for i in range(len(self.blocks) - 1):
