@@ -140,9 +140,9 @@ class ResprResnet18(nn.Module):
         z = torch.squeeze(z) # drop last dimension
         
         mu = self.fc_mu(z)
-        log_sig = self.fc_log_var(z)
+        log_var = self.fc_log_var(z)
         
-        return mu, log_sig
+        return mu, log_var
 
 
 class ResprResnet18Small(ResprResnet18):
