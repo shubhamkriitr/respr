@@ -54,7 +54,7 @@ dataloading:
       # ckpt_path: ../../artifacts/2022-11-17_050120/fold_00/lightning_logs/version_2482287/checkpoints/epoch=7-step=6717.ckpt
     # MINI DATASET FOR DEV
     config:
-      dataset: "BaseResprCsvDataset"
+      dataset: "ResprAllSignalsCsvDataset"
       dataset_path: "../../artifacts/frozen/\
       2022-12-07_235036_w32_s16_gt_mean_all_signals/\
       dataset_capnobase_w32_s16_artif_cleaned_\
