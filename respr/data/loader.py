@@ -2,13 +2,17 @@ import math
 import collections
 from torch.utils.data import Dataset, DataLoader
 from respr.data.base import BaseDataAdapter
+from respr.util.common import fill_missing_values
 from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
 from loguru import logger
 import copy
 import random
+import scipy.signal
 from collections import defaultdict
+import tqdm
+
 DTYPE_FLOAT = np.float32
 
 # TODO: set seeds for random 
@@ -223,15 +227,17 @@ class _ResprDataset(Dataset):
 class BaseResprCsvDataset(Dataset):
     def __init__(self, config={}, datasource=None) -> None:
         super().__init__()
-        self._config = config
-        
+        self._config = self.prepare_config(config)
         self.num_samples = None
         if datasource is None:
             self._dataset_path = self._config["dataset_path"]
             self.initialize_source()
         else:
             self.set_source(datasource)
-            
+
+    def prepare_config(self, config):
+        self._config = config
+        return self._config
     
     def initialize_source(self):
         """Read the whole dataset or do setup to read the data from disk on
@@ -272,7 +278,88 @@ class BaseResprCsvDataset(Dataset):
         y = self.y[index]
         return x, y
    
+class ResprAllSignalsCsvDataset(BaseResprCsvDataset):
+    """This dataset is intented to be used when the csv (or dataframe) rows
+    contain concatenated [ppg, riav, rifv, riiv] signals. By default
+    9600 points (300Hz * 32 s) for ppg and 384 (3 * 128Hz * 32 s) points for
+    the induced signal is assumed, and therefore the vector (x) in each row
+    will be converted to 4 channels 4 * 9600 (by resampling the induced signals
+    @sampling frequency of the ppg). This four channeled sample is returned
+    when a sample is requested."""
+    def __init__(self, config={}, datasource=None) -> None:
+        super().__init__(config, datasource)
+        
+        
+    def prepare_config(self, config):
+        self._config =  super().prepare_config(config)
+        default_config_items = {
+            "ppg_sampling_frequency": 300, #Hz
+            "induced_signal_sampling_frequency": 4, #Hz
+            "signal_duration": 32, #seconds
+            "num_induced_signals": 3 # rifv, riav, riiv
+        }
+        self._config = fill_missing_values(default_values=default_config_items,
+                                           target_container=self._config)
+        return self._config
+        
+    def set_source(self, df):
+        # x and y should be set by the nase class
+        super().set_source(df)
+        self.x = self.check_and_adjust_x(self.x)
+        
+    def check_and_adjust_x(self, x):
+        """Split into component signals and put them in separate channel
+        dimensions (after resampling induced signal).
 
+        Args:
+            x (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        ppg_fs = self._config["ppg_sampling_frequency"]
+        induced_fs = self._config["induced_signal_sampling_frequency"]
+        signal_duration = self._config["signal_duration"]
+        num_induced_signals = self._config["num_induced_signals"]
+        expected_length = \
+            (ppg_fs + num_induced_signals * induced_fs) * signal_duration
+        assert x.shape[1] == expected_length
+        num_samples = self.x.shape[0]
+        
+        # resample :
+        logger.debug("Resampling")
+        ppg_num_points = ppg_fs * signal_duration
+        start_idx = ppg_num_points
+        step_size = induced_fs * signal_duration
+        resampled_induced_signals = []
+        for sig_num in range(num_induced_signals):
+            current_signal = []
+            logger.debug(f"Processing induced signal#{sig_num}")
+            for sample_idx in tqdm.tqdm(range(num_samples)):
+                
+                s = self.x[sample_idx, start_idx:start_idx+step_size]
+                s = scipy.signal.resample(x=s, num=ppg_num_points, t=None)
+                s = np.expand_dims(s, axis=0)# add channel dim
+                s = np.expand_dims(s, axis=0)# add sample num dim
+                current_signal.append(s)
+            
+            
+            current_signal = np.concatenate(current_signal, axis=0)
+            resampled_induced_signals.append(current_signal)
+            
+            #move to next signal offset
+            start_idx = start_idx + step_size
+            
+        ppg_signal = np.expand_dims(self.x[:, 0:ppg_num_points], axis=1)
+        all_signals = [ppg_signal] + resampled_induced_signals
+        all_signals = np.concatenate(all_signals, axis=1) # channel axis
+        
+        return all_signals
+            
+
+        
+    
+    
 class BaseResprDataLoaderComposer:
     def __init__(self, config) -> None:
         self._config = config
@@ -554,7 +641,8 @@ class ResprDataLoaderComposer(BaseResprDataLoaderComposer):
     
 
 REGISTERED_DATASET_CLASSES = {
-    "BaseResprCsvDataset": BaseResprCsvDataset
+    "BaseResprCsvDataset": BaseResprCsvDataset,
+    "ResprAllSignalsCsvDataset": ResprAllSignalsCsvDataset
 }      
         
         

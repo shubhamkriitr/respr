@@ -41,8 +41,8 @@ model: # model => actual model + lighting wrapper
         weight_decay: 1.0e-4
       module_config: # config for the actual pytorch model
       # it will be passed as config kwarg like so `model_module(config=...)`
-        input_channels: 3
-        force_reshape_input: True
+        input_channels: 4
+        force_reshape_input: false
 
 
 
@@ -64,12 +64,11 @@ dataloading:
       # ckpt_path: ../../artifacts/2022-11-17_050120/fold_00/lightning_logs/version_2482287/checkpoints/epoch=7-step=6717.ckpt
     # MINI DATASET FOR DEV
     config:
-      dataset: "BaseResprCsvDataset"
-      dataset_path: "../../artifacts/frozen/mini/dataset_capnobase\
-        _induced_signals_w32_s32_4_subjects.csv"
-      x_length: 384 # dimension of input x
+      dataset: "ResprAllSignalsCsvDataset"
+      dataset_path: "../../artifacts/frozen/2022-12-07_000441/dataset.csv"
+      x_length: 9984 # dimension of input x
         # sample paths
-        #"../../artifacts/frozen/mini/dataset_capnobase_w32_s1_4_subjects.csv"
+        #"../../artifacts/frozen/2022-12-07_000441/dataset.csv"
       normalize_x: false 
       batch_size: 2
       augmentation: null # to be added later #TODO

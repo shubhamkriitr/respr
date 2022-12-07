@@ -645,19 +645,45 @@ class DatasetBuilder(Pipeline2):
     def _prepare_signal_to_store(self, value_container):
         signals_to_include = self._config["instructions"]["signals_to_include"]
         if signals_to_include == "raw":
-            window_signals = value_container["ppg_chunk"]
-            window_signals = np.array(window_signals, dtype=DTYPE_FLOAT)
+            window_signals = self._prepare_window_ppg_signal_to_store(
+                value_container)
             return window_signals
         if signals_to_include == "all_induced":
-            concatenated = None
+            all_induced = self._prepare_induced_singals_to_store(
+                value_container)
+            return all_induced
+        
+        if signals_to_include == "all":
+            logger.debug("Including all signals")
+            ppg_window = self._prepare_window_ppg_signal_to_store(
+                value_container)
+            logger.debug(f"ppg data shape: {ppg_window.shape}")
+            all_induced_signals_window =self._prepare_induced_singals_to_store(
+                value_container)
+            logger.debug(f"induced signal data shape: "
+                         f"{all_induced_signals_window.shape}")
+            all_signals = np.concatenate(
+                [ppg_window, all_induced_signals_window], axis=1)
+            logger.debug(f"combined data shape: "
+                         f"{all_signals.shape}")
             
-            riavs = np.array(value_container["riav_chunk"], dtype=DTYPE_FLOAT)
-            rifvs = np.array(value_container["rifv_chunk"], dtype=DTYPE_FLOAT)
-            riivs = np.array(value_container["riiv_chunk"], dtype=DTYPE_FLOAT)
             
-            concatenated  = np.concatenate([riavs, rifvs, riivs], axis=1)
+            return all_signals
+
+    def _prepare_induced_singals_to_store(self, value_container):
+        concatenated = None
             
-            return concatenated
+        riavs = np.array(value_container["riav_chunk"], dtype=DTYPE_FLOAT)
+        rifvs = np.array(value_container["rifv_chunk"], dtype=DTYPE_FLOAT)
+        riivs = np.array(value_container["riiv_chunk"], dtype=DTYPE_FLOAT)
+            
+        concatenated  = np.concatenate([riavs, rifvs, riivs], axis=1)
+        return concatenated
+
+    def _prepare_window_ppg_signal_to_store(self, value_container):
+        window_signals = value_container["ppg_chunk"]
+        window_signals = np.array(window_signals, dtype=DTYPE_FLOAT)
+        return window_signals
             
             
         
