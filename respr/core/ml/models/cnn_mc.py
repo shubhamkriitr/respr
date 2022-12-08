@@ -7,6 +7,141 @@ from respr.core.ml.models.util import ModelUtil
 from respr.util.common import fill_missing_values
 import pytorch_lightning as pl
 
+def get_conv_bn_relu_block(num_channels, num_out_channels):
+    block = nn.Sequential(
+        nn.Conv1d(in_channels=num_channels, out_channels=num_channels,
+                  kernel_size=3, stride=1, padding=1, bias=False),
+        nn.BatchNorm1d(num_features=num_channels),
+        nn.ReLU(inplace=True),
+        nn.Conv1d(in_channels=num_channels, out_channels=num_out_channels,
+                  kernel_size=3, stride=1, padding=1, bias=False),
+        nn.BatchNorm1d(num_features=num_out_channels),
+        nn.ReLU(inplace=True)
+    )
+    
+    return block
+
+def get_one_conv_relu_block(num_channels, num_out_channels):
+    block = nn.Sequential(
+        nn.Conv1d(in_channels=num_channels, out_channels=num_out_channels,
+                  kernel_size=3, stride=1, padding=1, bias=False),
+        nn.BatchNorm1d(num_features=num_out_channels),
+        nn.ReLU(inplace=True)
+    )
+    
+    return block
+
+def get_first_block(num_in_channels):
+    block = nn.Sequential(
+        nn.Conv1d(in_channels=num_in_channels, out_channels=64,
+                  kernel_size=7, stride=1, bias=False),
+        nn.BatchNorm1d(num_features=64),
+        nn.ReLU(inplace=True),
+        nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
+    )
+    
+    return block
+
+def conv2_x_block(num_channels, num_sub_blocks, num_out_channels):
+    class ResprResnetSubModule(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            
+            self.blocks = nn.ModuleList()
+            
+            for i in range(num_sub_blocks):
+                out_ch = num_channels
+                if i == num_sub_blocks - 1:
+                    out_ch = num_out_channels
+                
+                b = get_conv_bn_relu_block(num_channels, out_ch)
+                self.blocks.append(b)
+        
+        def forward(self, x):
+            z0 = x
+            for block in self.blocks:
+                z1 = block(z0)
+                z0 = z1 + z0
+            return z0
+
+    return ResprResnetSubModule()
+
+class ResprResnet18(nn.Module):
+    
+    
+    def __init__(self, config={}) -> None:
+        super().__init__()
+        self._config = config
+        defaults = {
+            "input_channels": 1,
+            "force_reshape_input": False # try to reshape input records to 
+            # get the desired number of input channels
+        }
+        self._config = fill_missing_values(default_values=defaults,
+                                           target_container=self._config)
+        self.block_structure = self.get_block_structure()
+        self._build()
+    
+
+    def get_block_structure(self):
+        return [
+            (2, 64) , #conv2_x
+            (2, 128) , #conv3_x
+            (2, 256) , #conv4_x
+            (2, 512)   #conv5_x
+        ]
+        
+        
+    def _build(self):
+        self.block_0 = get_first_block(self._config["input_channels"])
+        self.blocks = [
+                conv2_x_block(
+                    num_channels=ch, num_sub_blocks=b, num_out_channels=ch)
+                for b, ch in
+                self.block_structure
+            ]
+        
+        self.blocks = nn.ModuleList(self.blocks)
+        
+        bs = self.block_structure
+        self.adjust_ch = [
+            get_one_conv_relu_block(bs[i][1], bs[i+1][1]) 
+            for i in range(len(bs)-1)
+        ]
+        
+        self.adjust_ch = nn.ModuleList(self.adjust_ch)
+        
+        self.avgpool = nn.AdaptiveAvgPool1d(1)
+        self.fc_mu = nn.Linear(512, 1)
+        self.fc_log_var = nn.Linear(512, 1)
+    
+    
+    def forward(self, x):
+        if self._config["force_reshape_input"]:
+            z = torch.reshape(x, 
+                              (x.shape[0], self._config["input_channels"], -1))
+        elif len(x.shape) == 2:
+            z = torch.unsqueeze(x, 1) # N x D -> N x 1 x D
+        else:
+            z = x
+        z = self.block_0(z)
+        
+        for i in range(len(self.blocks) - 1):
+            b = self.blocks[i]
+            z = b(z)
+            z = self.adjust_ch[i](z)
+        
+        z = self.blocks[-1](z)
+        
+        z = self.avgpool(z)
+        z = torch.squeeze(z) # drop last dimension
+        
+        mu = self.fc_mu(z)
+        log_var = self.fc_log_var(z)
+        
+        return mu, log_var
+
+
 class ResprMCDropoutCNN(nn.Module):
     def __init__(self, config={}) -> None:
         super().__init__()
