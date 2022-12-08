@@ -136,6 +136,7 @@ class LitResprMCDropoutCNN(pl.LightningModule):
         self.log(f"{step_name}_rmse", rmse)
     
     def _shared_val_and_test_step(self, batch, step_name):
+        """Must not call this during training phase."""
         y_final, std = self._mc_rollout(batch)
         x, labels = batch
         
@@ -147,6 +148,11 @@ class LitResprMCDropoutCNN(pl.LightningModule):
         loss = self.compute_loss(mu, self.normalize_y(labels))
         self._log_metrics(step_name=step_name, labels=labels,
                           d_mu=y_final, loss=loss)
+        
+        
+        # also log uncertainty (during val and test stage)
+        mean_std = torch.mean(std)
+        self.log(f"{step_name}_uncertainty", mean_std)
         return loss
         
 
