@@ -7,7 +7,7 @@ from respr.core.ml.models.util import ModelUtil
 from respr.util.common import fill_missing_values
 import pytorch_lightning as pl
 
-def get_conv_bn_relu_block(num_channels, num_out_channels):
+def get_conv_bn_relu_block(num_channels, num_out_channels, dropout_p=0.2):
     block = nn.Sequential(
         nn.Conv1d(in_channels=num_channels, out_channels=num_channels,
                   kernel_size=3, stride=1, padding=1, bias=False),
@@ -16,28 +16,31 @@ def get_conv_bn_relu_block(num_channels, num_out_channels):
         nn.Conv1d(in_channels=num_channels, out_channels=num_out_channels,
                   kernel_size=3, stride=1, padding=1, bias=False),
         nn.BatchNorm1d(num_features=num_out_channels),
-        nn.ReLU(inplace=True)
+        nn.ReLU(inplace=True),
+        nn.Dropout(p=dropout_p)
     )
     
     return block
 
-def get_one_conv_relu_block(num_channels, num_out_channels):
+def get_one_conv_relu_block(num_channels, num_out_channels, dropout_p=0.2):
     block = nn.Sequential(
         nn.Conv1d(in_channels=num_channels, out_channels=num_out_channels,
                   kernel_size=3, stride=1, padding=1, bias=False),
         nn.BatchNorm1d(num_features=num_out_channels),
-        nn.ReLU(inplace=True)
+        nn.ReLU(inplace=True),
+        nn.Dropout(p=dropout_p)
     )
     
     return block
 
-def get_first_block(num_in_channels):
+def get_first_block(num_in_channels, dropout_p=0.4):
     block = nn.Sequential(
         nn.Conv1d(in_channels=num_in_channels, out_channels=64,
                   kernel_size=7, stride=1, bias=False),
         nn.BatchNorm1d(num_features=64),
         nn.ReLU(inplace=True),
-        nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
+        nn.MaxPool1d(kernel_size=3, stride=2, padding=1),
+        nn.Dropout(p=dropout_p)
     )
     
     return block
@@ -66,7 +69,7 @@ def conv2_x_block(num_channels, num_sub_blocks, num_out_channels):
 
     return ResprResnetSubModule()
 
-class ResprResnet18(nn.Module):
+class ResprMCDropoutCNNResnet18(nn.Module):
     
     
     def __init__(self, config={}) -> None:
@@ -113,7 +116,6 @@ class ResprResnet18(nn.Module):
         
         self.avgpool = nn.AdaptiveAvgPool1d(1)
         self.fc_mu = nn.Linear(512, 1)
-        self.fc_log_var = nn.Linear(512, 1)
     
     
     def forward(self, x):
@@ -137,12 +139,11 @@ class ResprResnet18(nn.Module):
         z = torch.squeeze(z) # drop last dimension
         
         mu = self.fc_mu(z)
-        log_var = self.fc_log_var(z)
         
-        return mu, log_var
+        return mu
 
 
-class ResprMCDropoutCNN(nn.Module):
+class _DebugResprMCDropoutCNN(nn.Module):
     def __init__(self, config={}) -> None:
         super().__init__()
         self.block_structure = self.get_block_structure()
@@ -173,8 +174,10 @@ class ResprMCDropoutCNN(nn.Module):
             (1, 512)   #conv5_x
         ]
 
+# This lookup is to support config based resolution of model module classes
 MODULE_CLASS_LOOKUP = {
-    "ResprMCDropoutCNN": ResprMCDropoutCNN
+    "_DebugResprMCDropoutCNN": _DebugResprMCDropoutCNN,
+    "ResprMCDropoutCNNResnet18": ResprMCDropoutCNNResnet18
 }
 
 class LitResprMCDropoutCNN(pl.LightningModule):

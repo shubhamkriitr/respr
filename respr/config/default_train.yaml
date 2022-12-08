@@ -40,7 +40,7 @@ model: # model => actual model + lighting wrapper
         lr: 1.0e-3
         weight_decay: 1.0e-4
       num_monte_carlo_rollouts: 10
-      model_module_class: ResprMCDropoutCNN
+      model_module_class: ResprMCDropoutCNNResnet18
       module_config: # config for the actual pytorch model
       # it will be passed as config kwarg like so `model_module(config=...)`
         input_channels: 4
