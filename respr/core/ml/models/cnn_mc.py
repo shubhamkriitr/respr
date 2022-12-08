@@ -138,6 +138,10 @@ class LitResprMCDropoutCNN(pl.LightningModule):
         return self._shared_step(batch, step_name="test")
     
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
+        y_final, std = self._mc_rollout(batch=batch)
+        return y_final, std
+    
+    def _mc_rollout(self, batch):
         # Set just the dropout layers to train mode
         self.activate_dropout_layers(self.model_module)
         
