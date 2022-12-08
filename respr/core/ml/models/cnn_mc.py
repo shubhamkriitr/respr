@@ -44,6 +44,10 @@ MODULE_CLASS_LOOKUP = {
 
 class LitResprMCDropoutCNN(pl.LightningModule):
     def __init__(self, *args, **kwargs) -> None:
+        logger.warning(f"`activate_dropout_layers` method of this module"
+            f" will set all sub modules whose class name starts with `Dropout`",
+            f" to `train` mode during inference(prediction step). So"
+            f" make sure to not name any other class starting with `Dropout`.")
         self._config = {}
         if "config" in kwargs:
             self._config = kwargs.pop("config")
@@ -131,10 +135,33 @@ class LitResprMCDropoutCNN(pl.LightningModule):
         return self._shared_step(batch, step_name="test")
     
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
+        # Set just the dropout layers to train mode
+        self.activate_dropout_layers(self.model_module)
+        
+        n_rollouts = self._config["num_monte_carlo_rollouts"]
         x, _ = batch
-        mu = self.model_module(x)
-        y = self.denormalize_y(mu)
         
-        std = 0 # TODO: do MC rollouts and compute std
+        y_buffer = []
+        for _ in range(n_rollouts):
+            mu = self.model_module(x)
+            y = self.denormalize_y(mu)
+            y_buffer.append(y)
         
-        return y, std
+        y_buffer = torch.concatenate(y_buffer, axis=1)
+        y_final = torch.mean(y_buffer, axis=1, keepdims=True)
+        std = torch.std(y_buffer, axis=1, keepdims=True)
+
+        # set model (along with droputs) back to eval mode
+        self.model_module.eval()
+        
+        return y_final, std
+    
+    def activate_dropout_layers(self, model_module):
+        for m in model_module.modules():
+            if m.__class__.__name__.startswith('Dropout'):
+                m.train()
+    
+    def deactivate_dropout_layers(self, model_module):
+        for m in model_module.modules():
+            if m.__class__.__name__.startswith('Dropout'):
+                m.eval()
