@@ -1,4 +1,4 @@
-description: "Leave one out CV"
+description: "Leave one out CV (Code@: commit aaa0195f)"
 output_dir: "../../artifacts/exp_19_MC_cnn_on_mean_gt_old_csv_w32_stride16_LOOCV"
 pipeline:
   name: "TrainingPipeline"
