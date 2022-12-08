@@ -142,7 +142,17 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         
         return mu
 
-
+class ResprMCDropoutCNNResnet18Small(ResprMCDropoutCNNResnet18):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+    
+    def get_block_structure(self):
+        return [
+            (1, 64) , #conv2_x
+            (1, 128) , #conv3_x
+            (1, 256) , #conv4_x
+            (1, 512)   #conv5_x
+        ]
 class _DebugResprMCDropoutCNN(nn.Module):
     def __init__(self, config={}) -> None:
         super().__init__()
@@ -177,7 +187,8 @@ class _DebugResprMCDropoutCNN(nn.Module):
 # This lookup is to support config based resolution of model module classes
 MODULE_CLASS_LOOKUP = {
     "_DebugResprMCDropoutCNN": _DebugResprMCDropoutCNN,
-    "ResprMCDropoutCNNResnet18": ResprMCDropoutCNNResnet18
+    "ResprMCDropoutCNNResnet18": ResprMCDropoutCNNResnet18,
+    "ResprMCDropoutCNNResnet18Small": ResprMCDropoutCNNResnet18Small
 }
 
 class LitResprMCDropoutCNN(pl.LightningModule):
