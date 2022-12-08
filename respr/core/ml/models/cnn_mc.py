@@ -7,7 +7,7 @@ from respr.core.ml.models.util import ModelUtil
 from respr.util.common import fill_missing_values
 import pytorch_lightning as pl
 
-def get_conv_bn_relu_block(num_channels, num_out_channels, dropout_p=0.2):
+def get_conv_bn_relu_block(num_channels, num_out_channels, dropout_p=0.4):
     block = nn.Sequential(
         nn.Conv1d(in_channels=num_channels, out_channels=num_channels,
                   kernel_size=3, stride=1, padding=1, bias=False),
@@ -22,7 +22,7 @@ def get_conv_bn_relu_block(num_channels, num_out_channels, dropout_p=0.2):
     
     return block
 
-def get_one_conv_relu_block(num_channels, num_out_channels, dropout_p=0.2):
+def get_one_conv_relu_block(num_channels, num_out_channels, dropout_p=0.4):
     block = nn.Sequential(
         nn.Conv1d(in_channels=num_channels, out_channels=num_out_channels,
                   kernel_size=3, stride=1, padding=1, bias=False),
@@ -33,7 +33,7 @@ def get_one_conv_relu_block(num_channels, num_out_channels, dropout_p=0.2):
     
     return block
 
-def get_first_block(num_in_channels, dropout_p=0.4):
+def get_first_block(num_in_channels, dropout_p=0.5):
     block = nn.Sequential(
         nn.Conv1d(in_channels=num_in_channels, out_channels=64,
                   kernel_size=7, stride=1, bias=False),
