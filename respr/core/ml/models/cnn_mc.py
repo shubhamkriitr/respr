@@ -120,12 +120,13 @@ class LitResprMCDropoutCNN(pl.LightningModule):
         mu = self.model_module(x)
         mu = torch.squeeze(mu)
         loss = self.compute_loss(mu, self.normalize_y(labels))
+        d_mu = self.denormalize_y(mu)
         
-        self._log_metrics(step_name, labels, mu, loss)
+        self._log_metrics(step_name, labels, d_mu, loss)
         return loss
 
-    def _log_metrics(self, step_name, labels, mu, loss):
-        d_mu = self.denormalize_y(mu)
+    def _log_metrics(self, step_name, labels, d_mu, loss):
+        # `d_mu` is denormalized mu
         mae = self.metric_mae(d_mu, labels)
         rmse = self.metric_rmse(d_mu, labels)
        
@@ -133,15 +134,32 @@ class LitResprMCDropoutCNN(pl.LightningModule):
         self.log(f"{step_name}{self.respr_loss_name}_loss", loss)
         self.log(f"{step_name}_mae", mae)
         self.log(f"{step_name}_rmse", rmse)
+    
+    def _shared_val_and_test_step(self, batch, step_name):
+        y_final, std = self._mc_rollout(batch)
+        x, labels = batch
+        
+        # normalizing `y_final` as it was denormalized during _mc_rollout call
+        mu = self.normalize_y(y_final)
+        # computing loss on final estimate (average of MC rollouts) (NOTE: 
+        # during train step loss is computed on estimates from just one 
+        # rollout )
+        loss = self.compute_loss(mu, self.normalize_y(labels))
+        self._log_metrics(step_name=step_name, labels=labels,
+                          d_mu=y_final, loss=loss)
+        return loss
+        
 
     def validation_step(self, batch, batch_idx):
-        return self._shared_step(batch, step_name="val")
+        return self._shared_val_and_test_step(batch, step_name="val")
 
     def test_step(self, batch, batch_idx):
-        return self._shared_step(batch, step_name="test")
+        return self._shared_val_and_test_step(batch, step_name="test")
     
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
         y_final, std = self._mc_rollout(batch=batch)
+        # y_final here is already denormalized (scaled properly)
+
         return y_final, std
     
     def _mc_rollout(self, batch):
