@@ -121,6 +121,10 @@ class LitResprMCDropoutCNN(pl.LightningModule):
         mu = torch.squeeze(mu)
         loss = self.compute_loss(mu, self.normalize_y(labels))
         
+        self._log_metrics(step_name, labels, mu, loss)
+        return loss
+
+    def _log_metrics(self, step_name, labels, mu, loss):
         d_mu = self.denormalize_y(mu)
         mae = self.metric_mae(d_mu, labels)
         rmse = self.metric_rmse(d_mu, labels)
@@ -129,7 +133,6 @@ class LitResprMCDropoutCNN(pl.LightningModule):
         self.log(f"{step_name}{self.respr_loss_name}_loss", loss)
         self.log(f"{step_name}_mae", mae)
         self.log(f"{step_name}_rmse", rmse)
-        return loss
 
     def validation_step(self, batch, batch_idx):
         return self._shared_step(batch, step_name="val")
