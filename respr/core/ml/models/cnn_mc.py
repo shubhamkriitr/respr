@@ -329,8 +329,16 @@ class LitResprMCDropoutCNN(pl.LightningModule):
             mu = self.model_module(x)
             y = self.denormalize_y(mu)
             y_buffer.append(y)
-        
-        y_buffer = torch.concatenate(y_buffer, axis=1)
+        try:
+            y_buffer = torch.concatenate(y_buffer, axis=1)
+        except IndexError:
+            #IndexError happens in case y has shape torch.Size([1]) (when
+            # batch contains just one sample (
+            # e.g. x.shape -> torch.Size([1, 9600])))
+            y_buffer = [torch.unsqueeze(a, 1) for a 
+                        in y_buffer if len(a.shape) == 1]
+            y_buffer = torch.concatenate(y_buffer, axis=1)
+            
         y_final = torch.mean(y_buffer, axis=1, keepdims=True)
         std = torch.std(y_buffer, axis=1, keepdims=True)
 
