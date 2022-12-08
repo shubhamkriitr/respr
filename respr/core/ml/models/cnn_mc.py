@@ -71,9 +71,12 @@ class LitResprMCDropoutCNN(pl.LightningModule):
         return model_module_class
     
     def configure_y_normalization(self):
-        self.normalize_y = lambda x : x
-        self.denormalize_y = lambda x : x
-        self.denormalize_std = lambda x : x
+        mu = self._config["y_normalization"]["y_mean"]
+        std = self._config["y_normalization"]["y_std"]
+        self.normalize_y = lambda x : (x - mu)/(std + 1e-7)
+        self.denormalize_y = lambda x : mu + x*std
+        self.denormalize_std = lambda x : x*std
+        logger.debug("Y Normalization/Denormalization functions configured.")
         
         
     def _fill_missing_config_values(self):
