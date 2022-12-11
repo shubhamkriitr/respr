@@ -436,7 +436,10 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
                     "mean": -0.91756,
                     "std": 3.88364
                 }
-            }
+            },
+            "normalize_mode": "global" # `global` for normalizing each window
+            # using the mean and std of the whole dataset. `local` for 
+            # normalizing using mean and std of the window
         }
         
         for k, v in defaults.items():
@@ -468,7 +471,13 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
     
     
     def normalize_x(self, data):
-        
+        if self._config["normalize_mode"] == "global":
+            pass # continue to use global stats
+        elif self._config["normalize_mode"] == "local":
+            return self.normalize_x_locally(data)
+        else:
+            raise ValueError(f"Unknown normalize_mode: "
+                             f"{self._config['normalize_mode']}")
         x_stats = self._config["normalization_stats"]["x"]
         mu = x_stats["mean"]
         std = x_stats["std"]
@@ -487,10 +496,10 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
             (data.iloc[:, 1:x_length+1] - mu) / (1e-8 + std)
         
         return data
-        
-
-        
-        
+    
+    def normalize_x_locally(self, data):
+        raise NotImplementedError()
+                
     def get_data_loaders(self, current_fold=-1):
         if current_fold == -1:
             raise NotImplementedError()
