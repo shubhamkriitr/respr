@@ -454,10 +454,7 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
     def prepare(self):
         self._config = self._fill_missing_config_values()
         self.data = pd.read_csv(self._config["dataset_path"])
-        x_cols = sorted([c for c in self.data.keys() if c.startswith("x_")])
-        if len(x_cols) != self._config["x_length"]:
-            logger.error(f"Number of x columns : {len(x_cols)} is not same"
-                         f" as provided in config `x_length`")
+        self.validate_data_structure(self.data)
         if self._config["normalize_x"]:
             logger.info("Normalizing x")
             self.data = self.normalize_x(self.data)
@@ -469,6 +466,22 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
             
         assert self.num_folds <= len(self.subject_ids)/self.num_test_ids
     
+    def validate_data_structure(self, data):
+        # also validate x columns start at index #1 (assumin 0 based index) 
+        # and continue from there for `x_length`
+        df_cols_as_is = [c for c in data.keys()]
+        x_len = self._config["x_length"]
+        
+        for i in range(1, 1+x_len):
+            assert df_cols_as_is[i].startswith("x_"), f"Expected column at "
+            f"index {i} to start with `x_`"
+        
+        
+        x_cols = sorted([c for c in self.data.keys() if c.startswith("x_")])
+        if len(x_cols) != self._config["x_length"]:
+            logger.error(f"Number of x columns : {len(x_cols)} is not same"
+                         f" as provided in config `x_length`")
+        
     
     def normalize_x(self, data):
         if self._config["normalize_mode"] == "global":
@@ -498,7 +511,17 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         return data
     
     def normalize_x_locally(self, data):
-        raise NotImplementedError()
+        x_length = self._config["x_length"]
+        x_temp = data.iloc[:, 1:x_length+1].to_numpy()
+        mu = x_temp.mean(axis=1, keepdims=True)
+        std = x_temp.std(axis=1, keepdims=True)
+        
+        x_temp = (x_temp - mu)/(1e-8 + std)
+        
+        data.iloc[:, 1:x_length+1] = x_temp
+        
+        return data
+        
                 
     def get_data_loaders(self, current_fold=-1):
         if current_fold == -1:
