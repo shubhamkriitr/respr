@@ -2,7 +2,7 @@ description: "Leave one out CV.
   [Same as exp 12] +  @changes:
     Use ResprResnet18LinearScaledMeanHead with default settings
     Epoch=15
-    Code@ 1357643a07 
+    Code@ 0a42f0080 
   "
 output_dir: "../../artifacts/exp_12c_cnn_on_mean_gt_old_csv_w32_stride4_LOOCV"
 pipeline:
