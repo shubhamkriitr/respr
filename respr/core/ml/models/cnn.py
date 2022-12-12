@@ -318,7 +318,7 @@ def lightning_wrapper(model_module_class):
             
             def _get_batch_class_weights(y_true):
                 binned_y = (y_true / self._bin_step).type(torch.int64)
-                self._loss_weights.to(y_true.device)
+                self._loss_weights = self._loss_weights.to(y_true.device)
                 weights = self._loss_weights[binned_y]
                 return weights
             
