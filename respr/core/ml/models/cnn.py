@@ -5,7 +5,7 @@ from respr.core.metrics import RMSELoss
 from respr.util import logger
 from respr.core.ml.models.util import ModelUtil
 from respr.util.common import fill_missing_values
-
+import torch.nn.functional as F
 CAPNOBASE_RR_MEAN = 18.8806
 CAPNOBASE_RR_STD = 9.8441
 
@@ -157,6 +157,76 @@ class ResprResnet18Small(ResprResnet18):
             (1, 512)   #conv5_x
         ]
 
+
+
+class ResprResnet18ReLUMeanHead(ResprResnet18):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+        
+    def forward(self, x):
+        mu, log_var = super().forward(x)
+        mu = F.relu(mu)
+        return mu, log_var
+
+
+class ResprResnet18LinearScaledMeanHead(ResprResnet18):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+        default_values = {
+            "mean_output_scaling": {
+                #>>> "beta": 0.5, # to be used in sigmoid (1/(1 + exp(-beta*mu)))
+                "unscaled_mu_start": -5,
+                "unscaled_mu_end": 5,
+                # breath 
+                "min": 0.1, # minimum breath rate 
+                "max": 90 # max. breath rate 
+            }
+        }
+        self._config = fill_missing_values(default_values=default_values,
+                                           target_container=self._config)
+        
+        self._scale_mean_output = self._create_mean_output_scaling()
+        
+    
+    def _create_mean_output_scaling(self):
+        
+        c = self._config["mean_output_scaling"]
+        #>>> beta = c["beta"] # if using sigmoid # TODO: clean up comments
+        min_breath_rate = c["min"] # absolute min --> 0
+        max_breath_rate = c["max"] # absolute max --> inf
+        m_start = c["unscaled_mu_start"]
+        m_end = c["unscaled_mu_end"]
+        
+        # if using sigmoid
+        #>>> s = lambda mu: min_breath_rate + \
+        #     torch.sigmoid(beta*mu)*(max_breath_rate - min_breath_rate)
+        
+        
+        def s(mu):
+            mu = torch.clamp(mu, min=torch.tensor([m_start]),
+                max=torch.tensor(m_end))
+            
+            mu = min_breath_rate + ((mu - m_start) / (m_end - m_start))\
+                                    *(max_breath_rate - min_breath_rate)
+            
+            return mu
+        
+        #do sanity checks
+        samples = [ (mu, s(torch.tensor(mu)))
+                     for mu in range(-10, 10, 1)]
+        logger.info(f"Sample (mu logit, breath rate) pairs: {samples}")
+        
+        
+        return s
+        
+        
+    def forward(self, x):
+        unscaled_mu, log_var = super().forward(x)
+        mu = self._scale_mean_output(unscaled_mu)
+        
+        return mu, log_var
+
+
 def normalize_y(y):
     return (y - CAPNOBASE_RR_MEAN)/CAPNOBASE_RR_STD
 
@@ -261,6 +331,9 @@ def lightning_wrapper(model_module_class):
 
 LitResprResnet18 = lightning_wrapper(ResprResnet18)
 LitResprResnet18Small = lightning_wrapper(ResprResnet18Small)
+LitResprResnet18LinearScaledMeanHead \
+    = lightning_wrapper(ResprResnet18LinearScaledMeanHead)
+LitResprResnet18ReLUMeanHead = lightning_wrapper(ResprResnet18ReLUMeanHead)
 
 if __name__=="__main__":
     x = torch.zeros(size=(10, 9600))
