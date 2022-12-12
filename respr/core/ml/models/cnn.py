@@ -274,6 +274,7 @@ def lightning_wrapper(model_module_class):
                     # class
                     
                     "max_bpm": 120,
+                    "weight_scale_down_by": 1,
                     
                     # `loss_weight` will be used only if `do_weighted_loss` is set.
                     # `loss_weights` is a list of `list of tuple(bin) and 
@@ -307,10 +308,12 @@ def lightning_wrapper(model_module_class):
             bin_step  = c["bin_step"] # breaths/min
             max_bpm = c["max_bpm"]
             loss_weights = c["loss_weights"]
+            weight_scale_down_by = c["weight_scale_down_by"]
             
             assert len(loss_weights) == max_bpm / bin_step
             
             self._loss_weights = torch.tensor(loss_weights)
+            self._loss_weights = self._loss_weights / weight_scale_down_by
             self._bin_step = bin_step
             
             def _get_batch_class_weights(y_true):
