@@ -203,8 +203,8 @@ class ResprResnet18LinearScaledMeanHead(ResprResnet18):
         
         
         def s(mu):
-            mu = torch.clamp(mu, min=torch.tensor([m_start]),
-                max=torch.tensor(m_end))
+            mu = torch.clamp(mu, min=torch.tensor(m_start).to(mu.device),
+                max=torch.tensor(m_end).to(mu.device))
             
             mu = min_breath_rate + ((mu - m_start) / (m_end - m_start))\
                                     *(max_breath_rate - min_breath_rate)
