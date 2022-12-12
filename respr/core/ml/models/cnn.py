@@ -262,7 +262,22 @@ def lightning_wrapper(model_module_class):
                     "lr": 1e-3,
                     "weight_decay": 1e-4
                 },
-                "module_config": {}
+                "module_config": {},
+                "weighted_loss": {
+                    "do_weighted_loss": False,
+                    "bin_step": 2, # in breaths/min , it indicates
+                    # starting from 0 breath/min, bins of size 2 bpm will
+                    # be used. Samples with ground truth respiratory rate
+                    # in the same bin will be treated as belonging to the same
+                    # class
+                    
+                    # `loss_weight` will be used only if `do_weighted_loss` is set.
+                    # `loss_weights` is a list of `list of tuple(bin) and 
+                    # float(weight)`
+                    "loss_weights": []
+                }
+                
+                
             }
             for k, v in defaults.items():
                 if k not in self._config:
