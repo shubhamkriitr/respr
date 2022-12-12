@@ -455,6 +455,8 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         self._config = self._fill_missing_config_values()
         self.data = pd.read_csv(self._config["dataset_path"])
         self.validate_data_structure(self.data)
+        self.inspect_data(self.data) # to print stats etc.
+        
         if self._config["normalize_x"]:
             logger.info("Normalizing x")
             self.data = self.normalize_x(self.data)
@@ -556,6 +558,50 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         dataloader = DataLoader(dataset=dataset, batch_size=self.batch_size,
                                 shuffle=shuffle, num_workers=self.num_workers)
         return dataloader
+    
+    def inspect_data(self, data):
+        
+        bin_step = 2 # breaths/min
+        max_bpm = 120
+        
+        assert isinstance(bin_step, int)
+        assert isinstance(max_bpm, int)
+        assert max_bpm % bin_step == 0, "bin step must divide max_bpm"
+        
+        assert data["y"].max() <= max_bpm, f" breaths/min \
+            should be <= {max_bpm}"
+            
+        bins = range(0, max_bpm + 1, bin_step)
+        labels = list(bins)[:-1] # i.e. label is start value of each of the bin
+        
+        y_bins = pd.cut(data["y"], bins=bins, right=False, labels=labels)
+        
+        y_binned_counts = y_bins.value_counts()
+        
+        
+        counts = []
+        for i in range(len(labels)):
+            counts.append(y_binned_counts[labels[i]])
+        
+        max_count = max(counts)
+        min_count = max_count# min count (except zero)
+        for c in counts:
+            if c > 0 and c < min_count:
+                min_count = c
+        counts = [c if c > 0 else min_count for c in counts]
+        
+        
+        logger.info(f"Bins and counts: {y_binned_counts} / counts: [{counts}]"
+                    f" labels: {labels}")
+        
+        # compute class weights using inverse freq.
+        # this is being computed here just for logging. 
+        weights = [max_count/c for c in counts]
+        logger.info(f"If you were to use inverse frequency class weights. "
+                    f" The weights would be: {weights}, for labels: {labels}")
+        
+        
+                
         
 
 class ResprIndexedDataset(Dataset):

@@ -255,6 +255,8 @@ def lightning_wrapper(model_module_class):
             self.metric_rmse = RMSELoss()
             self.respr_loss_name = ""
             
+            self.compute_loss = self._init_loss_computation()
+            
         def _fill_missing_config_values(self):
             defaults = {
                 # "cost_function": "mae"
@@ -262,7 +264,25 @@ def lightning_wrapper(model_module_class):
                     "lr": 1e-3,
                     "weight_decay": 1e-4
                 },
-                "module_config": {}
+                "module_config": {},
+                "weighted_loss": {
+                    "do_weighted_loss": False,
+                    "bin_step": 2, # in breaths/min , it indicates
+                    # starting from 0 breath/min, bins of size 2 bpm will
+                    # be used. Samples with ground truth respiratory rate
+                    # in the same bin will be treated as belonging to the same
+                    # class
+                    
+                    "max_bpm": 120,
+                    "weight_scale_down_by": 1,
+                    
+                    # `loss_weight` will be used only if `do_weighted_loss` is set.
+                    # `loss_weights` is a list of `list of tuple(bin) and 
+                    # float(weight)`
+                    "loss_weights": []
+                }
+                
+                
             }
             for k, v in defaults.items():
                 if k not in self._config:
@@ -272,11 +292,46 @@ def lightning_wrapper(model_module_class):
                     
             return self._config
         
-        def compute_loss(self, mu, log_var, y_true):
+        def _compute_loss(self, mu, log_var, y_true):
             delta = (y_true - mu)
             loss = (delta*delta)/torch.exp(log_var) + log_var
             loss = torch.mean(loss)
             return loss
+        
+        def _init_loss_computation(self):
+            c = self._config["weighted_loss"]
+            do_weighted = c["do_weighted_loss"]
+            
+            if not do_weighted:
+                return self._compute_loss
+            
+            bin_step  = c["bin_step"] # breaths/min
+            max_bpm = c["max_bpm"]
+            loss_weights = c["loss_weights"]
+            weight_scale_down_by = c["weight_scale_down_by"]
+            
+            assert len(loss_weights) == max_bpm / bin_step
+            
+            self._loss_weights = torch.tensor(loss_weights)
+            self._loss_weights = self._loss_weights / weight_scale_down_by
+            self._bin_step = bin_step
+            
+            def _get_batch_class_weights(y_true):
+                binned_y = (y_true / self._bin_step).type(torch.int64)
+                self._loss_weights.to(y_true.device)
+                weights = self._loss_weights[binned_y]
+                return weights
+            
+            def _compute_loss(mu, log_var, y_true):
+                weights = _get_batch_class_weights(y_true=y_true)
+                delta = (y_true - mu)
+                loss = (delta*delta)/torch.exp(log_var) + log_var
+                loss = weights * loss
+                loss = torch.mean(loss)
+                return loss
+            
+            return _compute_loss
+            
         
         def forward(self, x):
             # Forward function that is run when visualizing the graph
