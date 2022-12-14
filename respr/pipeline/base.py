@@ -201,7 +201,8 @@ class Pipeline(BasePipeline):
         results = self.create_new_results_container()
         context = self.create_new_context()
         
-        self.apply_preprocessing_on_whole_signal(data=data, context=context)
+        data, context = self.apply_preprocessing_on_whole_signal(
+            data=data, context=context)
         proc = context["signal_processor"]
         
         for window_idx in range(num_windows):
@@ -409,7 +410,7 @@ class Pipeline(BasePipeline):
     def apply_preprocessing_on_whole_signal(self, data, context):
         """Transformations that are supposed to be done before the signal
         is processed window by window. Modifies `context`."""
-        return context
+        return data, context
     
     def accumulate_results(self, new_result, results_container):
         pass
@@ -443,7 +444,7 @@ class Pipeline2(Pipeline):
         context["ppg_rifv"] = re_rifv
         context["ppg_riiv"] = re_riiv
         
-        return context
+        return data, context
     
     def resample_resp_induced_signals(self, proc, resp_signals_and_times,
                                       expected_length):
