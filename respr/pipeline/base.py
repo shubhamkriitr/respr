@@ -20,6 +20,7 @@ from respr.core.ml.models import ML_FACTORY
 from torch.utils.data import DataLoader
 import copy
 import torch
+from respr.data.base import StandardDataRecord
 
 DTYPE_FLOAT = np.float32
 CONF_FEATURE_RESAMPLING_FREQ = 4 # Hz. (for riav/ rifv/ riiv resampling)
@@ -84,11 +85,14 @@ class Pipeline(BasePipeline):
             "window_step_duration" : 1, # window stride in seconds
             "expected_signal_duration" : 480,
             "window_type": "hamming",
-            "ground_truth_mode": "mean"
+            "ground_truth_mode": "mean",
+            "resample_ppg": False,
+            "resampling_frequency": None
         }
         
         for k, v in default_values.items():
             if k not in self._config["instructions"]:
+                logger.warning(f"Missing key `{k}` . Using default value={v}")
                 self._config["instructions"][k] = v
         
         return self._config
@@ -434,6 +438,12 @@ class Pipeline2(Pipeline):
     
     def apply_preprocessing_on_whole_signal(self, data, context):
         
+        if self._instructions["resample_ppg"]:
+            f_resample = self._instructions["resampling_frequency"]
+            logger.debug(f"Resampling")
+            
+            data = self.resample_ppg(data=data, f_resample=f_resample)
+        
         ppg = data.get("signals/ppg")
         fs = data.get("_metadata/signals/ppg/fs")
         offset = 0
@@ -448,6 +458,12 @@ class Pipeline2(Pipeline):
         context["ppg_riiv"] = re_riiv
         
         return data, context
+    
+    def resample_ppg(self, data: StandardDataRecord, f_resample: int):
+        """Resamples ppg and modifies `data` in place"""
+        logger.warning(f"NotImplemented")
+        return data 
+        
     
     def resample_resp_induced_signals(self, proc, resp_signals_and_times,
                                       expected_length):
