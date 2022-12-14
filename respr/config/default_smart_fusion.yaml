@@ -22,6 +22,7 @@ model:
     config:
       resp_rate_cutoff_high: 90
       resp_rate_cutoff_low: 2
+      butterworth_filter_order: 3
   name: MultiparameterSmartFusion
 pipeline:
   name: Pipeline2

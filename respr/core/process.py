@@ -5,7 +5,7 @@ from scipy import stats
 from respr.util import logger
 from scipy.fft import fft, fftfreq
 from respr.core.filter import create_fir
-from respr.util.common import BaseFactory
+from respr.util.common import BaseFactory, fill_missing_values
 # config keys
 CONF_ELIM_VHF = "eliminate_vhf"
 CONF_FS = "sampling_freq"
@@ -355,6 +355,12 @@ class MultiparameterSmartFusion(object):
     
     def __init__(self, config):
         self._config = config
+        defaults = {
+            "butterworth_filter_order": 5
+        }
+        self._config = fill_missing_values(default_values=defaults,
+                                           target_container=self._config)
+        
 
     def extract_riav(self):
         pass
@@ -439,7 +445,10 @@ class MultiparameterSmartFusion(object):
         cutoff_low = self._config["resp_rate_cutoff_low"]/60.0
         cutoff_high = self._config["resp_rate_cutoff_high"]/60.0
         
-        [b, a] = butter(5, [cutoff_low / sampling_freq * 2, cutoff_high / sampling_freq * 2],
+        
+        filter_order = self._config["butterworth_filter_order"]
+        
+        [b, a] = butter(filter_order, [cutoff_low / sampling_freq * 2, cutoff_high / sampling_freq * 2],
                         btype='bandpass', analog=False)
 
         signal_ = np.reshape(signal_, len(signal_))
