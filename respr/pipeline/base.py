@@ -740,6 +740,18 @@ class TrainingPipeline(BasePipeline):
         super().__init__(config)
         self._instructions = self._config["instructions"]
         self._start_fold = self._config["dataloading"]["kwargs"]["config"]["start_fold"]
+        
+        default_config_items = {
+            "model_checkpoint": {
+                "monitor": "val_mae",
+                "save_top_k": 4,
+                "ckpt_filename": None
+            } 
+        }
+        
+        self._config = cutl.fill_missing_values(
+            default_values=default_config_items, target_container=self._config)
+        
     
     def run(self, *args, **kwargs):
         logger.info("Starting")
@@ -755,11 +767,18 @@ class TrainingPipeline(BasePipeline):
             default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"
             
             if not self._instructions["do_only_test"]:
-                ckpt_filename\
-                    = "model-{epoch:02d}-s-{step}-{val_mae:.2f}"
+                ckpt_config = self._config["model_checkpoint"]
+                monitor_metric = ckpt_config["monitor"]
+                save_top_k = ckpt_config["save_top_k"]
+                ckpt_filename = ckpt_config["ckpt_filename"]
+                if ckpt_filename is None:
+                    ckpt_filename\
+                        = "model-{epoch:02d}-s-{step}-{"+ monitor_metric + ":.2f}"
                 # TODO: add mode explicitly
+                
                 checkpoint_callback = ModelCheckpoint(
-                    monitor="val_mae", save_top_k=4, filename=ckpt_filename)
+                    monitor=monitor_metric,
+                    save_top_k=save_top_k, filename=ckpt_filename)
                 callbacks = [checkpoint_callback]
             else:
                 assert self._instructions["ckpt_path"] != None
