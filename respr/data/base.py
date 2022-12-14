@@ -57,6 +57,11 @@ class BaseDataAdapter:
         data.value()["time"]["ppg"] = new_timesteps
         data.value()["_metadata"]["signals"]["ppg"] = ppg_meta
         
+        assert not ppg_meta["has_artifacts"]
+        # NOTE: artifact times/ peak times etc. are not being adjusted
+        # at the moment. So do not use this for adapters/data where artifacts
+        # are present
+        
         return data
         
         
