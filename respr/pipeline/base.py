@@ -143,6 +143,7 @@ class Pipeline(BasePipeline):
             data = bidmc_data_adapter.get(subject_id)
             try:
                 output = self.process_one_sample(data)
+                logger.debug(f"#output(num windows): {len(output['window_idx'])}")
                 results.append({
                     "idx": idx,
                     "sample_id": subject_id,
@@ -680,6 +681,9 @@ class DatasetBuilder(Pipeline2):
         
         save_path = self.output_dir / "dataset.csv"
         df.to_csv(save_path)
+        
+        vector_length = self._instructions["vector_length"]
+        assert vector_length == x.shape[1],"Vector length should be as expected"
         
         return df
     
