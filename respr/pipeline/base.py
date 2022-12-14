@@ -177,7 +177,8 @@ class Pipeline(BasePipeline):
         
         # sampling freq of respiratory rate (in Hz.)
         resp_fs =  data.value()["_metadata"]["signals"]["gt_resp"]["fs"]
-        if resp_fs is None:
+        if resp_fs is None or True:
+            #FIXME: cleanup
             assert data.get("_metadata/signals/gt_resp/has_timestamps")
             gt_resp_timestamps = data.get_t("gt_resp")
             assert gt_resp_full.shape == gt_resp_timestamps.shape    
@@ -222,7 +223,8 @@ class Pipeline(BasePipeline):
                     # ignore chunks with artifacts
                     continue
             
-            if resp_fs is not None:
+            if resp_fs is not None and False:
+                #FIXME: cleanup
                 gt_resp_idx = int(t * resp_fs)
                 # ground truth respiratory rate
                 gt_resp = gt_resp_full[gt_resp_idx]
