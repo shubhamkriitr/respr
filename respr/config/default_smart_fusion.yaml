@@ -1,6 +1,6 @@
 description: This is a sample config to run the pipeline\
-  [SmartFusion on capnobase, w32 s1]
-output_dir: "../../artifacts/frozen/smartfusion_result/capnobase_w32_s1_gt_mean"
+  [SmartFusion on capnobase, w32 s4]
+output_dir: "../../artifacts/frozen/smartfusion_result/capnobase_w32_s4_gt_mean"
 data_adapter:
   args: []
   kwargs:
@@ -14,7 +14,7 @@ instructions:
   num_samples_to_process: null
   sample_index_offset: 0
   window_duration: 32
-  window_step_duration: 1
+  window_step_duration: 4
   window_type: hamming
 model:
   args: []
