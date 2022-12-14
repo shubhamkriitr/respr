@@ -2,7 +2,7 @@ description: "Leave one out CV
   exp 12 + @changes:
     window 8s stride 4s / BIDMC dataset @125Hz ppg
 "
-output_dir: "../../artifacts/DEBUG_exp_12_1a_cnn_on_bidmc_mean_gt_old_csv_w8_stride4_LOOCV"
+output_dir: "../../artifacts/exp_12_1a_cnn_on_bidmc_mean_gt_old_csv_w8_stride4_LOOCV"
 pipeline:
   name: "TrainingPipeline"
 instructions:
