@@ -167,6 +167,15 @@ class Pipeline(BasePipeline):
     def process_one_sample(self, data):
         signal_name = "ppg"
         
+        # doing context initialization and global transformations in
+        # the beginning. `data` may be modified
+        results = self.create_new_results_container()
+        context = self.create_new_context()
+        data, context = self.apply_preprocessing_on_whole_signal(
+            data=data, context=context)
+        proc = context["signal_processor"]
+        
+        
         # params
         #125 # Sampling freq. TODO extract from data
         fs = data.value()["_metadata"]["signals"]["ppg"]["fs"]
@@ -198,12 +207,6 @@ class Pipeline(BasePipeline):
         # be used
         
         
-        results = self.create_new_results_container()
-        context = self.create_new_context()
-        
-        data, context = self.apply_preprocessing_on_whole_signal(
-            data=data, context=context)
-        proc = context["signal_processor"]
         
         for window_idx in range(num_windows):
             
