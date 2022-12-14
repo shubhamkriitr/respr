@@ -157,7 +157,9 @@ class BidmcDataAdapter(BaseDataAdapter):
                         "t_is_uniform": True,
                         "has_timestamps": True,
                         "t_loc": "time/gt_resp",
-                        "t_includes_start": True
+                        "t_includes_start": True,
+                        "has_artifacts": False,
+                        "artifacts_loc": None
                     }
                 }
             }
