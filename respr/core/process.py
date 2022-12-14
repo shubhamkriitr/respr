@@ -419,7 +419,6 @@ class MultiparameterSmartFusion(object):
         
          # keep only plausible respiratory frequencies
         if elim_non_resp:
-            logger.debug("Remove non-respiratory frequencies")
             resp_signal = self.eliminate_non_respiratory_frequencies(
                             resp_signal, sampling_freq)
         
