@@ -13,11 +13,11 @@ output_dir: "../../artifacts/store/frozen"
 pipeline:
   name: "DatasetBuilder" # some of the instructions below are not ussed by `DatasetBuilder` pipeline
 instructions:
-  signals_to_include: all # raw, all_induced, all
-  window_duration: 32 # in seconds
+  signals_to_include: raw # raw, all_induced, all
+  window_duration: 8 # in seconds
   window_step_duration: 4 # window stride in seconds
   expected_signal_duration: 480 # total length of signal in seconds (for assertion)
-  vector_length: 9600 # desired vector length (used for assertion) / and in case the
+  vector_length: 2400 # desired vector length (used for assertion) / and in case the
   # the signal needs to be resampled it is used as the number of points
   resample_ppg: False # `False` for Capnobase / `True` for BIDMC (which is @125Hz)
   resampling_frequency: 300 # used only if `resample_ppg` is set
