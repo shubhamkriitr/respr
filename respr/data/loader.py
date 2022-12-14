@@ -281,7 +281,7 @@ class BaseResprCsvDataset(Dataset):
 class ResprAllSignalsCsvDataset(BaseResprCsvDataset):
     """This dataset is intented to be used when the csv (or dataframe) rows
     contain concatenated [ppg, riav, rifv, riiv] signals. By default
-    9600 points (300Hz * 32 s) for ppg and 384 (3 * 128Hz * 32 s) points for
+    9600 points (300Hz * 32 s) for ppg and 384 (3 * 4Hz * 32 s) points for
     the induced signal is assumed, and therefore the vector (x) in each row
     will be converted to 4 channels 4 * 9600 (by resampling the induced signals
     @sampling frequency of the ppg). This four channeled sample is returned
