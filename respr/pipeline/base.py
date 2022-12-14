@@ -443,9 +443,6 @@ class Pipeline2(Pipeline):
         super().__init__(config)
     
     
-    def process_one_signal_window(self, data, context, fs, offset, end_):
-        pass
-    
     def apply_preprocessing_on_whole_signal(self, data, context):
         
         if self._instructions["resample_ppg"]:
