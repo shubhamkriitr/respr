@@ -43,7 +43,10 @@ class BasePipeline:
             self.output_dir)
         self._log_path = self.output_dir / f"{self.creation_time}_logs.log"
         self._log_sink = logger.add(self._log_path)
-        self._buffer = {}
+        self._buffer = {
+             
+        }
+        self._global_context = {}
     
     def _create_dir_with_conflict_resolution(self, dir_path):
         counter = 0
@@ -100,8 +103,14 @@ class Pipeline(BasePipeline):
     def run(self, *args, **kwargs):
         # bidmc_data_adapter = BidmcDataAdapter(
         #     {"data_root_dir": BIDMC_DATSET_CSV_DIR})
+        # TODO: change var name
         bidmc_data_adapter = DATA_ADAPTER_FACTORY.get(
             self._config["data_adapter"])
+        
+        # add data adapter to global context for later use  (e.g. resampling
+        # ppg in place)
+        self._global_context["data_adapter"] = bidmc_data_adapter
+        
         file_names = bidmc_data_adapter.inspect()
         subject_ids = bidmc_data_adapter.extract_subject_ids_from_file_names(file_names)
         
@@ -439,10 +448,7 @@ class Pipeline2(Pipeline):
     def apply_preprocessing_on_whole_signal(self, data, context):
         
         if self._instructions["resample_ppg"]:
-            f_resample = self._instructions["resampling_frequency"]
-            logger.debug(f"Resampling")
-            
-            data = self.resample_ppg(data=data, f_resample=f_resample)
+            data = self.resample_ppg(data)
         
         ppg = data.get("signals/ppg")
         fs = data.get("_metadata/signals/ppg/fs")
@@ -458,12 +464,25 @@ class Pipeline2(Pipeline):
         context["ppg_riiv"] = re_riiv
         
         return data, context
-    
-    def resample_ppg(self, data: StandardDataRecord, f_resample: int):
-        """Resamples ppg and modifies `data` in place"""
-        logger.warning(f"NotImplemented")
-        return data 
-        
+
+    def resample_ppg(self, data):
+        fs_old = data.value()["_metadata"]["signals"]["ppg"]["fs"]
+        fs_old = int(fs_old)
+        ppg_old = data.value()["signals"]["ppg"]
+        expected_signal_duration = self._instructions["expected_signal_duration"]
+        assert ppg_old.shape[0] == 1 + expected_signal_duration*fs_old
+            
+        f_resample = self._instructions["resampling_frequency"]
+        data_adapter = self._global_context["data_adapter"]
+        num_points = 1 + f_resample * expected_signal_duration
+        logger.debug(f"Resampling ppg @ {f_resample}Hz "
+                         f": #points=[{num_points}]")
+        data = data_adapter.resample_ppg(data=data,
+                                             num_points=num_points,
+                                             f_resample=f_resample)
+                                         
+        return data
+            
     
     def resample_resp_induced_signals(self, proc, resp_signals_and_times,
                                       expected_length):

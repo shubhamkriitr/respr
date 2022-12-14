@@ -1,5 +1,7 @@
 import numpy as np
 from dataclasses import dataclass
+import scipy
+
 SIGNAL_DTYPE = np.float64
 
 @dataclass(frozen=True)
@@ -29,6 +31,35 @@ class BaseDataAdapter:
     
     def get(self, id_):
         raise NotImplementedError()
+    
+    def resample_ppg(self, data, num_points: int, f_resample: int):
+        """Resamples ppg and modifies `data` in place.
+        """
+        assert isinstance(f_resample, int)
+        ppg = data.get("signals/ppg")
+        ppg_meta = data.get("_metadata/signals/ppg")
+        assert ppg_meta["has_timestamps"]
+        t_key = ppg_meta["t_loc"]
+        assert t_key == "time/ppg"
+        ppg_t = data.get(t_key)
+        
+        
+        
+        resampled_signal, new_timesteps = scipy.signal.resample(
+                                            x=ppg, num=num_points,
+                                            t=ppg_t)
+        
+        # change meta data
+        ppg_meta["fs"] = f_resample
+        ppg_meta["t_is_uniform"] = True
+        
+        data.value()["signals"]["ppg"] = resampled_signal
+        data.value()["time"]["ppg"] = new_timesteps
+        data.value()["_metadata"]["signals"]["ppg"] = ppg_meta
+        
+        return data
+        
+        
     
 
 class StandardDataRecord:
