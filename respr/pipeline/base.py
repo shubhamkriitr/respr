@@ -20,6 +20,7 @@ from respr.core.ml.models import ML_FACTORY
 from torch.utils.data import DataLoader
 import copy
 import torch
+from respr.data.base import StandardDataRecord
 
 DTYPE_FLOAT = np.float32
 CONF_FEATURE_RESAMPLING_FREQ = 4 # Hz. (for riav/ rifv/ riiv resampling)
@@ -42,7 +43,10 @@ class BasePipeline:
             self.output_dir)
         self._log_path = self.output_dir / f"{self.creation_time}_logs.log"
         self._log_sink = logger.add(self._log_path)
-        self._buffer = {}
+        self._buffer = {
+             
+        }
+        self._global_context = {}
     
     def _create_dir_with_conflict_resolution(self, dir_path):
         counter = 0
@@ -84,11 +88,14 @@ class Pipeline(BasePipeline):
             "window_step_duration" : 1, # window stride in seconds
             "expected_signal_duration" : 480,
             "window_type": "hamming",
-            "ground_truth_mode": "mean"
+            "ground_truth_mode": "mean",
+            "resample_ppg": False,
+            "resampling_frequency": None
         }
         
         for k, v in default_values.items():
             if k not in self._config["instructions"]:
+                logger.warning(f"Missing key `{k}` . Using default value={v}")
                 self._config["instructions"][k] = v
         
         return self._config
@@ -96,8 +103,14 @@ class Pipeline(BasePipeline):
     def run(self, *args, **kwargs):
         # bidmc_data_adapter = BidmcDataAdapter(
         #     {"data_root_dir": BIDMC_DATSET_CSV_DIR})
+        # TODO: change var name
         bidmc_data_adapter = DATA_ADAPTER_FACTORY.get(
             self._config["data_adapter"])
+        
+        # add data adapter to global context for later use  (e.g. resampling
+        # ppg in place)
+        self._global_context["data_adapter"] = bidmc_data_adapter
+        
         file_names = bidmc_data_adapter.inspect()
         subject_ids = bidmc_data_adapter.extract_subject_ids_from_file_names(file_names)
         
@@ -130,6 +143,7 @@ class Pipeline(BasePipeline):
             data = bidmc_data_adapter.get(subject_id)
             try:
                 output = self.process_one_sample(data)
+                logger.debug(f"#output(num windows): {len(output['window_idx'])}")
                 results.append({
                     "idx": idx,
                     "sample_id": subject_id,
@@ -167,6 +181,15 @@ class Pipeline(BasePipeline):
     def process_one_sample(self, data):
         signal_name = "ppg"
         
+        # doing context initialization and global transformations in
+        # the beginning. `data` may be modified
+        results = self.create_new_results_container()
+        context = self.create_new_context()
+        data, context = self.apply_preprocessing_on_whole_signal(
+            data=data, context=context)
+        proc = context["signal_processor"]
+        
+        
         # params
         #125 # Sampling freq. TODO extract from data
         fs = data.value()["_metadata"]["signals"]["ppg"]["fs"]
@@ -177,7 +200,8 @@ class Pipeline(BasePipeline):
         
         # sampling freq of respiratory rate (in Hz.)
         resp_fs =  data.value()["_metadata"]["signals"]["gt_resp"]["fs"]
-        if resp_fs is None:
+        if resp_fs is None or True:
+            #FIXME: cleanup
             assert data.get("_metadata/signals/gt_resp/has_timestamps")
             gt_resp_timestamps = data.get_t("gt_resp")
             assert gt_resp_full.shape == gt_resp_timestamps.shape    
@@ -197,11 +221,6 @@ class Pipeline(BasePipeline):
         # be used
         
         
-        results = self.create_new_results_container()
-        context = self.create_new_context()
-        
-        self.apply_preprocessing_on_whole_signal(data=data, context=context)
-        proc = context["signal_processor"]
         
         for window_idx in range(num_windows):
             
@@ -222,7 +241,8 @@ class Pipeline(BasePipeline):
                     # ignore chunks with artifacts
                     continue
             
-            if resp_fs is not None:
+            if resp_fs is not None and False:
+                #FIXME: cleanup
                 gt_resp_idx = int(t * resp_fs)
                 # ground truth respiratory rate
                 gt_resp = gt_resp_full[gt_resp_idx]
@@ -407,7 +427,7 @@ class Pipeline(BasePipeline):
     def apply_preprocessing_on_whole_signal(self, data, context):
         """Transformations that are supposed to be done before the signal
         is processed window by window. Modifies `context`."""
-        return context
+        return data, context
     
     def accumulate_results(self, new_result, results_container):
         pass
@@ -428,6 +448,9 @@ class Pipeline2(Pipeline):
     
     def apply_preprocessing_on_whole_signal(self, data, context):
         
+        if self._instructions["resample_ppg"]:
+            data = self.resample_ppg(data)
+        
         ppg = data.get("signals/ppg")
         fs = data.get("_metadata/signals/ppg/fs")
         offset = 0
@@ -441,7 +464,26 @@ class Pipeline2(Pipeline):
         context["ppg_rifv"] = re_rifv
         context["ppg_riiv"] = re_riiv
         
-        return context
+        return data, context
+
+    def resample_ppg(self, data):
+        fs_old = data.value()["_metadata"]["signals"]["ppg"]["fs"]
+        fs_old = int(fs_old)
+        ppg_old = data.value()["signals"]["ppg"]
+        expected_signal_duration = self._instructions["expected_signal_duration"]
+        assert ppg_old.shape[0] == 1 + expected_signal_duration*fs_old
+            
+        f_resample = self._instructions["resampling_frequency"]
+        data_adapter = self._global_context["data_adapter"]
+        num_points = 1 + f_resample * expected_signal_duration
+        logger.debug(f"Resampling ppg @ {f_resample}Hz "
+                         f": #points=[{num_points}]")
+        data = data_adapter.resample_ppg(data=data,
+                                             num_points=num_points,
+                                             f_resample=f_resample)
+                                         
+        return data
+            
     
     def resample_resp_induced_signals(self, proc, resp_signals_and_times,
                                       expected_length):
@@ -639,6 +681,9 @@ class DatasetBuilder(Pipeline2):
         
         save_path = self.output_dir / "dataset.csv"
         df.to_csv(save_path)
+        
+        vector_length = self._instructions["vector_length"]
+        assert vector_length == x.shape[1],"Vector length should be as expected"
         
         return df
     

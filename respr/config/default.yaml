@@ -1,5 +1,5 @@
 description: "This is a sample config to run the pipeline"
-output_dir: "../../artifacts/store/frozen"
+output_dir: "../../artifacts/store/frozen/dataset_bidmc_w8_s4_fs125_raw"
 # workdir: "" #relative to `respr` directory
 # pipeline:
 #   name: "DatasetBuilder"
@@ -13,14 +13,14 @@ output_dir: "../../artifacts/store/frozen"
 pipeline:
   name: "DatasetBuilder" # some of the instructions below are not ussed by `DatasetBuilder` pipeline
 instructions:
-  signals_to_include: all # raw, all_induced, all
-  window_duration: 32 # in seconds
+  signals_to_include: raw # raw, all_induced, all
+  window_duration: 8 # in seconds
   window_step_duration: 4 # window stride in seconds
   expected_signal_duration: 480 # total length of signal in seconds (for assertion)
-  vector_length: 9600 # desired vector length (used for assertion) / and in case the
+  vector_length: 1000 # desired vector length (used for assertion) / and in case the
   # the signal needs to be resampled it is used as the number of points
-  resample_ppg: False # `False` for Capnobase / `True` for BIDMC (which is @125Hz)
-  resampling_frequency: 300 # used only if `resample_ppg` is set
+  resample_ppg: false # `False` for Capnobase / `True` for BIDMC (which is @125Hz)
+  resampling_frequency: null # used only if `resample_ppg` is set
   sample_index_offset: 0
   num_samples_to_process: null # if None then all samples are processed and
   # `sample_idx_offset` is ignore (not used)
@@ -37,15 +37,16 @@ model:
     config:
       resp_rate_cutoff_high: 90 # in breaths per min. Used for removing non-respiratory frequencies
       resp_rate_cutoff_low: 2
-data_adapter:
-  name: "CapnobaseMatDataAdapter"
-  args: []
-  kwargs:
-    config:
-      data_root_dir: "../../Datasets/capnobase-dataverse/data/mat"
 # data_adapter:
 #   name: "CapnobaseMatDataAdapter"
 #   args: []
 #   kwargs:
 #     config:
-#       data_root_dir: "../../Datasets/bidmc-ppg-and-respiration-dataset-1.0.0/bidmc_csv"
+#       data_root_dir: "../../Datasets/capnobase-dataverse/data/mat"
+data_adapter:
+  name: "BidmcDataAdapter"
+  args: []
+  kwargs:
+    config:
+      data_root_dir: "../../Datasets/\
+        bidmc-ppg-and-respiration-dataset-1.0.0/bidmc_csv"

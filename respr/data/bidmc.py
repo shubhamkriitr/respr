@@ -149,8 +149,10 @@ class BidmcDataAdapter(BaseDataAdapter):
                         "t_loc" : "time/ppg",
                         "t_is_uniform": True, # indicates if signal is 
                         # uniformly sampled everywhere
-                        "t_includes_start": True # if the sample includes 
-                        # signal value st t=0
+                        "t_includes_start": True, # if the sample includes 
+                        # signal value st t=0,
+                        "has_artifacts": False,
+                        "artifacts_loc": None
                     },
                     "gt_resp": {
                         "fs" : numerics_fs,
