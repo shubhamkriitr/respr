@@ -1158,14 +1158,7 @@ class DummyIndexedDatasetBuilder(IndexedDatasetBuilder):
         
             
         
-REGISTERED_PIPELINES = {
-    "Pipeline": Pipeline,
-    "Pipeline2": Pipeline2,
-    "DatasetBuilder": DatasetBuilder,
-    "TrainingPipeline":TrainingPipeline,
-    "IndexedDatasetBuilder": IndexedDatasetBuilder,
-    "DummyIndexedDatasetBuilder": DummyIndexedDatasetBuilder
-}  
+
 
 
 
