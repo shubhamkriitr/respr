@@ -1,7 +1,7 @@
 description: "This is a sample config to run the pipeline"
 
 pipeline:
-  name: "TrainingPipeline"
+  name: "TrainingPipelineSimCLR"
 instructions:
   do_only_test: false # make sure to set `ckpt_path`
   ckpt_path:
