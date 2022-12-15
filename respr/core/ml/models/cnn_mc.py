@@ -120,6 +120,14 @@ class ResprMCDropoutCNNResnet18(nn.Module):
     
     
     def forward(self, x):
+        z = self.get_embedding(x) # drop last dimension
+        
+        mu = self.fc_mu(z)
+        log_var = self.fc_log_var(z)
+        
+        return mu, log_var
+
+    def get_embedding(self, x):
         if self._config["force_reshape_input"]:
             z = torch.reshape(x, 
                               (x.shape[0], self._config["input_channels"], -1))
@@ -137,12 +145,8 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         z = self.blocks[-1](z)
         
         z = self.avgpool(z)
-        z = torch.squeeze(z) # drop last dimension
-        
-        mu = self.fc_mu(z)
-        log_var = self.fc_log_var(z)
-        
-        return mu, log_var
+        z = torch.squeeze(z)
+        return z
         
 
 class ResprMCDropoutCNNResnet18Small(ResprMCDropoutCNNResnet18):
