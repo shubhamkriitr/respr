@@ -2,7 +2,8 @@ import math
 import collections
 from torch.utils.data import Dataset, DataLoader
 from respr.data.base import BaseDataAdapter
-from respr.util.common import fill_missing_values
+from respr.data.augmentation import DATA_AUG_FACTORY
+from respr.util.common import fill_missing_values, BaseFactory
 from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
@@ -552,12 +553,29 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         
     def create_loader(self,  data, subject_ids_subset, shuffle=True):
         df = data.loc[data["subject_ids"].isin(subject_ids_subset)]
-        assert isinstance(self.dataset, str)
-        dataset_class = REGISTERED_DATASET_CLASSES[self.dataset]
-        dataset = dataset_class(datasource=df)
+        #>>> TODO: remove assert isinstance(self.dataset, str) 
+        dataset = self.get_dataset_instance(df)
         dataloader = DataLoader(dataset=dataset, batch_size=self.batch_size,
                                 shuffle=shuffle, num_workers=self.num_workers)
         return dataloader
+
+    def get_dataset_instance(self, df):
+        if isinstance(self.dataset, dict):
+            dataset_conf = copy.deepcopy(self.dataset)
+            # => config has been passed insted of just class name
+            class_name = dataset_conf["name"]
+            dataset_class = REGISTERED_DATASET_CLASSES[class_name]
+            args = dataset_conf["args"]
+            kwargs = dataset_conf["kwargs"]
+            assert "datasource" not in kwargs
+            kwargs["datasource"] = df
+        else:
+            dataset_class = REGISTERED_DATASET_CLASSES[self.dataset]
+            args = []
+            kwargs = {"datasource": df}
+            
+        dataset = dataset_class(*args, **kwargs)
+        return dataset
     
     def inspect_data(self, data):
         
@@ -716,16 +734,45 @@ class ResprDataLoaderComposer(BaseResprDataLoaderComposer):
         
         
     
+class DatasetAndAugmentationWrapper(Dataset):
     
+    def __init__(self, config, datasource=None) -> None:
+        self._config = config
+        defaults = {
+            "underlying_dataset": {
+                    "name": None,
+                    "args": None,
+                    "kwargs": None
+                },
+            "data_augmentation": None
+        }
+        self._config = fill_missing_values(default_values=defaults,
+                                           target_container=self._config)
+        
+        dataset_init_schema = self._config["underlying_dataset"]
+        dataset_init_schema["kwargs"]["datasource"] = datasource
+        self.dataset = DATASET_FACTORY.get(dataset_init_schema)
+        
+        augment_schema = self._config["data_augmentation"]
+        self.augmentation = DATA_AUG_FACTORY.get(augment_schema)
+    
+    def __len__(self) -> int:
+        return self.dataset.__len__()
+    
+    def __getitem__(self, index):
+        x, y =  self.dataset.__getitem__(index)
+        x_1, x_2, y = self.augmentation(x, y)
+        return x_1, y #x_1, x_2, y # FIXME
 
 REGISTERED_DATASET_CLASSES = {
     "BaseResprCsvDataset": BaseResprCsvDataset,
-    "ResprAllSignalsCsvDataset": ResprAllSignalsCsvDataset
-}      
-        
-        
-    
+    "ResprAllSignalsCsvDataset": ResprAllSignalsCsvDataset,
+    "DatasetAndAugmentationWrapper": DatasetAndAugmentationWrapper
+}
 
+DATASET_FACTORY = BaseFactory(
+    config={"resource_map": REGISTERED_DATASET_CLASSES}) 
+        
 
 if __name__ == "__main__":
     

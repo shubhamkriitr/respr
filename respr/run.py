@@ -1,4 +1,5 @@
-from respr.pipeline.base import DEFAULT_CONFIG_PATH, REGISTERED_PIPELINES
+from respr.pipeline.base import DEFAULT_CONFIG_PATH
+from respr.pipeline import REGISTERED_PIPELINES
 from loguru import logger
 
 def main():
