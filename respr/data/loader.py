@@ -784,12 +784,25 @@ class DatasetAndAugmentationWrapper(Dataset):
         x_1, x_2, y = self.augmentation(x, y)
         return x_1, y #x_1, x_2, y # FIXME
 
-
+class BaseResprCsvDatasetDuplicateX(BaseResprCsvDataset):
+    """For using in SimCLR pipeline. But for validation and test dataloders.
+    NOTE: both  x (inputs) returned are not augmented."""
+    def __init__(self, config={}, datasource=None) -> None:
+        super().__init__(config, datasource)
+    
+    def __getitem__(self, index: int):
+        x, y =  super().__getitem__(index)
+        x2 = np.copy(x)
+        return x, y #x, x2, y #FIXME
+        
+    def __len__(self) -> int:
+        return super().__len__()
 
 REGISTERED_DATASET_CLASSES = {
     "BaseResprCsvDataset": BaseResprCsvDataset,
     "ResprAllSignalsCsvDataset": ResprAllSignalsCsvDataset,
-    "DatasetAndAugmentationWrapper": DatasetAndAugmentationWrapper
+    "DatasetAndAugmentationWrapper": DatasetAndAugmentationWrapper,
+    "BaseResprCsvDatasetDuplicateX": BaseResprCsvDatasetDuplicateX
 }
 
 DATASET_FACTORY = BaseFactory(
