@@ -35,28 +35,22 @@ model_checkpoint:
   ckpt_filename: null
 
 model: # model => actual model + lighting wrapper
-  name: "LitResprResnet18LinearScaledMeanHead"
+  name: "LitResprMCDropoutCNN"
   args: []
   kwargs:
     config:
       optimization:
         lr: 1.0e-3
         weight_decay: 1.0e-4
-      # num_monte_carlo_rollouts: 10
-      # model_module_class: ResprMCDropoutCNNResnet18
+      num_monte_carlo_rollouts: 10
+      model_module_class: ResprMCDropoutCNNResnet18
       module_config: # config for the actual pytorch model
       # it will be passed as config kwarg like so `model_module(config=...)`
         input_channels: 1
         force_reshape_input: false
       y_normalization: # added in new #TODO: use this entry
-        y_mean: 0.
-        y_std: 1.0
-      weighted_loss:
-        do_weighted_loss: false
-        bin_step: 2
-        max_bpm: 120 # this is just for binning and weights
-        loss_weights: [110.97777777777777, 178.35714285714286, 499.4, 18.916666666666668, 1.288109362909466, 1.0, 4.984031936127744, 2.455260570304818, 4.959285004965244, 4.4629133154602325, 12.12135922330097, 10.275720164609053, 17.34027777777778, 22.597285067873305, 7.815336463223788, 38.713178294573645, 31.2125, 24.600985221674875, 53.69892473118279, 54.879120879120876, 28.375, 86.10344827586206, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4]
-        weight_scale_down_by: 1.0
+        y_mean: 18.8806 # from CAPNOBASE (as was used for older experiments)
+        y_std: 9.8441 # from CAPNOBASE (as was used for older experiments)
 
 
 
@@ -84,7 +78,7 @@ dataloading:
         #"../../artifacts/frozen/2022-12-07_000441/dataset.csv"
       normalize_x: true 
       normalize_mode: local
-      batch_size: 2
+      batch_size: 1
       augmentation: null # to be added later #TODO
       num_folds: 2
       start_fold: 0
@@ -104,3 +98,31 @@ dataloading:
 
 # loss weights 0 to 120 @step 2
 # weights: [110.97777777777777, 178.35714285714286, 499.4, 18.916666666666668, 1.288109362909466, 1.0, 4.984031936127744, 2.455260570304818, 4.959285004965244, 4.4629133154602325, 12.12135922330097, 10.275720164609053, 17.34027777777778, 22.597285067873305, 7.815336463223788, 38.713178294573645, 31.2125, 24.600985221674875, 53.69892473118279, 54.879120879120876, 28.375, 86.10344827586206, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4]
+
+
+
+## >>> MODEL 1 >>> 
+# model: # model => actual model + lighting wrapper
+#   name: "LitResprResnet18LinearScaledMeanHead"
+#   args: []
+#   kwargs:
+#     config:
+#       optimization:
+#         lr: 1.0e-3
+#         weight_decay: 1.0e-4
+#       # num_monte_carlo_rollouts: 10
+#       # model_module_class: ResprMCDropoutCNNResnet18
+#       module_config: # config for the actual pytorch model
+#       # it will be passed as config kwarg like so `model_module(config=...)`
+#         input_channels: 1
+#         force_reshape_input: false
+#       y_normalization: # added in new #TODO: use this entry
+#         y_mean: 0.
+#         y_std: 1.0
+#       weighted_loss:
+#         do_weighted_loss: false
+#         bin_step: 2
+#         max_bpm: 120 # this is just for binning and weights
+#         loss_weights: [110.97777777777777, 178.35714285714286, 499.4, 18.916666666666668, 1.288109362909466, 1.0, 4.984031936127744, 2.455260570304818, 4.959285004965244, 4.4629133154602325, 12.12135922330097, 10.275720164609053, 17.34027777777778, 22.597285067873305, 7.815336463223788, 38.713178294573645, 31.2125, 24.600985221674875, 53.69892473118279, 54.879120879120876, 28.375, 86.10344827586206, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4, 499.4]
+#         weight_scale_down_by: 1.0
+## <<< MODEL 1 <<<
