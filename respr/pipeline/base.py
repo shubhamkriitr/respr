@@ -387,7 +387,8 @@ class Pipeline(BasePipeline):
 
     def extract_respiratory_signal(self, data, proc, pulse_detector, fs, offset, end_):
         ppg = data.get("signals/ppg")
-        filtered_signal = proc.eliminate_very_high_freq(ppg)
+        filtered_signal = proc.eliminate_very_high_freq(signal_=ppg,
+                                                        sampling_freq=fs)
         signal_chunk = filtered_signal[offset:end_]
         new_peaklist, new_troughlist = pulse_detector.get_pulses(
             signal_chunk, fs)
@@ -442,9 +443,6 @@ class Pipeline2(Pipeline):
         for the whole signal before analysing it window by window"""
         super().__init__(config)
     
-    
-    def process_one_signal_window(self, data, context, fs, offset, end_):
-        pass
     
     def apply_preprocessing_on_whole_signal(self, data, context):
         

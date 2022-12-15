@@ -116,6 +116,7 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         
         self.avgpool = nn.AdaptiveAvgPool1d(1)
         self.fc_mu = nn.Linear(512, 1)
+        self.fc_log_var = nn.Linear(512, 1)
     
     
     def forward(self, x):
@@ -139,8 +140,10 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         z = torch.squeeze(z) # drop last dimension
         
         mu = self.fc_mu(z)
+        log_var = self.fc_log_var(z)
         
-        return mu
+        return mu, log_var
+        
 
 class ResprMCDropoutCNNResnet18Small(ResprMCDropoutCNNResnet18):
     def __init__(self, config={}) -> None:
@@ -245,9 +248,9 @@ class LitResprMCDropoutCNN(pl.LightningModule):
                 
         return self._config
     
-    def compute_loss(self, mu, y_true):
+    def compute_loss(self, mu, log_var, y_true):
         delta = (y_true - mu)
-        loss = (delta*delta)
+        loss = (delta*delta)/torch.exp(log_var) + log_var
         loss = torch.mean(loss)
         return loss
     
@@ -266,15 +269,22 @@ class LitResprMCDropoutCNN(pl.LightningModule):
 
     def _shared_step(self, batch, step_name):
         x, labels = batch
-        mu = self.model_module(x)
+        mu, log_var = self.model_module(x)
         mu = torch.squeeze(mu)
-        loss = self.compute_loss(mu, self.normalize_y(labels))
-        d_mu = self.denormalize_y(mu)
+        log_var = torch.squeeze(log_var)
+        loss = self.compute_loss(mu=mu, log_var=log_var,
+                                 y_true=self.normalize_y(labels))
         
-        self._log_metrics(step_name, labels, d_mu, loss)
+        d_mu = self.denormalize_y(mu)
+        std = torch.sqrt(torch.exp(log_var))
+        std = self.denormalize_std(std)
+        mean_var = torch.mean(std*std)
+        
+        self._log_metrics(step_name, labels, d_mu, loss, mean_var)
         return loss
 
-    def _log_metrics(self, step_name, labels, d_mu, loss):
+    def _log_metrics(self, step_name, labels, d_mu, loss,
+                     mean_var=None):
         # `d_mu` is denormalized mu
         mae = self.metric_mae(d_mu, labels)
         rmse = self.metric_rmse(d_mu, labels)
@@ -283,25 +293,40 @@ class LitResprMCDropoutCNN(pl.LightningModule):
         self.log(f"{step_name}{self.respr_loss_name}_loss", loss)
         self.log(f"{step_name}_mae", mae)
         self.log(f"{step_name}_rmse", rmse)
+        
+        if mean_var is not None:
+            self.log(f"{step_name}_uncertainty/mean_var", mean_var)
     
     def _shared_val_and_test_step(self, batch, step_name):
         """Must not call this during training phase."""
-        y_final, std = self._mc_rollout(batch)
-        x, labels = batch
+        _, labels = batch
+        y_final, uncertainty, extras = self._mc_rollout(batch)
+        aleatoric_unc = torch.mean(extras["aleatoric"])
+        epistemic_unc = torch.mean(extras["epistemic"])
         
         # normalizing `y_final` as it was denormalized during _mc_rollout call
         mu = self.normalize_y(y_final)
         # computing loss on final estimate (average of MC rollouts) (NOTE: 
         # during train step loss is computed on estimates from just one 
         # rollout )
-        loss = self.compute_loss(mu, self.normalize_y(labels))
+        log_var = torch.log(extras["aleatoric"])
+        mu = torch.squeeze(mu)
+        log_var = torch.squeeze(log_var)
+        loss = self.compute_loss(mu=mu, log_var=log_var,
+                                 y_true=self.normalize_y(labels))
+        
         self._log_metrics(step_name=step_name, labels=labels,
                           d_mu=y_final, loss=loss)
         
         
         # also log uncertainty (during val and test stage)
-        mean_std = torch.mean(std)
-        self.log(f"{step_name}_uncertainty", mean_std)
+        mean_uncertainty = torch.mean(uncertainty)
+        self.log(f"{step_name}_uncertainty", mean_uncertainty)
+        
+        
+        self.log(f"{step_name}_uncertainty/aleatoric", aleatoric_unc)
+        self.log(f"{step_name}_uncertainty/epistemic", epistemic_unc)
+        
         return loss
         
 
@@ -312,10 +337,10 @@ class LitResprMCDropoutCNN(pl.LightningModule):
         return self._shared_val_and_test_step(batch, step_name="test")
     
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
-        y_final, std = self._mc_rollout(batch=batch)
+        y_final, uncertainty, _ = self._mc_rollout(batch=batch)
         # y_final here is already denormalized (scaled properly)
 
-        return y_final, std
+        return y_final, uncertainty
     
     def _mc_rollout(self, batch):
         # Set just the dropout layers to train mode
@@ -325,12 +350,18 @@ class LitResprMCDropoutCNN(pl.LightningModule):
         x, _ = batch
         
         y_buffer = []
+        pred_std_buffer = []
         for _ in range(n_rollouts):
-            mu = self.model_module(x)
+            mu, log_var = self.model_module(x)
             y = self.denormalize_y(mu)
             y_buffer.append(y)
+            
+            std = torch.sqrt(torch.exp(log_var))
+            std = self.denormalize_std(std)
+            pred_std_buffer.append(std)
         try:
             y_buffer = torch.concatenate(y_buffer, axis=1)
+            pred_std_buffer = torch.concatenate(pred_std_buffer, axis=1)
         except IndexError:
             #IndexError happens in case y has shape torch.Size([1]) (when
             # batch contains just one sample (
@@ -339,13 +370,24 @@ class LitResprMCDropoutCNN(pl.LightningModule):
                         in y_buffer if len(a.shape) == 1]
             y_buffer = torch.concatenate(y_buffer, axis=1)
             
+            pred_std_buffer = [torch.unsqueeze(a, 1) for a 
+                                in pred_std_buffer if len(a.shape) == 1]
+            pred_std_buffer = torch.concatenate(pred_std_buffer, axis=1)
+            
         y_final = torch.mean(y_buffer, axis=1, keepdims=True)
-        std = torch.std(y_buffer, axis=1, keepdims=True)
+        epistemic_uncertainty = torch.var(y_buffer, axis=1, keepdims=True)
+        aleatoric_uncertainty = torch.mean(pred_std_buffer*pred_std_buffer,
+                                           axis=1, keepdim=True)
+        
+        uncertainty = torch.sqrt(epistemic_uncertainty + aleatoric_uncertainty)
 
         # set model (along with droputs) back to eval mode
         self.model_module.eval()
         
-        return y_final, std
+        return y_final, uncertainty, {
+            "aleatoric": aleatoric_uncertainty,
+            "epistemic": epistemic_uncertainty
+        }
     
     def activate_dropout_layers(self, model_module):
         for m in model_module.modules():

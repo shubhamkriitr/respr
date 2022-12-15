@@ -1,34 +1,30 @@
-description: "This is a sample config for running smart fusion piepeline."
-# workdir: "" #relative to `respr` directory
-pipeline:
-  name: "Pipeline2"
-instructions:
-  sample_index_offset: 2
-  num_samples_to_process: null # if None then all samples are processed and
-  # `sample_idx_offset` is ignore (not used)
-  exclude_artifacts: True
-  ground_truth_mode: "mid" # indicates how the underlying signal processor
-  # should compute the ground truth respiratory rate for signal windows.
-  # e.g. `mean` => mean value over the window, `mid` =>" take label at 
-  # the middle of the window"
-window_type: hamming
-  
-model:
-  name: "MultiparameterSmartFusion"
-  args: []
-  kwargs:
-    config:
-      resp_rate_cutoff_high: 90 # in breaths per min. Used for removing non-respiratory frequencies
-      resp_rate_cutoff_low: 2
+description: This is a sample config to run the pipeline\
+  [SmartFusion on bidmc, w32 s1]
+output_dir: "../../artifacts/frozen/smartfusion_result/bidmc_w32_s1_gt_mean"
 data_adapter:
-  name: "CapnobaseMatDataAdapter"
+  name: "BidmcDataAdapter"
   args: []
   kwargs:
     config:
-      data_root_dir: "../../Datasets/capnobase-dataverse/data/mat"
-# data_adapter:
-#   name: "CapnobaseMatDataAdapter"
-#   args: []
-#   kwargs:
-#     config:
-#       data_root_dir: "../../Datasets/bidmc-ppg-and-respiration-dataset-1.0.0/bidmc_csv"
+      data_root_dir: "../../Datasets/\
+        bidmc-ppg-and-respiration-dataset-1.0.0/bidmc_csv"
+instructions:
+  exclude_artifacts: true
+  expected_signal_duration: 480
+  ground_truth_mode: mean
+  num_samples_to_process: null
+  sample_index_offset: 0
+  window_duration: 32
+  window_step_duration: 1
+  window_type: hamming
+model:
+  args: []
+  kwargs:
+    config:
+      resp_rate_cutoff_high: 90
+      resp_rate_cutoff_low: 2
+      butterworth_filter_order: 4
+  name: MultiparameterSmartFusion
+pipeline:
+  name: Pipeline2
+window_type: hamming
