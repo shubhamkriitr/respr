@@ -15,3 +15,8 @@ LOOCV with w32 s1 mid gt
 ```
 LOOCV with w32 s1 mean gt
 ```
+
+### Exp. 21 A
+```
+Window size 8s - stride = 4s
+```
