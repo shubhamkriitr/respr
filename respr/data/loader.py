@@ -553,11 +553,15 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
     def create_loader(self,  data, subject_ids_subset, shuffle=True):
         df = data.loc[data["subject_ids"].isin(subject_ids_subset)]
         assert isinstance(self.dataset, str)
-        dataset_class = REGISTERED_DATASET_CLASSES[self.dataset]
-        dataset = dataset_class(datasource=df)
+        dataset = self.get_dataset_instance(df)
         dataloader = DataLoader(dataset=dataset, batch_size=self.batch_size,
                                 shuffle=shuffle, num_workers=self.num_workers)
         return dataloader
+
+    def get_dataset_instance(self, df):
+        dataset_class = REGISTERED_DATASET_CLASSES[self.dataset]
+        dataset = dataset_class(datasource=df)
+        return dataset
     
     def inspect_data(self, data):
         
@@ -716,7 +720,23 @@ class ResprDataLoaderComposer(BaseResprDataLoaderComposer):
         
         
     
+class DatasetAndAugmentationWrapper(Dataset):
     
+    def __init__(self, config) -> None:
+        self._config = config
+        defaults = {
+            "underlying_dataset": {
+                    "name": None,
+                    "args": None,
+                    "kwargs": None
+                },
+            "data_augmentation": None
+        }
+        self._config = fill_missing_values(default_values=defaults,
+                                           target_container=self._config)
+    
+    def __getitem__(self, index) -> T_co:
+        return super().__getitem__(index)
 
 REGISTERED_DATASET_CLASSES = {
     "BaseResprCsvDataset": BaseResprCsvDataset,
