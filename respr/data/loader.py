@@ -559,8 +559,20 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         return dataloader
 
     def get_dataset_instance(self, df):
-        dataset_class = REGISTERED_DATASET_CLASSES[self.dataset]
-        dataset = dataset_class(datasource=df)
+        if isinstance(self.dataset, dict):
+            # => config has been passed insted of just class name
+            class_name = self.dataset["name"]
+            dataset_class = REGISTERED_DATASET_CLASSES[class_name]
+            args = self.dataset["args"]
+            kwargs = self.dataset["kwargs"]
+            assert "datasource" not in kwargs
+            kwargs["datasource"] = df
+        else:
+            dataset_class = REGISTERED_DATASET_CLASSES[self.dataset]
+            args = []
+            kwargs = {"datasource": df}
+            
+        dataset = dataset_class(*args, **kwargs)
         return dataset
     
     def inspect_data(self, data):
