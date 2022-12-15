@@ -71,7 +71,22 @@ dataloading:
       # ckpt_path: ../../artifacts/2022-11-17_050120/fold_00/lightning_logs/version_2482287/checkpoints/epoch=7-step=6717.ckpt
     # MINI DATASET FOR DEV
     config:
-      dataset: "BaseResprCsvDataset"
+      dataset: 
+        name: "DatasetAndAugmentationWrapper"
+        args: []
+        kwargs:
+          config:
+            underlying_dataset:
+              name: "BaseResprCsvDataset"
+              args: []
+              kwargs:
+                config: {}
+            data_augmentation:
+              name: "BaseResprDataAugmentationComposerSimCLR"
+              args: []
+              kwargs:
+                config: {}
+
       dataset_path: "../../artifacts/frozen/mini/dataset_capnobase_w32_s1_4_subjects.csv" #"../../artifacts/frozen/dataset_capnobase_w32_s1_artif_cleaned_commit_c4dec47.csv"
       x_length: 9600 # dimension of input x
         # sample paths
