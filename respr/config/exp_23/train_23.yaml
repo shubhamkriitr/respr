@@ -110,7 +110,7 @@ dataloading:
       batch_size: 16
       augmentation: null # to be added later #TODO
       num_folds: 1
-      start_fold: 0
+      start_fold: 2
       val_split: 0.023
       test_split: 0.03
       num_workers: 0
