@@ -740,6 +740,7 @@ class TrainingPipeline(BasePipeline):
         self._start_fold = self._config["dataloading"]["kwargs"]["config"]["start_fold"]
         
         default_config_items = {
+            "training_init_model_ckpt_path": None,
             "model_checkpoint": {
                 "monitor": "val_mae",
                 "save_top_k": 4,
@@ -762,7 +763,7 @@ class TrainingPipeline(BasePipeline):
         for fold_num in range(dataloader_composer.num_folds):
             fold = start_fold + fold_num
             logger.info(f"Running fold number {fold}")
-            model = ML_FACTORY.get(self._config["model"])
+            model = self.get_model()
             default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"
             
             if not self._instructions["do_only_test"]:
@@ -798,6 +799,16 @@ class TrainingPipeline(BasePipeline):
                             ckpt_path=ckpt_path)
             output_file_name = f"predictions_fold_{str(fold).zfill(4)}"
             self.save_predictions(predictions, test_loader, output_file_name)
+
+    def get_model(self):
+        model = ML_FACTORY.get(self._config["model"])
+        init_ckpt_path = self._config["training_init_model_ckpt_path"]
+        if init_ckpt_path is not None:
+            logger.info(f"Loading model weights from here: {init_ckpt_path}"
+                        f" [Before training]")
+            state_dict = torch.load(init_ckpt_path)["state_dict"]
+            model.load_state_dict(state_dict, strict=True)
+        return model
 
     def create_main_checkpoint_callback(self):
         ckpt_config = self._config["model_checkpoint"]
