@@ -173,10 +173,6 @@ class LitResprMCDropoutCNNSimCLR(LitResprMCDropoutCNN):
         batch = self.adapt_batch_for_regression(batch=batch)
         return super().predict_step(batch, batch_idx, dataloader_idx)
     
-    def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
-
-        return super().predict_step(batch, batch_idx, dataloader_idx)
-    
     def cont_training_step(self, batch, batch_idx):
         return self.cont_shared_step(batch, batch_idx, step_name="train")
     
