@@ -2,6 +2,7 @@ from torch.utils.data import DataLoader
 from respr.util.common import fill_missing_values, BaseFactory
 import random
 import numpy as np
+from respr.util import logger
 # Transformations
 
 
@@ -21,7 +22,7 @@ class DataTransforms:
 class ZeroOutEnds(DataTransforms):
     def __init__(self, config={}) -> None:
         super().__init__(config=config)
-        self._warn_limit = 0.3
+        self._warn_limit = 0.15
         defaults = {
             "front": 0.1, #float or int
             "end": 0.1
@@ -60,6 +61,93 @@ class ZeroOutEnds(DataTransforms):
         
         return idx_front_end, idx_end_start
 
+class TranslateTransform(DataTransforms):
+    def __init__(self, config={}) -> None:
+        super().__init__(config=config)
+        self._warn_limit = 0.15
+        defaults = {
+            "translation": 0.1, #float or int
+        }
+        self._config = fill_missing_values(default_values=defaults,
+                                           target_container=self._config)
+        self.translation = self._config["translation"]
+        self._sanity_check()
+    
+    def _sanity_check(self):
+        
+        if not (0 <= self.translation <  self._warn_limit ):
+            raise ValueError(f"Value out of limits")
+
+    
+    def __call__(self, x, y=None):
+        assert len(x.shape) == 1# 1D
+        n = x.shape[0]
+        p = self.rng.random()
+        t = int(self.rng.uniform(a=0, b=self.translation)*n)
+
+        x_new = np.zeros_like(x)
+        if p < 0.5:
+            # shift left
+            x_new[0:n-t] = x[t:n]
+        else:
+            # shift right
+            x_new[t:n] = x[0:n-t]
+        
+        return x_new
+            
+class ScaleTransform(DataTransforms):
+    def __init__(self, config={}) -> None:
+        super().__init__(config=config)
+        
+        defaults = {
+            "upper": 1.1, #float
+            "lower": 0.9
+        }
+        self._config = fill_missing_values(default_values=defaults,
+                                           target_container=self._config)
+        self.upper = self._config["upper"]
+        self.lower = self._config["lower"]
+        self._sanity_check()
+    
+    def _sanity_check(self):
+        if not ((0.8 < self.lower <  self.upper ) and \
+                    (self.upper < 1.2)):
+            raise ValueError(f"Value out of limits")
+
+    
+    def __call__(self, x, y=None):
+        assert len(x.shape) == 1# 1D
+        scale = self.rng.uniform(a=self.lower, b=self.upper)
+        x_new = x*scale
+        return  x_new
+    
+class AbsMeanShiftTransform(DataTransforms):
+    def __init__(self, config={}) -> None:
+        super().__init__(config=config)
+        
+        defaults = {
+            "upper": 0.2, #float  
+            "lower": 0.0
+        }
+        self._config = fill_missing_values(default_values=defaults,
+                                           target_container=self._config)
+        self.upper = self._config["upper"]
+        self.lower = self._config["lower"]
+        self._sanity_check()
+    
+    def _sanity_check(self):
+        if not ((0 <= self.lower <=  self.upper ) and \
+                    (self.upper <= 0.25)):
+            raise ValueError(f"Value out of limits")
+
+    
+    def __call__(self, x, y=None):
+        assert len(x.shape) == 1# 1D
+        scale = self.rng.uniform(a=self.lower, b=self.upper)
+        mean_val = np.nanmean(np.abs(x))
+        shift_by = mean_val*scale
+        x_new = x + shift_by
+        return  x_new
 
 class BaseResprDataAugmentationComposerSimCLR(DataTransforms):
     
@@ -70,8 +158,12 @@ class BaseResprDataAugmentationComposerSimCLR(DataTransforms):
     def init_transforms(self):
         # TODO : Make config based #FIXME
         self.transforms = [
+            AbsMeanShiftTransform(),
             ZeroOutEnds(),
+            TranslateTransform(),
+            ScaleTransform()
         ]
+        logger.info(f"transformation order: {self.transforms}")
     
     
     def __call__(self, x, y=None):
