@@ -546,22 +546,37 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
                     f"/ Test: {test_ids}")
         
         train_loader = self.create_loader(self.data, train_ids, shuffle=True)
-        val_loader = self.create_loader(self.data, val_ids, shuffle=False)
-        test_loader = self.create_loader(self.data, test_ids, shuffle=False)
+        val_loader = self.create_loader(self.data, val_ids, shuffle=False,
+                            loader_type="val")
+        test_loader = self.create_loader(self.data, test_ids, shuffle=False,
+                            loader_type="test")
         
         return train_loader, val_loader, test_loader
         
-    def create_loader(self,  data, subject_ids_subset, shuffle=True):
+    def create_loader(self,  data, subject_ids_subset, shuffle=True,
+                      loader_type=None):
         df = data.loc[data["subject_ids"].isin(subject_ids_subset)]
         #>>> TODO: remove assert isinstance(self.dataset, str) 
-        dataset = self.get_dataset_instance(df)
+        dataset = self.get_dataset_instance(df, dataset_type=loader_type)
         dataloader = DataLoader(dataset=dataset, batch_size=self.batch_size,
                                 shuffle=shuffle, num_workers=self.num_workers)
         return dataloader
 
-    def get_dataset_instance(self, df):
-        if isinstance(self.dataset, dict):
-            dataset_conf = copy.deepcopy(self.dataset)
+    def get_dataset_instance(self, df, dataset_type=None):
+        main_dataset_config = self.dataset
+        if dataset_type is not None:
+            conf_key = f"{dataset_type}_dataset"
+            if conf_key in self._config:
+                main_dataset_config = self._config[conf_key]
+                logger.debug(f"For `{dataset_type}` dataset using "
+                            f"this config  {main_dataset_config}.")
+            else:
+                #>>> logger.error(f"Expected key: `{conf_key}` in config.")
+                logger.info(f"For `{dataset_type}` dataset, continuing "
+                            f"with main dataset config:"
+                               f"{main_dataset_config}")
+        if isinstance(main_dataset_config, dict):
+            dataset_conf = copy.deepcopy(main_dataset_config)
             # => config has been passed insted of just class name
             class_name = dataset_conf["name"]
             dataset_class = REGISTERED_DATASET_CLASSES[class_name]
@@ -570,7 +585,9 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
             assert "datasource" not in kwargs
             kwargs["datasource"] = df
         else:
-            dataset_class = REGISTERED_DATASET_CLASSES[self.dataset]
+            # `main_dataset_config` is str
+            assert isinstance(main_dataset_config, str)
+            dataset_class = REGISTERED_DATASET_CLASSES[main_dataset_config]
             args = []
             kwargs = {"datasource": df}
             
@@ -753,6 +770,9 @@ class DatasetAndAugmentationWrapper(Dataset):
         dataset_init_schema["kwargs"]["datasource"] = datasource
         self.dataset = DATASET_FACTORY.get(dataset_init_schema)
         
+        self.init_augmentation()
+
+    def init_augmentation(self):
         augment_schema = self._config["data_augmentation"]
         self.augmentation = DATA_AUG_FACTORY.get(augment_schema)
     
@@ -762,12 +782,27 @@ class DatasetAndAugmentationWrapper(Dataset):
     def __getitem__(self, index):
         x, y =  self.dataset.__getitem__(index)
         x_1, x_2, y = self.augmentation(x, y)
-        return x_1, y #x_1, x_2, y # FIXME
+        return x_1, x_2, y
+
+class BaseResprCsvDatasetDuplicateX(BaseResprCsvDataset):
+    """For using in SimCLR pipeline. But for validation and test dataloders.
+    NOTE: both  x (inputs) returned are not augmented."""
+    def __init__(self, config={}, datasource=None) -> None:
+        super().__init__(config, datasource)
+    
+    def __getitem__(self, index: int):
+        x, y =  super().__getitem__(index)
+        x2 = np.copy(x)
+        return x, x2, y
+        
+    def __len__(self) -> int:
+        return super().__len__()
 
 REGISTERED_DATASET_CLASSES = {
     "BaseResprCsvDataset": BaseResprCsvDataset,
     "ResprAllSignalsCsvDataset": ResprAllSignalsCsvDataset,
-    "DatasetAndAugmentationWrapper": DatasetAndAugmentationWrapper
+    "DatasetAndAugmentationWrapper": DatasetAndAugmentationWrapper,
+    "BaseResprCsvDatasetDuplicateX": BaseResprCsvDatasetDuplicateX
 }
 
 DATASET_FACTORY = BaseFactory(

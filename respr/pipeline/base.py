@@ -744,7 +744,8 @@ class TrainingPipeline(BasePipeline):
                 "monitor": "val_mae",
                 "save_top_k": 4,
                 "ckpt_filename": None
-            } 
+            },
+            "callbacks": [] # for extra callbacks
         }
         
         self._config = cutl.fill_missing_values(
@@ -765,19 +766,10 @@ class TrainingPipeline(BasePipeline):
             default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"
             
             if not self._instructions["do_only_test"]:
-                ckpt_config = self._config["model_checkpoint"]
-                monitor_metric = ckpt_config["monitor"]
-                save_top_k = ckpt_config["save_top_k"]
-                ckpt_filename = ckpt_config["ckpt_filename"]
-                if ckpt_filename is None:
-                    ckpt_filename\
-                        = "model-{epoch:02d}-s-{step}-{"+ monitor_metric + ":.2f}"
-                # TODO: add mode explicitly
-                
-                checkpoint_callback = ModelCheckpoint(
-                    monitor=monitor_metric,
-                    save_top_k=save_top_k, filename=ckpt_filename)
+                checkpoint_callback = self.create_main_checkpoint_callback()
                 callbacks = [checkpoint_callback]
+                additional_calllbacks = self.create_callbacks()
+                callbacks.extend(additional_calllbacks)
             else:
                 assert self._instructions["ckpt_path"] != None
                 callbacks = None
@@ -806,6 +798,44 @@ class TrainingPipeline(BasePipeline):
                             ckpt_path=ckpt_path)
             output_file_name = f"predictions_fold_{str(fold).zfill(4)}"
             self.save_predictions(predictions, test_loader, output_file_name)
+
+    def create_main_checkpoint_callback(self):
+        ckpt_config = self._config["model_checkpoint"]
+        monitor_metric = ckpt_config["monitor"]
+        save_top_k = ckpt_config["save_top_k"]
+        ckpt_filename = ckpt_config["ckpt_filename"]
+        checkpoint_callback = self.create_model_ckpt_callback(
+            monitor_metric, save_top_k, ckpt_filename)
+        
+        return checkpoint_callback
+
+    def create_model_ckpt_callback(self, monitor, save_top_k, ckpt_filename):
+        if ckpt_filename is None:
+            ckpt_filename\
+                        = "model-{epoch:02d}-s-{step}-{"+ monitor + ":.2f}"
+                # TODO: add mode explicitly
+                
+        checkpoint_callback = ModelCheckpoint(
+                    monitor=monitor,
+                    save_top_k=save_top_k, filename=ckpt_filename)
+                    
+        return checkpoint_callback
+    
+    
+    def create_callbacks(self):
+        callbacks_configs = self._config["callbacks"]
+        callbacks = []
+        for conf in callbacks_configs:
+            conf = copy.deepcopy(conf)
+            callback_type = conf.pop("type")
+            if callback_type == "model_checkpoint":
+                kwargs = conf
+                cb = self.create_model_ckpt_callback(**kwargs)
+                callbacks.append(cb)
+            else:
+                raise NotImplementedError()
+        return callbacks
+                
     
     def save_predictions(self, predictions, data_loader, output_file_name, extension=".csv"):
         """_summary_
