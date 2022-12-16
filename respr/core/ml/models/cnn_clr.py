@@ -188,7 +188,7 @@ class LitResprMCDropoutCNNSimCLR(LitResprMCDropoutCNN):
         if x1.shape[0] != self._config["batch_size"]:
             logger.warning(f"Skipping this batch as batch size(x1.shape[0])  "
                            f" is != {self._config['batch_size']}")
-            return 0.
+            return torch.tensor(0., device=x1.device)
         
         h1 = self.model_module.get_embedding(x1)
         z1 = self.model_module.project_embedding(h1)
