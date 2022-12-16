@@ -855,7 +855,9 @@ class TrainingPipeline(BasePipeline):
         # concat predictions
         gt = [] # ground truth
         for batch in data_loader:
-            y_true = batch[1] # tensor of shape [batch, 1]
+            y_true = self.extract_ground_truth_from_test_batch(batch) 
+            # tensor of shape [batch, 1]
+            
             gt.append(y_true)
         gt = torch.concat(gt, axis =0).numpy()
         
@@ -867,6 +869,10 @@ class TrainingPipeline(BasePipeline):
         df.to_csv(output_location)
         
         return df
+
+    def extract_ground_truth_from_batch(self, batch):
+        y_true = batch[1]
+        return y_true
     
     def predictions_to_dataframe(self, predictions):
         model_name = "pnn"
