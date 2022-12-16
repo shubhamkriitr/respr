@@ -132,6 +132,7 @@ class LitResprMCDropoutCNNSimCLR(LitResprMCDropoutCNN):
         
     def on_train_epoch_start(self) -> None:
         if self.current_epoch == 0:
+            self.dummy_log("train")
             self.dummy_log("val") # this is workaround for suppressing error
             # from model checkpoint TODO: address this
         self.switch_mode(next_epoch=self.current_epoch)
