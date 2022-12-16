@@ -7,8 +7,10 @@ description: "Leave one out CV
     *use new code (with more augmenation funcs) 
     * code @ commit 8208be754ec7
     * epochs 90
+  same as exp 22a + @changes:
+    * use different mode_schedule
     "
-output_dir: "../../artifacts/exp_22a_SimCLR_cnn_on_mean_gt_old_csv_w32_stride4_LOOCV"
+output_dir: "../../artifacts/exp_22b_SimCLR_cnn_on_mean_gt_old_csv_w32_stride4_LOOCV"
 pipeline:
   name: "TrainingPipelineSimCLR"
 instructions:
@@ -63,11 +65,9 @@ model: # model => actual model + lighting wrapper
         y_mean: 18.8806 # from CAPNOBASE (as was used for older experiments)
         y_std: 9.8441 # from CAPNOBASE (as was used for older experiments)
       mode_schedule: [[[0, 0], "contrastive"],
-         [[1, 1], "regression"], [[2, 10], "contrastive"],
-          [[11, 15], "regression"], [[16, 30], "contrastive"],
-          [[31, 35], "regression"], [[36, 60], "contrastive"],
-          [[60, 65], "regression"], [[66, 85], "contrastive"],
-          [[86, 90], "regression"]]
+         [[1, 1], "regression"], [[2, 30], "contrastive"],
+          [[31, 35], "regression"], [[36, 82], "contrastive"],
+          [[83, 90], "regression"]]
       batch_size: 16 # MUST match training batch size
       model_save_step: 1 # NOT USED
 
