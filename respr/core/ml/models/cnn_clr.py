@@ -42,6 +42,19 @@ class ResprMCDropoutCNNResnet18SimCLR(ResprMCDropoutCNNResnet18):
             nn.ReLU(),
             nn.Linear(n_features, projection_dim, bias=False),
         )
+    
+    def forward(self, x):
+        z = self.get_embedding(x) # drop last dimension
+        
+        mu = self.fc_mu(z)
+        log_var = self.fc_log_var(z)
+        
+        return mu, log_var
+    
+    def project_embedding(self, z):
+        p = self.projection_head(z)
+        return p
+        
         
 if __name__ == "__main__":
     model = ResprMCDropoutCNNResnet18SimCLR()
