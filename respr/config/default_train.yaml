@@ -8,6 +8,9 @@ instructions:
     3: ../../artifacts/2022-11-24_150935/fold_00/lightning_logs/version_0/checkpoints/model-epoch=00-s-step=1-val_mae=9.01.ckpt
     4: ../../artifacts/2022-11-24_150935/fold_00/lightning_logs/version_0/checkpoints/model-epoch=00-s-step=2-val_mae=10.30.ckpt
     
+training_init_model_ckpt_path: "../../artifacts/2022-12-16_033756/fold_00\
+  /lightning_logs/version_0/checkpoints/model-epoch=01-s-step=10-train_\
+  contrastive_loss=1.95.ckpt" # loads weights from here before training
 
 
 
