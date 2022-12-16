@@ -170,6 +170,10 @@ class LitResprMCDropoutCNNSimCLR(LitResprMCDropoutCNN):
         return super().test_step(batch, batch_idx)
     
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
+        batch = self.adapt_batch_for_regression(batch=batch)
+        return super().predict_step(batch, batch_idx, dataloader_idx)
+    
+    def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
 
         return super().predict_step(batch, batch_idx, dataloader_idx)
     
