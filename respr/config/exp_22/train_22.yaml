@@ -13,7 +13,7 @@ trainer: # currently using trainer from pytorch lightning
   name: null
   args: []
   kwargs:
-    max_epochs: 30
+    max_epochs: 2
     # not use `check_val_every_n_epoch` if using `val_check_interval`
     # check_val_every_n_epoch: 1
     val_check_interval: 1.0 
@@ -25,7 +25,7 @@ trainer: # currently using trainer from pytorch lightning
     # resume_from_checkpoint: null
     # <<< FOR GPU >>>
     accelerator: gpu
-    devices: [3]
+    devices: [0]
 
 callbacks: [
   {type: model_checkpoint, 
@@ -60,7 +60,7 @@ model: # model => actual model + lighting wrapper
       mode_schedule: [[[0, 0], "contrastive"],
          [[1, 1], "regression"], [[2, 10], "contrastive"],
           [[11, 15], "regression"], [[15, 25], "contrastive"], [[25, 30], "regression"]]
-      batch_size: 4
+      batch_size: 16 # MUST match training batch size
       model_save_step: 1 # NOT USED
 
 dataloading:
