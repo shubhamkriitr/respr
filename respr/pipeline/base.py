@@ -765,18 +765,7 @@ class TrainingPipeline(BasePipeline):
             default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"
             
             if not self._instructions["do_only_test"]:
-                ckpt_config = self._config["model_checkpoint"]
-                monitor_metric = ckpt_config["monitor"]
-                save_top_k = ckpt_config["save_top_k"]
-                ckpt_filename = ckpt_config["ckpt_filename"]
-                if ckpt_filename is None:
-                    ckpt_filename\
-                        = "model-{epoch:02d}-s-{step}-{"+ monitor_metric + ":.2f}"
-                # TODO: add mode explicitly
-                
-                checkpoint_callback = ModelCheckpoint(
-                    monitor=monitor_metric,
-                    save_top_k=save_top_k, filename=ckpt_filename)
+                checkpoint_callback = self.create_main_checkpoint_callback()
                 callbacks = [checkpoint_callback]
             else:
                 assert self._instructions["ckpt_path"] != None
@@ -806,6 +795,22 @@ class TrainingPipeline(BasePipeline):
                             ckpt_path=ckpt_path)
             output_file_name = f"predictions_fold_{str(fold).zfill(4)}"
             self.save_predictions(predictions, test_loader, output_file_name)
+
+    def create_main_checkpoint_callback(self):
+        ckpt_config = self._config["model_checkpoint"]
+        monitor_metric = ckpt_config["monitor"]
+        save_top_k = ckpt_config["save_top_k"]
+        ckpt_filename = ckpt_config["ckpt_filename"]
+        if ckpt_filename is None:
+            ckpt_filename\
+                        = "model-{epoch:02d}-s-{step}-{"+ monitor_metric + ":.2f}"
+                # TODO: add mode explicitly
+                
+        checkpoint_callback = ModelCheckpoint(
+                    monitor=monitor_metric,
+                    save_top_k=save_top_k, filename=ckpt_filename)
+        
+        return checkpoint_callback
     
     def save_predictions(self, predictions, data_loader, output_file_name, extension=".csv"):
         """_summary_
