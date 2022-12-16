@@ -3,6 +3,7 @@ from .cnn import (LitResprResnet18, LitResprResnet18Small,
                   LitResprResnet18LinearScaledMeanHead,
                   LitResprResnet18ReLUMeanHead)
 from .cnn_mc import LitResprMCDropoutCNN
+from .cnn_clr import LitResprMCDropoutCNNSimCLR
 from respr.util.common import BaseFactory
 
 # these are pytorch lighting modules (internal model module has to configured
@@ -14,7 +15,8 @@ ML_MODELS = {
     "LitResprMCDropoutCNN": LitResprMCDropoutCNN,
     "LitResprResnet18LinearScaledMeanHead":\
         LitResprResnet18LinearScaledMeanHead,
-    "LitResprResnet18ReLUMeanHead": LitResprResnet18ReLUMeanHead
+    "LitResprResnet18ReLUMeanHead": LitResprResnet18ReLUMeanHead,
+    "LitResprMCDropoutCNNSimCLR": LitResprMCDropoutCNNSimCLR
 }
 
 ML_FACTORY = BaseFactory({"resource_map": ML_MODELS})

@@ -18,7 +18,7 @@ trainer: # currently using trainer from pytorch lightning
     max_epochs: 30
     # not use `check_val_every_n_epoch` if using `val_check_interval`
     # check_val_every_n_epoch: 1
-    val_check_interval: 0.25 
+    val_check_interval: 1.0 
     # fast_dev_run: true # for debugging only
     # limit_train_batches: 0.01 # for debugging only
     # overfit_batches=0.01 # for debugging only
@@ -35,7 +35,7 @@ model_checkpoint:
   ckpt_filename: null
 
 model: # model => actual model + lighting wrapper
-  name: "LitResprMCDropoutCNN"
+  name: "LitResprMCDropoutCNNSimCLR"
   args: []
   kwargs:
     config:
@@ -51,6 +51,7 @@ model: # model => actual model + lighting wrapper
       y_normalization: # added in new #TODO: use this entry
         y_mean: 18.8806 # from CAPNOBASE (as was used for older experiments)
         y_std: 9.8441 # from CAPNOBASE (as was used for older experiments)
+      mode_schedule: [[[0, 0], "regression"], [[1, 2], "contrastive"]]
 
 
 
