@@ -13,6 +13,7 @@ import random
 import scipy.signal
 from collections import defaultdict
 import tqdm
+from pathlib import Path
 
 DTYPE_FLOAT = np.float32
 
@@ -470,8 +471,17 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         assert self.num_folds <= len(self.subject_ids)/self.num_test_ids
 
     def read_data(self):
-        return pd.read_csv(self._config["dataset_path"])
+        file_path = self._config["dataset_path"]
+        if isinstance(file_path, (Path, str)):
+            return pd.read_csv(file_path)
+        elif isinstance(file_path, (list, tuple)):
+            return self.read_multiple(file_list=file_path)
+        else:
+            raise ValueError()
     
+    def read_multiple(self, file_list):
+        raise NotImplementedError()
+            
     def validate_data_structure(self, data):
         # also validate x columns start at index #1 (assumin 0 based index) 
         # and continue from there for `x_length`
