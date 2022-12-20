@@ -454,7 +454,7 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
     
     def prepare(self):
         self._config = self._fill_missing_config_values()
-        self.data = pd.read_csv(self._config["dataset_path"])
+        self.data = self.read_data()
         self.validate_data_structure(self.data)
         self.inspect_data(self.data) # to print stats etc.
         
@@ -468,6 +468,9 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
             self.compute_split_sizes(n = len(self.subject_ids))
             
         assert self.num_folds <= len(self.subject_ids)/self.num_test_ids
+
+    def read_data(self):
+        return pd.read_csv(self._config["dataset_path"])
     
     def validate_data_structure(self, data):
         # also validate x columns start at index #1 (assumin 0 based index) 
