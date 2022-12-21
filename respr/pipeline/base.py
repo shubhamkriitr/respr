@@ -21,6 +21,8 @@ from torch.utils.data import DataLoader
 import copy
 import torch
 from respr.data.base import StandardDataRecord
+from respr.util.common import fill_missing_values
+
 
 DTYPE_FLOAT = np.float32
 CONF_FEATURE_RESAMPLING_FREQ = 4 # Hz. (for riav/ rifv/ riiv resampling)
@@ -598,6 +600,16 @@ class DatasetBuilder(Pipeline2):
             self._config["instructions"]["signals_to_include"] \
                 = "raw" # raw / all_induced
         
+        default_instructions = {
+            "subject_id_prefix": "" # prefix to append in subject ids.
+            # Helpful in avoiding subject id conflict with other datasets
+        }
+        
+        self._config["instructions"] = fill_missing_values(
+            default_values=default_instructions, 
+            target_container=self._config["instructions"]
+        )
+        self._subject_id_prefix = self._config["subject_id_prefix"]
         
     
     def process_one_signal_window(self, data, context, fs, offset, end_):
