@@ -91,7 +91,7 @@ class Pipeline(BasePipeline):
             "expected_signal_duration" : 480,
             "window_type": "hamming",
             "ground_truth_mode": "mean",
-            "resample_ppg": False,
+            "resample_ppg": False, # resampling before processing
             "resampling_frequency": None
         }
         
@@ -609,7 +609,8 @@ class DatasetBuilder(Pipeline2):
             default_values=default_instructions, 
             target_container=self._config["instructions"]
         )
-        self._subject_id_prefix = self._config["subject_id_prefix"]
+        self._subject_id_prefix = self._config["instructions"][
+            "subject_id_prefix"]
         
     
     def process_one_signal_window(self, data, context, fs, offset, end_):
@@ -659,6 +660,10 @@ class DatasetBuilder(Pipeline2):
         
         if len(errors) > 0:
             logger.error(f"Following samples had errors: {errors}")
+            
+        if self._subject_id_prefix != "":
+            logger.info(f"`{self._subject_id_prefix}` will be prefixed to"
+                        f" all the subject ids.")
         
         num_subs = len(results)
         sub_ids = []
@@ -668,6 +673,7 @@ class DatasetBuilder(Pipeline2):
         for i in range(num_subs):
             r = results.pop()
             id_ = r["sample_id"]
+            id_ = f"{self._subject_id_prefix}{id_}" # prepend prefix
             idx = r["idx"]
             v = r["output"]
             
