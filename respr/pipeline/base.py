@@ -796,6 +796,9 @@ class TrainingPipeline(BasePipeline):
             self.save_test_predictions(fold, model, test_loader, trainer, ckpt_path)
 
     def save_test_predictions(self, fold, model, test_loader, trainer, ckpt_path):
+        if test_loader is None:
+            logger.info(f"Test loader was not provided. Skipping prediction")
+            return
         trainer.test(model=model, dataloaders=test_loader, 
                             ckpt_path=ckpt_path)
         predictions = trainer.predict(model=model, dataloaders=test_loader, 
