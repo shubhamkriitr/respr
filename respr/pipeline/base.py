@@ -21,6 +21,8 @@ from torch.utils.data import DataLoader
 import copy
 import torch
 from respr.data.base import StandardDataRecord
+from respr.util.common import fill_missing_values
+import scipy
 
 DTYPE_FLOAT = np.float32
 CONF_FEATURE_RESAMPLING_FREQ = 4 # Hz. (for riav/ rifv/ riiv resampling)
@@ -89,7 +91,7 @@ class Pipeline(BasePipeline):
             "expected_signal_duration" : 480,
             "window_type": "hamming",
             "ground_truth_mode": "mean",
-            "resample_ppg": False,
+            "resample_ppg": False, # resampling before processing
             "resampling_frequency": None
         }
         
@@ -598,6 +600,28 @@ class DatasetBuilder(Pipeline2):
             self._config["instructions"]["signals_to_include"] \
                 = "raw" # raw / all_induced
         
+        default_instructions = {
+            "subject_id_prefix": "", # prefix to append in subject ids.
+            # Helpful in avoiding subject id conflict with other datasets
+            "resample_output_ppg": None # provide frequency or `None` for not
+            # resampling
+        }
+        
+        self._config["instructions"] = fill_missing_values(
+            default_values=default_instructions, 
+            target_container=self._config["instructions"]
+        )
+        instruct = self._config["instructions"]
+        self._subject_id_prefix = instruct["subject_id_prefix"]
+        self._resample_output_ppg = instruct["resample_output_ppg"]
+        self._window_duration = instruct["window_duration"]
+        if self._resample_output_ppg is not None:
+            resampling_freq = self._resample_output_ppg
+            self._resampled_output_ppg_num_points\
+                = resampling_freq * self._window_duration
+            logger.info(f"Final output will have PPG resampled @ "
+                        f"{self._resample_output_ppg}Hz. i.e. num points = "
+                        f"{self._resampled_output_ppg_num_points}")
         
     
     def process_one_signal_window(self, data, context, fs, offset, end_):
@@ -647,6 +671,10 @@ class DatasetBuilder(Pipeline2):
         
         if len(errors) > 0:
             logger.error(f"Following samples had errors: {errors}")
+            
+        if self._subject_id_prefix != "":
+            logger.info(f"`{self._subject_id_prefix}` will be prefixed to"
+                        f" all the subject ids.")
         
         num_subs = len(results)
         sub_ids = []
@@ -656,6 +684,7 @@ class DatasetBuilder(Pipeline2):
         for i in range(num_subs):
             r = results.pop()
             id_ = r["sample_id"]
+            id_ = f"{self._subject_id_prefix}{id_}" # prepend prefix
             idx = r["idx"]
             v = r["output"]
             
@@ -725,8 +754,24 @@ class DatasetBuilder(Pipeline2):
 
     def _prepare_window_ppg_signal_to_store(self, value_container):
         window_signals = value_container["ppg_chunk"]
+        if self._resample_output_ppg is not None:
+            window_signals = self._resample_to_get_output_ppg(
+                window_signals)
         window_signals = np.array(window_signals, dtype=DTYPE_FLOAT)
         return window_signals
+    
+    def _resample_to_get_output_ppg(self, windows_ignals):
+        """Resample list of windows of ppg signals. Assumes
+        that the ppg windows are uniformly sampled (equal spacing b/w 
+        timestamps)
+        """
+        
+        new_windows_signals = []
+        for ppg_window in windows_ignals:
+            w_re = scipy.signal.resample(x=ppg_window,
+                num=self._resampled_output_ppg_num_points, t=None)
+            new_windows_signals.append(w_re)
+        return new_windows_signals
             
             
         
@@ -776,6 +821,9 @@ class TrainingPipeline(BasePipeline):
                 callbacks = None
             train_loader, val_loader, test_loader \
                 = dataloader_composer.get_data_loaders(current_fold=fold)
+            if val_loader is None:
+                logger.info(f"Validation will be skipped "
+                            f"(val_loader is `None`)")
             trainer = pl.Trainer(default_root_dir=default_root_dir,
                                  callbacks=callbacks,
                                  **self._config["trainer"]["kwargs"])
@@ -793,12 +841,18 @@ class TrainingPipeline(BasePipeline):
             logger.info(f"For current fold ({fold}) using "
                         f" checkpoint: {ckpt_path}")
             # save predictions for all
-            trainer.test(model=model, dataloaders=test_loader, 
+            self.save_test_predictions(fold, model, test_loader, trainer, ckpt_path)
+
+    def save_test_predictions(self, fold, model, test_loader, trainer, ckpt_path):
+        if test_loader is None:
+            logger.info(f"Test loader was not provided. Skipping prediction")
+            return
+        trainer.test(model=model, dataloaders=test_loader, 
                             ckpt_path=ckpt_path)
-            predictions = trainer.predict(model=model, dataloaders=test_loader, 
+        predictions = trainer.predict(model=model, dataloaders=test_loader, 
                             ckpt_path=ckpt_path)
-            output_file_name = f"predictions_fold_{str(fold).zfill(4)}"
-            self.save_predictions(predictions, test_loader, output_file_name)
+        output_file_name = f"predictions_fold_{str(fold).zfill(4)}"
+        self.save_predictions(predictions, test_loader, output_file_name)
 
     def get_model(self):
         model = ML_FACTORY.get(self._config["model"])

@@ -13,9 +13,17 @@ import random
 import scipy.signal
 from collections import defaultdict
 import tqdm
+from pathlib import Path
+import dataclasses
 
 DTYPE_FLOAT = np.float32
 
+@dataclasses.dataclass(frozen=True)
+class ComposerModes:
+    NORMAL = "normal"
+    TRAIN_ONLY = "train_only"
+    TRAIN_AND_VAL = "train_and_val_only" # not implement in composer yet #TODO
+    
 # TODO: set seeds for random 
 
 def create_train_val_test_split(sample_ids: list, val=0.2, test=0.2):
@@ -438,9 +446,17 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
                     "std": 3.88364
                 }
             },
-            "normalize_mode": "global" # `global` for normalizing each window
+            "normalize_mode": "global", # `global` for normalizing each window
             # using the mean and std of the whole dataset. `local` for 
             # normalizing using mean and std of the window
+            "composer_mode": "normal", # see `ComposerModes`,
+            
+            "global_preprocessing": None # this will be used to 
+            # modify the loaded data before actually passing to the 
+            # underlying dataset class - (TODO: may include normalization as
+            # its substep). Currently it is called after normalizing the data
+            # (if asked for in the config)
+            
         }
         
         for k, v in defaults.items():
@@ -448,15 +464,20 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
                 logger.warning(f"Key `{k}` was not provided. Using default"
                                f" value: {v}")
                 self._config[k] = v
-        
+
+        self._composer_mode = self._config["composer_mode"]
+        self._global_preprocessing = self._config["global_preprocessing"]
         return self._config
         
     
     def prepare(self):
         self._config = self._fill_missing_config_values()
-        self.data = pd.read_csv(self._config["dataset_path"])
+        self.data = self.read_data()
         self.validate_data_structure(self.data)
         self.inspect_data(self.data) # to print stats etc.
+        
+        if self._global_preprocessing is not None:
+            self.do_global_preprocessing()
         
         if self._config["normalize_x"]:
             logger.info("Normalizing x")
@@ -468,7 +489,28 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
             self.compute_split_sizes(n = len(self.subject_ids))
             
         assert self.num_folds <= len(self.subject_ids)/self.num_test_ids
+
+    def do_global_preprocessing(self):
+        logger.error(f"Implement it: TODO")
+        return None
     
+    def read_data(self):
+        file_path = self._config["dataset_path"]
+        if isinstance(file_path, (Path, str)):
+            return pd.read_csv(file_path)
+        elif isinstance(file_path, (list, tuple)):
+            return self.read_multiple(file_list=file_path)
+        else:
+            raise ValueError()
+    
+    def read_multiple(self, file_list):
+        logger.debug(f"Will be readind data from multiple files. If you are"
+                     f"using different datasets, make sure that there is no"
+                     f" subject id conflict(overlap), because subject ids are"
+                     f" used for splitting data for cross validation.")
+        
+        raise NotImplementedError()
+            
     def validate_data_structure(self, data):
         # also validate x columns start at index #1 (assumin 0 based index) 
         # and continue from there for `x_length`
@@ -527,6 +569,14 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         
                 
     def get_data_loaders(self, current_fold=-1):
+        if self._composer_mode == ComposerModes.TRAIN_ONLY:
+            raise NotImplementedError()
+        train_loader, val_loader, test_loader = self._get_data_loaders(
+            current_fold)
+        
+        return train_loader, val_loader, test_loader
+
+    def _get_data_loaders(self, current_fold):
         if current_fold == -1:
             raise NotImplementedError()
         subject_ids = collections.deque(self.subject_ids)
@@ -550,8 +600,8 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
                             loader_type="val")
         test_loader = self.create_loader(self.data, test_ids, shuffle=False,
                             loader_type="test")
-        
-        return train_loader, val_loader, test_loader
+                            
+        return train_loader,val_loader,test_loader
         
     def create_loader(self,  data, subject_ids_subset, shuffle=True,
                       loader_type=None):

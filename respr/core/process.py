@@ -22,9 +22,7 @@ class BasePpgSignalProcessor:
         # (33.12 and 38.5 provide a -3 dB cutoff of 35 Hz)
         # ppg.Dpass = 0.05;
         # ppg.Dstop = 0.01;
-        # TODO: remove this config override
-        logger.warning(f"overiding provide config: {config}")
-        config = {
+        default_config = {
             CONF_ELIM_VHF:{
                 CONF_CUTOFF_HIGH: 35,
                 CONF_FS: 125
@@ -32,6 +30,8 @@ class BasePpgSignalProcessor:
         }
         
         self._config = config
+        self._config = fill_missing_values(default_values=default_config,
+                                           target_container=self._config)
 
     
     def eliminate_very_high_freq(self, signal_, sampling_freq=None):
