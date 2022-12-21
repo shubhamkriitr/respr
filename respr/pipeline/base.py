@@ -776,6 +776,9 @@ class TrainingPipeline(BasePipeline):
                 callbacks = None
             train_loader, val_loader, test_loader \
                 = dataloader_composer.get_data_loaders(current_fold=fold)
+            if val_loader is None:
+                logger.info(f"Validation will be skipped "
+                            f"(val_loader is `None`)")
             trainer = pl.Trainer(default_root_dir=default_root_dir,
                                  callbacks=callbacks,
                                  **self._config["trainer"]["kwargs"])
