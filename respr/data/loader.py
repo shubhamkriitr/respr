@@ -449,7 +449,13 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
             "normalize_mode": "global", # `global` for normalizing each window
             # using the mean and std of the whole dataset. `local` for 
             # normalizing using mean and std of the window
-            "composer_mode": "normal" # see `ComposerModes`
+            "composer_mode": "normal", # see `ComposerModes`,
+            
+            "global_preprocessing": None # this will be used to 
+            # modify the loaded data before actually passing to the 
+            # underlying dataset class - (TODO: may include normalization as
+            # its substep). Currently it is called after normalizing the data
+            # (if asked for in the config)
             
         }
         
@@ -460,7 +466,7 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
                 self._config[k] = v
 
         self._composer_mode = self._config["composer_mode"]
-        
+        self._global_preprocessing = self._config["global_preprocessing"]
         return self._config
         
     
@@ -469,6 +475,9 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         self.data = self.read_data()
         self.validate_data_structure(self.data)
         self.inspect_data(self.data) # to print stats etc.
+        
+        if self._global_preprocessing is not None:
+            self.do_global_preprocessing()
         
         if self._config["normalize_x"]:
             logger.info("Normalizing x")
@@ -481,6 +490,10 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
             
         assert self.num_folds <= len(self.subject_ids)/self.num_test_ids
 
+    def do_global_preprocessing(self):
+        logger.error(f"Implement it: TODO")
+        return None
+    
     def read_data(self):
         file_path = self._config["dataset_path"]
         if isinstance(file_path, (Path, str)):

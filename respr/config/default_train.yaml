@@ -89,6 +89,9 @@ dataloading:
         args: []
         kwargs:
           config:
+            composer_mode: "normal" # change to `train_only` if validation and
+            # test loaders are not needed. In that case fold number will have
+            # no effect and the val_loader / test_loader will be `None`
             underlying_dataset:
               name: "BaseResprCsvDataset"
               args: []
