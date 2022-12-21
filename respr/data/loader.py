@@ -14,9 +14,16 @@ import scipy.signal
 from collections import defaultdict
 import tqdm
 from pathlib import Path
+import dataclasses
 
 DTYPE_FLOAT = np.float32
 
+@dataclasses.dataclass(frozen=True)
+class ComposerModes:
+    NORMAL = "normal"
+    TRAIN_ONLY = "train_only"
+    TRAIN_AND_VAL = "train_and_val_only" # not implement in composer yet #TODO
+    
 # TODO: set seeds for random 
 
 def create_train_val_test_split(sample_ids: list, val=0.2, test=0.2):
@@ -439,9 +446,11 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
                     "std": 3.88364
                 }
             },
-            "normalize_mode": "global" # `global` for normalizing each window
+            "normalize_mode": "global", # `global` for normalizing each window
             # using the mean and std of the whole dataset. `local` for 
             # normalizing using mean and std of the window
+            "composer_mode": "normal" # see `ComposerModes`
+            
         }
         
         for k, v in defaults.items():
@@ -449,6 +458,8 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
                 logger.warning(f"Key `{k}` was not provided. Using default"
                                f" value: {v}")
                 self._config[k] = v
+
+        self._composer_mode = self._config["composer_mode"]
         
         return self._config
         
@@ -545,6 +556,8 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         
                 
     def get_data_loaders(self, current_fold=-1):
+        if self._composer_mode == ComposerModes.TRAIN_ONLY:
+            raise NotImplementedError()
         train_loader, val_loader, test_loader = self._get_data_loaders(
             current_fold)
         
