@@ -545,6 +545,12 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         
                 
     def get_data_loaders(self, current_fold=-1):
+        train_loader, val_loader, test_loader = self._get_data_loaders(
+            current_fold)
+        
+        return train_loader, val_loader, test_loader
+
+    def _get_data_loaders(self, current_fold):
         if current_fold == -1:
             raise NotImplementedError()
         subject_ids = collections.deque(self.subject_ids)
@@ -568,8 +574,8 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
                             loader_type="val")
         test_loader = self.create_loader(self.data, test_ids, shuffle=False,
                             loader_type="test")
-        
-        return train_loader, val_loader, test_loader
+                            
+        return train_loader,val_loader,test_loader
         
     def create_loader(self,  data, subject_ids_subset, shuffle=True,
                       loader_type=None):
