@@ -480,6 +480,11 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
             raise ValueError()
     
     def read_multiple(self, file_list):
+        logger.debug(f"Will be readind data from multiple files. If you are"
+                     f"using different datasets, make sure that there is no"
+                     f" subject id conflict(overlap), because subject ids are"
+                     f" used for splitting data for cross validation.")
+        
         raise NotImplementedError()
             
     def validate_data_structure(self, data):
