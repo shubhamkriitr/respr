@@ -793,12 +793,15 @@ class TrainingPipeline(BasePipeline):
             logger.info(f"For current fold ({fold}) using "
                         f" checkpoint: {ckpt_path}")
             # save predictions for all
-            trainer.test(model=model, dataloaders=test_loader, 
+            self.save_test_predictions(fold, model, test_loader, trainer, ckpt_path)
+
+    def save_test_predictions(self, fold, model, test_loader, trainer, ckpt_path):
+        trainer.test(model=model, dataloaders=test_loader, 
                             ckpt_path=ckpt_path)
-            predictions = trainer.predict(model=model, dataloaders=test_loader, 
+        predictions = trainer.predict(model=model, dataloaders=test_loader, 
                             ckpt_path=ckpt_path)
-            output_file_name = f"predictions_fold_{str(fold).zfill(4)}"
-            self.save_predictions(predictions, test_loader, output_file_name)
+        output_file_name = f"predictions_fold_{str(fold).zfill(4)}"
+        self.save_predictions(predictions, test_loader, output_file_name)
 
     def get_model(self):
         model = ML_FACTORY.get(self._config["model"])
