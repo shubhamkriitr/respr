@@ -17,12 +17,12 @@ instructions:
   window_duration: 8 # in seconds
   window_step_duration: 4 # window stride in seconds
   expected_signal_duration: 480 # total length of signal in seconds (for assertion)
-  vector_length: 1000 # desired vector length (used for assertion) / and in case the
+  vector_length: 400 # desired vector length (used for assertion) / and in case the
   # the signal needs to be resampled it is used as the number of points
   resample_ppg: false # `False` for Capnobase / `True` for BIDMC (which is @125Hz)
   # NOTE: this flag is fore resampling before processing
   resampling_frequency: null # used only if `resample_ppg` is set
-  resample_output_ppg: null # This is for resampling after the processing is done
+  resample_output_ppg: 50 #null # This is for resampling after the processing is done
   # The output vector size will depend on this, if it is provided (i.e. when 
   # it is not `null`). Its value is treated as resampling frequency
   sample_index_offset: 0
