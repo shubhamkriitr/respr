@@ -31,6 +31,7 @@ class BasePipeline:
     
     def __init__(self, config={}) -> None:
         self._config = config
+        original_config = copy.deepcopy(config)
         # TODO: remove the following override
         self.creation_time = get_timestamp_str()
         if "output_dir" not in self._config:
@@ -43,6 +44,8 @@ class BasePipeline:
         self.output_dir = self.root_output_dir / self.creation_time
         self.output_dir = self._create_dir_with_conflict_resolution(
             self.output_dir)
+        # save original config
+        cutl.save_yaml(original_config, self.output_dir/"config_original.yaml")
         self._log_path = self.output_dir / f"{self.creation_time}_logs.log"
         self._log_sink = logger.add(self._log_path)
         self._buffer = {
