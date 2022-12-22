@@ -36,6 +36,13 @@ callbacks: [
   {type: model_checkpoint, 
   monitor: train_contrastive_loss,
   save_top_k: 4,
+  ckpt_filename: null},
+  {type: model_checkpoint, 
+  monitor: epoch,
+  mode: "max", # track latest epoch model
+  save_top_k: 4,
+  every_n_epochs: 2, #Number of epochs between checkpoints.
+  save_on_train_epoch_end: true,
   ckpt_filename: null}
 ]
 
