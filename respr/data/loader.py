@@ -561,6 +561,8 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
             pass # continue to use global stats
         elif self._config["normalize_mode"] == "local":
             return self.normalize_x_locally(data)
+        elif self._config["normalize_mode"] == "local_min_max":
+            return self.normalize_x_locally_min_max(data)
         else:
             raise ValueError(f"Unknown normalize_mode: "
                              f"{self._config['normalize_mode']}")
@@ -590,6 +592,18 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         std = x_temp.std(axis=1, keepdims=True)
         
         x_temp = (x_temp - mu)/(1e-8 + std)
+        
+        data.iloc[:, 1:x_length+1] = x_temp
+        
+        return data
+    
+    def normalize_x_locally_min_max(self, data):
+        x_length = self._config["x_length"]
+        x_temp = data.iloc[:, 1:x_length+1].to_numpy()
+        min_val = x_temp.min(axis=1, keepdims=True)
+        max_val = x_temp.max(axis=1, keepdims=True)
+        
+        x_temp = (x_temp - min_val)/(max_val - min_val)
         
         data.iloc[:, 1:x_length+1] = x_temp
         
