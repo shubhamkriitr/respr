@@ -55,6 +55,7 @@ dataloading:
         _capnobase_w32_s4_fs_final_125Hz_artif_cleaned_gt_mean-commit-\
         5c20d53d2/2022-12-22_000752/dataset_capnobase_w32_s4_fs_final\
         _125Hz_artif_cleaned_gt_mean-commit-5c20d53d2.csv"
+      x_length: 4000 # for 125 Hz * 32s
       batch_size: 16
       augmentation: null # to be added later #TODO
       num_folds: 42
