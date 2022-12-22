@@ -1,27 +1,35 @@
-import pickle
-import json
-import yaml
 import pandas as pd
-import heartpy
-from pathlib import Path
-import os
+import numpy as np
+import matplotlib.pyplot as plt
+
 from respr.util import logger
-import re
-import heartpy as hp
-from scipy import signal
-import scipy
-import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
-
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-from cycler import cycler
-
+from respr.eval.result_loader import (ResultLoaderPnn, ResultLoaderSignalProc,
+                                      ResultLoaderSignalProcOld)
 TYPE_SIGNAL_PROCESSING = 0
 TYPE_SIGNAL_PROCESSING_2 = 2
 TYPE_PNN = 1
+
+
+DEFAULT_LOADER_MAPPING = {TYPE_PNN: ResultLoaderPnn(),
+                          TYPE_SIGNAL_PROCESSING_2: ResultLoaderSignalProc(),
+                          TYPE_SIGNAL_PROCESSING: ResultLoaderSignalProcOld()}
+
+def gather_results_from_source(results_source, loaders=DEFAULT_LOADER_MAPPING):
+    logger.info(f"Loader mapping: {loaders}")
+    all_model_results = []
+    loocv_fold_wise_metric = {}
+    for source, type_code, tag in results_source:
+        if type_code == TYPE_PNN:
+            if tag in loocv_fold_wise_metric:
+                logger.warning(f"Duplicate tag: {tag}")
+            info_dict = {}
+            data = loaders[type_code].load(source, result_container=info_dict)
+            loocv_fold_wise_metric[tag] = info_dict
+        else:
+            data = loaders[type_code].load(source)
+        all_model_results.append((data, type_code, tag))
+    
+    return all_model_results
 
 class BaseResprEvaluator:
     def __init__(self, config={}):
