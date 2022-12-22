@@ -259,4 +259,175 @@ class BaseResprEvaluator:
         
         axs[1].axvline(x=4.0, color="red", linestyle="--")
         axs[1].grid(color = 'green', linestyle = '--', linewidth = 0.3)
+
+
+
+
+# TODO: merge with BaseResprEvaluator or extend it
+# To create histogram  (with binning MAE  but y -values can be RR/ Uncertainty etc. )
+class EvalHelper:
+    def get_bin_indices(self, x, bins):
+        """`x` is a 1D numpy array. `bins` is a dictionary
+        having following structure: 
+            {
+                "start": <start value>, # inclusive
+                "end": <end value>, # exclusive
+                "step": <step size>
+            }
+        returns a dictionry of the form:
+        {
+            "bins": <list of `list of two values [start and end) of bin`>
+            "indices": <list of `arrays (of indices for the corresponding bin)` >
+        }
+        """
+        assert len(x.shape) == 1, f"x must be a 1D array"
+        if isinstance(bins, dict):
+            bins = self.creat_bins(**bins)
+        else:
+            raise NotImplementedError()
+        
+        indices = []
+        index_arr = np.arange(x.shape[0])
+        for start_value, end_value in bins:
+            condition_met = np.logical_and(x >= start_value, x < end_value)
+            bin_indices = index_arr[condition_met]
+            indices.append(bin_indices)
+        
+        return {
+            "bins": bins,
+            "indices": indices
+        }
+    
+    def creat_bins(self, start, end, step):
+        s = start
+        n = start + step
+        bins = []
+        while n <= end:
+            bins.append([s, n])
+            s = n
+            n += step
+        return bins
+    
+    def create_histogram(self, all_model_results,  bins, binning_col="$MAE"):
+        """
+        `all_model_results` is a list of `tuple, 
+        (data, type_code, tag)`. where `data` is
+        the results data frame containing ground truth (column `gt`), 
+        uncertainty, predicted respiratory rate.
+        
+        """
+        
+        
+        # project and create a single data frame
+        all_results_df = []
+        for df, type_, tag_ in all_model_results:
+            try:
+                df = df[["rr_est_pnn", "std_rr_est_pnn", "gt"]] #project
+            except KeyError:
+                logger.error(f"Skipping : {tag_} due to KeyError")
+                continue
+            all_results_df.append(df)
+        all_results_df = pd.concat(all_results_df)
+        
+        
+        all_results_df["MAE"] = np.abs(all_results_df["rr_est_pnn"] - all_results_df["gt"])
+        mae_array = all_results_df["MAE"].to_numpy()
+        
+        if binning_col.startswith("$"):
+            assert binning_col == "$MAE"
+            
+            x = mae_array
+        else:
+            logger.debug(f"Using column {binning_col} for binning.")
+            x = all_results_df[binning_col].to_numpy()
+            
+        bins_and_indices = self.get_bin_indices(x, bins)
+        bins = bins_and_indices.pop("bins")
+        indices = bins_and_indices.pop("indices")
+        
+        results = {
+            "bins": [], # lisst of str
+            "MAE": [], # center
+            "RR[mean]": [],
+            "Uncertainty[mean]": [],
+            "num_samples": [],
+            "percent_samples": []
+        }
+        
+        rr_array = all_results_df["rr_est_pnn"].to_numpy()
+        std_array = all_results_df["std_rr_est_pnn"].to_numpy()
+        ae_array = all_results_df["MAE"].to_numpy()
+        for idx, b in enumerate(bins):
+            start, end = b
+            bin_name = f"{start:.2f}-{end:.2f}"
+            index_arr = indices[idx]
+            if index_arr.shape[0] < 1:
+                print(f"Skipping bin: {b}")
+                continue
+                
+            rr = rr_array[index_arr].mean()
+            uncertainty = std_array[index_arr].mean()
+            bin_mae = mae_array[index_arr].mean()
+            
+            results["bins"].append(bin_name)
+            results["MAE"].append(bin_mae)
+            results["RR[mean]"].append(rr)
+            results["Uncertainty[mean]"].append(uncertainty)
+            num_s = index_arr.shape[0]
+            percent_s= (num_s/x.shape[0])*100
+            results["num_samples"].append(num_s)
+            results["percent_samples"].append(percent_s)
+            
+        
+        return results, all_results_df
+    
+    def plot_histogram(self, results: dict, x_col, y_cols,
+                       x_label, y_label, figsize=(8, 6), x_lim=None,
+                       y_lim=None, x_ticks=None, y_ticks=None,
+                       title=None, fig_axs=None):
+        if fig_axs is None:
+            fig, axs = plt.subplots(ncols=1, nrows=1, figsize=figsize,
+                            layout="constrained")
+        else:
+            fig, axs = fig_axs
+        
+        
+        
+        if title is not None: axs.set_title(title)
+        
+        handles = []
+        legend_items = []
+        if isinstance(y_cols, str):
+            y_cols = [y_cols]
+        
+        
+        num_bars_per_bin = len(y_cols)
+        bar_width = 0.2
+        bar_total_width = bar_width*num_bars_per_bin
+        
+        x_axis_num = np.arange(len(results[x_col]))
+        bar_offset = 0
+        
+        for y_colname in y_cols:
+
+            tag_i = y_colname
+            handle =  axs.bar(x=x_axis_num+bar_offset,
+                               height=results[y_colname],
+                               width=bar_total_width) #,
+                               # label=y_colname
+            handles.append(handle)
+            legend_items.append(tag_i)
+            bar_offset += bar_width
+        axs.set_xticks(x_axis_num, results[x_col], rotation=65)
+        axs.set_ylabel(y_label)
+        axs.set_xlabel(x_label)
+            
+        if x_lim is not None: axs.set_xlim(x_lim)
+        if y_lim is not None: axs.set_ylim(y_lim)
+        if y_ticks is not None: axs.set_yticks(y_ticks)
+        # if x_ticks is not None: axs.set_xticks(x_ticks)
+        
+        axs.legend(handles, legend_items)
+        
+        return (fig, axs)
         
