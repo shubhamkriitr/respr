@@ -29,7 +29,7 @@ def gather_results_from_source(results_source, loaders=DEFAULT_LOADER_MAPPING):
             data = loaders[type_code].load(source)
         all_model_results.append((data, type_code, tag))
     
-    return all_model_results
+    return all_model_results, loocv_fold_wise_metric
 
 class BaseResprEvaluator:
     def __init__(self, config={}):
