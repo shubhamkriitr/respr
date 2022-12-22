@@ -874,15 +874,20 @@ class TrainingPipeline(BasePipeline):
         
         return checkpoint_callback
 
-    def create_model_ckpt_callback(self, monitor, save_top_k, ckpt_filename):
+    def create_model_ckpt_callback(self, monitor, save_top_k, ckpt_filename,
+                                   **kwargs):
         if ckpt_filename is None:
             ckpt_filename\
                         = "model-{epoch:02d}-s-{step}-{"+ monitor + ":.2f}"
-                # TODO: add mode explicitly
+                # add mode explicitly - pass through the kwargs whenever needed
+                # default mode is `"min"`
+        
+        logger.info(f"extra kwargs received: {kwargs}")
                 
         checkpoint_callback = ModelCheckpoint(
                     monitor=monitor,
-                    save_top_k=save_top_k, filename=ckpt_filename)
+                    save_top_k=save_top_k, filename=ckpt_filename,
+                    **kwargs)
                     
         return checkpoint_callback
     
