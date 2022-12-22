@@ -1,0 +1,101 @@
+description: "Leave one out CV (Code @ commit 148d704292)
+# copy of exp 20 + changes
+    * use code @ commit 581592d67
+    * data : @ 125Hz
+    * epochs ->> 20 (earlier was 15)
+
+"
+output_dir: "../../artifacts/exp_26_MC_cnn_on_mean_gt_old_csv_w32_stride4_fs_125Hz_LOOCV"
+pipeline:
+  name: "TrainingPipeline"
+instructions:
+  do_only_test: false # make sure to set `ckpt_path`
+
+trainer: # currently using trainer from pytorch lightning 
+  name: null
+  args: []
+  kwargs:
+    max_epochs: 20
+    # not use `check_val_every_n_epoch` if using `val_check_interval`
+    # check_val_every_n_epoch: 1
+    val_check_interval: 1.0 
+    # fast_dev_run: true # for debugging only
+    # limit_train_batches: 0.01 # for debugging only
+    # overfit_batches=0.01 # for debugging only
+    enable_progress_bar: true
+    # overfit_batches: 5 #batches
+    # resume_from_checkpoint: null
+    # <<< FOR GPU >>>
+    accelerator: gpu
+    devices: [1]
+
+
+model: # model => actual model + lighting wrapper
+  name: "LitResprMCDropoutCNN"
+  args: []
+  kwargs:
+    config:
+      optimization:
+        lr: 1.0e-3
+        weight_decay: 1.0e-4
+      num_monte_carlo_rollouts: 10
+      model_module_class: ResprMCDropoutCNNResnet18
+      module_config: # config for the actual pytorch model
+      # it will be passed as config kwarg like so `model_module(config=...)`
+        input_channels: 1
+        force_reshape_input: false
+      y_normalization: # added in new #TODO: use this entry
+        y_mean: 18.8806 # from CAPNOBASE (as was used for older experiments)
+        y_std: 9.8441 # from CAPNOBASE (as was used for older experiments)
+
+dataloading:
+  name: "ResprCsvDataLoaderComposer"
+  args: []
+  kwargs:
+    # config:
+      # dataset: "BaseResprCsvDataset"
+      # dataset_path: "../../artifacts/frozen/dataset_capnobase_w32_s1_artif_cleaned_commit_c4dec47.csv"
+      # batch_size: 16
+      # num_workers: 0
+      # augmentation: null # to be added later #TODO
+      # num_folds: 5
+      # start_fold: 0
+      # val_split: 0.2
+      # test_split: 0.2
+      # ckpt_path: ../../artifacts/2022-11-17_050120/fold_00/lightning_logs/version_2482287/checkpoints/epoch=7-step=6717.ckpt
+    # MINI DATASET FOR DEV
+    config:
+      dataset: "BaseResprCsvDataset"
+      dataset_path: "../../artifacts/frozen/2022-12-22_000752-dataset\
+        _capnobase_w32_s4_fs_final_125Hz_artif_cleaned_gt_mean-commit-\
+        5c20d53d2/2022-12-22_000752/dataset_capnobase_w32_s4_fs_final\
+        _125Hz_artif_cleaned_gt_mean-commit-5c20d53d2.csv"
+      x_length: 4000 # for 125 Hz * 32s
+      batch_size: 16
+      augmentation: null # to be added later #TODO
+      num_folds: 42
+      start_fold: 0
+      val_split: 0.2
+      test_split: 0.023 # ~1/42
+      num_workers: 0
+
+
+
+# data_adapter:
+#   name: "CapnobaseMatDataAdapter"
+#   args: []
+#   kwargs:
+#     config:
+#       data_root_dir: "../../Datasets/bidmc-ppg-and-respiration-dataset-1.0.0/bidmc_csv"
+
+
+# dataset_capnobase_w32_s16_artif_cleaned_gt_mean_commit_cbcf0ac2b00.csv
+# dataset_capnobase_w32_s16_artif_cleaned_gt_mid_commit_71f269d1a7.csv
+# dataset_capnobase_w32_s1_artif_cleaned_commit_c4dec47.csv
+# dataset_capnobase_w32_s1_artif_cleaned_gt_mid_commit_1995ef9cc.csv
+# dataset_capnobase_w32_s32_artif_cleaned_gt_mean_commit_176d24c06a.csv
+# dataset_capnobase_w32_s32_artif_cleaned_gt_mid_commit_4f6bc5f69fb.csv
+# dataset_capnobase_w32_s4_artif_cleaned_gt_mean_commit-f69eea50.csv
+# dataset_capnobase_w32_s4_artif_cleaned_gt_mid_commit_63b398dd.csv
+# dataset_capnobase_w32_s8_artif_cleaned_gt_mean_commit_0ff4049a.csv
+# dataset_capnobase_w32_s8_artif_cleaned_gt_mid_commit_cba0919a699.csv
