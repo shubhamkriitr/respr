@@ -570,11 +570,23 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
                 
     def get_data_loaders(self, current_fold=-1):
         if self._composer_mode == ComposerModes.TRAIN_ONLY:
-            raise NotImplementedError()
+            return self._get_data_loaders_mode_train_only()
+    
         train_loader, val_loader, test_loader = self._get_data_loaders(
             current_fold)
         
         return train_loader, val_loader, test_loader
+    
+    def _get_data_loaders_mode_train_only(self):
+        train_ids = copy.deepcopy(self.subject_ids)
+        logger.info(f"Subjects -> Train: {train_ids}")
+        logger.info(f"Not creating val and test loaders")
+        
+        train_loader = self.create_loader(self.data, train_ids, shuffle=True)
+        val_loader = None
+        test_loader = None
+                            
+        return train_loader,val_loader,test_loader
 
     def _get_data_loaders(self, current_fold):
         if current_fold == -1:
