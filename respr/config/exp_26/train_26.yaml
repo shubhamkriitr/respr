@@ -1,5 +1,11 @@
-description: "Leave one out CV (Code @ commit 148d704292)"
-output_dir: "../../artifacts/exp_20_MC_cnn_on_mean_gt_old_csv_w32_stride4_LOOCV"
+description: "Leave one out CV (Code @ commit 148d704292)
+# copy of exp 20 + changes
+    * use code @ commit 581592d67
+    * data : @ 125Hz
+    * epochs ->> 20 (earlier was 15)
+
+"
+output_dir: "../../artifacts/exp_26_MC_cnn_on_mean_gt_old_csv_w32_stride4_fs_125Hz_LOOCV"
 pipeline:
   name: "TrainingPipeline"
 instructions:
@@ -9,7 +15,7 @@ trainer: # currently using trainer from pytorch lightning
   name: null
   args: []
   kwargs:
-    max_epochs: 15
+    max_epochs: 20
     # not use `check_val_every_n_epoch` if using `val_check_interval`
     # check_val_every_n_epoch: 1
     val_check_interval: 1.0 
@@ -21,7 +27,7 @@ trainer: # currently using trainer from pytorch lightning
     # resume_from_checkpoint: null
     # <<< FOR GPU >>>
     accelerator: gpu
-    devices: [3]
+    devices: [1]
 
 
 model: # model => actual model + lighting wrapper
@@ -60,7 +66,11 @@ dataloading:
     # MINI DATASET FOR DEV
     config:
       dataset: "BaseResprCsvDataset"
-      dataset_path: "../../artifacts/frozen/dataset_capnobase_w32_s4_artif_cleaned_gt_mean_commit-f69eea50.csv"
+      dataset_path: "../../artifacts/frozen/2022-12-22_000752-dataset\
+        _capnobase_w32_s4_fs_final_125Hz_artif_cleaned_gt_mean-commit-\
+        5c20d53d2/2022-12-22_000752/dataset_capnobase_w32_s4_fs_final\
+        _125Hz_artif_cleaned_gt_mean-commit-5c20d53d2.csv"
+      x_length: 4000 # for 125 Hz * 32s
       batch_size: 16
       augmentation: null # to be added later #TODO
       num_folds: 42
