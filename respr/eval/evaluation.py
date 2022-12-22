@@ -356,7 +356,7 @@ class EvalHelper:
         
         rr_array = all_results_df["rr_est_pnn"].to_numpy()
         std_array = all_results_df["std_rr_est_pnn"].to_numpy()
-        ae_array = all_results_df["MAE"].to_numpy()
+        mae_array = all_results_df["MAE"].to_numpy()
         for idx, b in enumerate(bins):
             start, end = b
             bin_name = f"{start:.2f}-{end:.2f}"
