@@ -485,6 +485,13 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         
         # num unique subjects
         self.subject_ids = list(self.data["subject_ids"].unique())
+        
+        # if train_only mode is requested then skip split computation
+        if self._composer_mode == ComposerModes.TRAIN_ONLY:
+            logger.debug(f"Mode={self._composer_mode}."
+                         f" Skipping split computation")
+            return
+        
         self.num_train_ids, self.num_val_ids, self.num_test_ids = \
             self.compute_split_sizes(n = len(self.subject_ids))
             
