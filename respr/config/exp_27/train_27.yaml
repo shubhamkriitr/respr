@@ -22,6 +22,7 @@ description: "Leave one out CV
     config and dataloading config.
     * `composer_mode` -> train_only
     * specify `x_length` for sanity check
+  # same as last exp 27 + code to use @ commit ed11f787b26feae6
     "
 output_dir: "../../artifacts/exp_27_SimCLR_MC_CNN_w32_stride4_2datasets_feature_only"
 pipeline:
@@ -45,13 +46,20 @@ trainer: # currently using trainer from pytorch lightning
     # resume_from_checkpoint: null
     # <<< FOR GPU >>>
     accelerator: gpu
-    devices: [3]
+    devices: [0]
 
 callbacks: [
   {type: model_checkpoint, 
   monitor: train_contrastive_loss,
-  save_top_k: 4,
-  ckpt_filename: null}
+  save_top_k: 5,
+  ckpt_filename: null},
+  {type: model_checkpoint,
+  monitor: epoch,
+  mode: "max", # track latest epoch model
+  save_top_k: 5,
+  every_n_epochs: 20, #Number of epochs between checkpoints.
+  save_on_train_epoch_end: true,
+  ckpt_filename: "model-{epoch:04d}-s-{step}-{train_contrastive_loss:.5f}"}
 ]
 
 
