@@ -204,12 +204,12 @@ class BaseResprEvaluator:
         
         return (fig, axs)
     
-    def plot_all(self, results, metrics=["mae"]):
+    def plot_all(self, results, metrics=["mae"], std_cutoffs=None, x_ticks=None, figsize=(16, 6)):
     
         # PLotting %retained
         datalist = []
-        std_cutoffs = np.arange(0.5, 30.1, 0.1)
-        x_ticks = [i for i in range(0, 35, 2)]
+        std_cutoffs = np.arange(0.5, 30.1, 0.1) if std_cutoffs is None else std_cutoffs
+        x_ticks = [i for i in range(0, 35, 2)] if x_ticks is None else x_ticks
         
         for df, type_code, tag in results:
             std_dev_colname = "std_"+ self._type_to_prediction_col[type_code]
@@ -226,11 +226,11 @@ class BaseResprEvaluator:
             }
             datalist.append(datalist_entry)
         
-        fig, axs = plt.subplots(ncols=1, nrows=2, figsize=(8, 12),
+        fig, axs = plt.subplots(ncols=2, nrows=1, figsize=figsize,
                             layout="constrained")
         self.plot_y_vs_x(
         datalist=datalist,
-        x_label="$\sigma$ threshold",
+        x_label="$\sigma$ threshold  ($breaths/min$)",
         y_label="windows retained (%)",
         x_ticks=x_ticks,
         y_ticks=[i for i in range(0, 101, 5)],
@@ -251,7 +251,7 @@ class BaseResprEvaluator:
         
         self.plot_y_vs_x(
         datalist=datalist,
-        x_label="$\sigma$ threshold",
+        x_label="$\sigma$ threshold  ($breaths/min$)",
         y_label=f"{metric_to_plot}",
         x_ticks=x_ticks,
         fig_axs=(fig, axs[1])
@@ -259,6 +259,4 @@ class BaseResprEvaluator:
         
         axs[1].axvline(x=4.0, color="red", linestyle="--")
         axs[1].grid(color = 'green', linestyle = '--', linewidth = 0.3)
-
-    
         
