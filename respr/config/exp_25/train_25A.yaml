@@ -2,9 +2,11 @@ description: "Leave one out CV
   # same as exp 12 + changes
     * use code @ commit 581592d67
     * data : @ 125Hz
+  # same as exp 25 + changes
+    * data : @ 25 Hz
 
 "
-output_dir: "../../artifacts/exp_25_cnn_on_mean_gt_old_csv_w32_stride4_fs125Hz_LOOCV"
+output_dir: "../../artifacts/exp_25A_cnn_on_mean_gt_old_csv_w32_stride4_fs25Hz_LOOCV"
 pipeline:
   name: "TrainingPipeline"
 instructions:
@@ -51,11 +53,11 @@ dataloading:
     # MINI DATASET FOR DEV
     config:
       dataset: "BaseResprCsvDataset"
-      dataset_path: "../../artifacts/frozen/2022-12-22_000752-dataset\
-        _capnobase_w32_s4_fs_final_125Hz_artif_cleaned_gt_mean-commit-\
-        5c20d53d2/2022-12-22_000752/dataset_capnobase_w32_s4_fs_final\
-        _125Hz_artif_cleaned_gt_mean-commit-5c20d53d2.csv"
-      x_length: 4000 # for 125 Hz * 32s
+      dataset_path: "../../artifacts/frozen/2022-12-22_001331-dataset_\
+        capnobase_w32_s4_fs_final_25Hz_artif_cleaned_gt_mean_commit\
+        -05d550994/2022-12-22_001331/dataset_capnobase_w32_s4_fs_final\
+        _25Hz_artif_cleaned_gt_mean_commit-05d550994.csv"
+      x_length: 800 # for 125 Hz * 32s
       batch_size: 16
       augmentation: null # to be added later #TODO
       num_folds: 42
