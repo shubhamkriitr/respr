@@ -84,14 +84,15 @@ dataloading:
       # ckpt_path: ../../artifacts/2022-11-17_050120/fold_00/lightning_logs/version_2482287/checkpoints/epoch=7-step=6717.ckpt
     # MINI DATASET FOR DEV
     config:
+      composer_mode: "train_only" # change to `train_only` if validation and
+            # test loaders are not needed. In that case fold number will have
+            # no effect and  val_loader & test_loader will be `None`
       dataset: 
         name: "DatasetAndAugmentationWrapper"
         args: []
         kwargs:
           config:
-            composer_mode: "normal" # change to `train_only` if validation and
-            # test loaders are not needed. In that case fold number will have
-            # no effect and the val_loader / test_loader will be `None`
+            
             underlying_dataset:
               name: "BaseResprCsvDataset"
               args: []
@@ -104,7 +105,9 @@ dataloading:
                 config: {}
       val_dataset: "BaseResprCsvDatasetDuplicateX"
       test_dataset: "BaseResprCsvDatasetDuplicateX"
-      dataset_path: "../../artifacts/frozen/mini/dataset_capnobase_w32_s1_4_subjects.csv" #"../../artifacts/frozen/dataset_capnobase_w32_s1_artif_cleaned_commit_c4dec47.csv"
+      dataset_path: #"../../artifacts/frozen/mini/dataset_capnobase_w32_s1_4_subjects.csv" #"../../artifacts/frozen/dataset_capnobase_w32_s1_artif_cleaned_commit_c4dec47.csv"
+        - "../../artifacts/frozen/mini/dataset_capnobase_w32_s1_4_subjects.csv"
+        - "../../artifacts/frozen/mini/bidmc_300_2sampl/2022-12-22_021616/dataset.csv"
       x_length: 9600 # dimension of input x
         # sample paths
         #"../../artifacts/frozen/2022-12-07_000441/dataset.csv"

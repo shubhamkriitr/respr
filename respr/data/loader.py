@@ -485,6 +485,13 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         
         # num unique subjects
         self.subject_ids = list(self.data["subject_ids"].unique())
+        
+        # if train_only mode is requested then skip split computation
+        if self._composer_mode == ComposerModes.TRAIN_ONLY:
+            logger.debug(f"Mode={self._composer_mode}."
+                         f" Skipping split computation")
+            return
+        
         self.num_train_ids, self.num_val_ids, self.num_test_ids = \
             self.compute_split_sizes(n = len(self.subject_ids))
             
@@ -504,12 +511,33 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
             raise ValueError()
     
     def read_multiple(self, file_list):
-        logger.debug(f"Will be readind data from multiple files. If you are"
+        logger.debug(f"Will be reading data from multiple files. If you are"
                      f"using different datasets, make sure that there is no"
                      f" subject id conflict(overlap), because subject ids are"
                      f" used for splitting data for cross validation.")
         
-        raise NotImplementedError()
+        key_list = None
+        n_keys = None
+        dfs = []
+        for file_path in file_list:
+            logger.info(f"Reading: {file_path}")
+            current_df = pd.read_csv(file_path)
+            current_keys = list(current_df.keys())
+            current_n_keys= len(current_keys)
+            
+            if key_list is None:
+                key_list = copy.deepcopy(current_keys)
+                n_keys = current_n_keys
+            
+            # ensure keys match
+            assert current_n_keys == n_keys
+            assert all([current_keys[idx] == key_list[idx] 
+                        for idx in range(n_keys)])
+            
+            dfs.append(current_df)
+            
+        final_data = pd.concat(dfs, axis=0)
+        return final_data
             
     def validate_data_structure(self, data):
         # also validate x columns start at index #1 (assumin 0 based index) 
@@ -570,11 +598,23 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
                 
     def get_data_loaders(self, current_fold=-1):
         if self._composer_mode == ComposerModes.TRAIN_ONLY:
-            raise NotImplementedError()
+            return self._get_data_loaders_mode_train_only()
+    
         train_loader, val_loader, test_loader = self._get_data_loaders(
             current_fold)
         
         return train_loader, val_loader, test_loader
+    
+    def _get_data_loaders_mode_train_only(self):
+        train_ids = copy.deepcopy(self.subject_ids)
+        logger.info(f"Subjects -> Train: {train_ids}")
+        logger.info(f"Not creating val and test loaders")
+        
+        train_loader = self.create_loader(self.data, train_ids, shuffle=True)
+        val_loader = None
+        test_loader = None
+                            
+        return train_loader,val_loader,test_loader
 
     def _get_data_loaders(self, current_fold):
         if current_fold == -1:
