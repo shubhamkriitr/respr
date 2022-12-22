@@ -786,6 +786,11 @@ class TrainingPipeline(BasePipeline):
         
         default_config_items = {
             "training_init_model_ckpt_path": None,
+            "training_init_model_load_strictness": {
+                    "strict": True,
+                    "allow_missing_keys": False,
+                    "allow_unexpected_keys": False
+                },
             "model_checkpoint": {
                 "monitor": "val_mae",
                 "save_top_k": 4,
@@ -857,12 +862,36 @@ class TrainingPipeline(BasePipeline):
     def get_model(self):
         model = ML_FACTORY.get(self._config["model"])
         init_ckpt_path = self._config["training_init_model_ckpt_path"]
+        loading_strictness = self._config["training_init_model_load_strictness"]
+        logger.info(f"Loading strictness params: {loading_strictness}")
+        strict = loading_strictness["strict"]
+        allow_missing = loading_strictness["allow_missing_keys"]
+        allow_unexpected = loading_strictness["allow_unexpected_keys"]
+        
         if init_ckpt_path is not None:
             logger.info(f"Loading model weights from here: {init_ckpt_path}"
                         f" [Before training]")
-            state_dict = torch.load(init_ckpt_path)["state_dict"]
-            model.load_state_dict(state_dict, strict=True)
+            state_dict = torch.load(init_ckpt_path,
+                                    map_location=model.device)["state_dict"]
+            loading_info = model.load_state_dict(state_dict, strict=strict)
+            missing_keys, unexpected_keys = loading_info
+            
+            self._check_and_log_model_dict_loading_info(
+                keys_delta=missing_keys, tag="`missing`", allowed=allow_missing)
+            self._check_and_log_model_dict_loading_info(
+                keys_delta=unexpected_keys, tag="`unexpected`",
+                allowed=allow_unexpected)
+            
         return model
+    
+    def _check_and_log_model_dict_loading_info(self, keys_delta, tag, allowed):
+        if len(keys_delta) > 0:
+            if allowed:
+                logger.warning(f"There are {tag} keys present. :{keys_delta}")
+            else:
+                raise AssertionError(f"{tag} keys: {keys_delta}")
+        else:
+            logger.info(f"No {tag} keys.")
 
     def create_main_checkpoint_callback(self):
         ckpt_config = self._config["model_checkpoint"]
