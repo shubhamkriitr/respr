@@ -2,8 +2,10 @@ description: "Leave one out CV.
   [Same as exp 12] + @changes:
     Normalize x window wise locally.
     Code@39a37959a
+  #[same as exp 12 b] + @changes:
+    Normalize x locally using min-max norm
   "
-output_dir: "../../artifacts/exp_12b_cnn_on_mean_gt_old_csv_w32_stride4_LOOCV"
+output_dir: "../../artifacts/exp_12H_min_max_local_cnn_on_mean_gt_old_csv_w32_stride4_LOOCV"
 pipeline:
   name: "TrainingPipeline"
 instructions:
@@ -55,7 +57,7 @@ dataloading:
         # sample paths
         #"../../artifacts/frozen/2022-12-07_000441/dataset.csv"
       normalize_x: true 
-      normalize_mode: local
+      normalize_mode: local_min_max
       batch_size: 16
       augmentation: null # to be added later #TODO
       num_folds: 42
