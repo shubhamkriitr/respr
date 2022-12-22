@@ -504,12 +504,33 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
             raise ValueError()
     
     def read_multiple(self, file_list):
-        logger.debug(f"Will be readind data from multiple files. If you are"
+        logger.debug(f"Will be reading data from multiple files. If you are"
                      f"using different datasets, make sure that there is no"
                      f" subject id conflict(overlap), because subject ids are"
                      f" used for splitting data for cross validation.")
         
-        raise NotImplementedError()
+        key_list = None
+        n_keys = None
+        dfs = []
+        for file_path in file_list:
+            logger.info(f"Reading: {file_path}")
+            current_df = pd.read_csv(file_path)
+            current_keys = list(current_df.keys())
+            current_n_keys= len(current_keys)
+            
+            if key_list is None:
+                key_list = copy.deepcopy(current_keys)
+                n_keys = current_n_keys
+            
+            # ensure keys match
+            assert current_n_keys == n_keys
+            assert all([current_keys[idx] == key_list[idx] 
+                        for idx in range(n_keys)])
+            
+            dfs.append(current_df)
+            
+        final_data = pd.concat(dfs, axis=0)
+        return final_data
             
     def validate_data_structure(self, data):
         # also validate x columns start at index #1 (assumin 0 based index) 

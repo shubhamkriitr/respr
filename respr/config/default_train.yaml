@@ -104,7 +104,9 @@ dataloading:
                 config: {}
       val_dataset: "BaseResprCsvDatasetDuplicateX"
       test_dataset: "BaseResprCsvDatasetDuplicateX"
-      dataset_path: "../../artifacts/frozen/mini/dataset_capnobase_w32_s1_4_subjects.csv" #"../../artifacts/frozen/dataset_capnobase_w32_s1_artif_cleaned_commit_c4dec47.csv"
+      dataset_path: #"../../artifacts/frozen/mini/dataset_capnobase_w32_s1_4_subjects.csv" #"../../artifacts/frozen/dataset_capnobase_w32_s1_artif_cleaned_commit_c4dec47.csv"
+        - "../../artifacts/frozen/mini/dataset_capnobase_w32_s1_4_subjects.csv"
+        - "../../artifacts/frozen/mini/bidmc_300_2sampl/2022-12-22_021616/dataset.csv"
       x_length: 9600 # dimension of input x
         # sample paths
         #"../../artifacts/frozen/2022-12-07_000441/dataset.csv"
