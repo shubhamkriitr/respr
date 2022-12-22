@@ -878,7 +878,7 @@ class TrainingPipeline(BasePipeline):
                                    **kwargs):
         if ckpt_filename is None:
             ckpt_filename\
-                        = "model-{epoch:02d}-s-{step}-{"+ monitor + ":.2f}"
+                        = "model-{epoch:02d}-s-{step}-{"+ monitor + ":.5f}"
                 # add mode explicitly - pass through the kwargs whenever needed
                 # default mode is `"min"`
         
