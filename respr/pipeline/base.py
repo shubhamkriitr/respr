@@ -1028,7 +1028,9 @@ class PredictionPipeline(TrainingPipeline):
     
     def run_one_fold(self, dataloader_composer, fold):
         model = self.get_model()
-        default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"      
+        default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"  
+        os.makedirs(default_root_dir, exist_ok=True)
+            
         train_loader, val_loader, test_loader \
                 = dataloader_composer.get_data_loaders(
                     current_fold=fold, shuffle_train=False)
@@ -1045,19 +1047,53 @@ class PredictionPipeline(TrainingPipeline):
     def extract_embeddings(self, model, data_loader, tag, output_dir=None,
                            save=True):
         if output_dir is not None:
-            output_filename = f"{tag}_embeddings.pkl"
+            output_filename = f"{tag}_embeddings.npy"
+            output_filename_y = f"{tag}_ground_truth.npy"
             output_path = output_dir / output_filename
+            output_path_y = output_dir / output_filename_y
         
         all_embeddings = []
+        all_ys = [] # groundtruth values
         for batch in tqdm.tqdm(data_loader):
-            embedding = model.get_embedding(batch)
+            x, y = self.extract_x_and_y_from_batch(batch=batch)
+            x = x.to(model.device)
+            embedding = model.get_embedding(x)
+            embedding = embedding.detach().cpu().numpy()
             all_embeddings.append(embedding)
+            
+            y = np.nan if y is None else y
+            all_ys.append(y)
+        
+        all_embeddings = np.concatenate(all_embeddings, axis=0)
+        all_ys = np.concatenate(all_ys, axis=0)
+        assert all_ys.shape[0] == all_embeddings.shape[0]
+        assert len(all_ys.shape) == 1
+        assert len(all_embeddings.shape) == 2
         
         if save:
             logger.info(f"Saving: {output_path}")
-            cutl.save_pickle(output_path, all_embeddings)
+            np.save(output_path, all_embeddings)
+            logger.info(f"Saving: {output_path_y}")
+            np.save(output_path_y, all_ys)
+            
+        
         
         return all_embeddings
+    
+    def extract_x_and_y_from_batch(self, batch):
+        y = None
+        if isinstance(batch, (list, tuple)):
+            if len(batch) == 2:
+                x, y = batch
+            elif len(batch) == 3:
+                x, _, y = batch
+            else:
+                raise ValueError(f"Unexpected batch format")
+        else:
+            assert isinstance(batch, torch.TensorType)
+            x = batch
+        
+        return x, y
         
         
         

@@ -219,17 +219,8 @@ class LitResprMCDropoutCNNSimCLR(LitResprMCDropoutCNN):
         return model_module_class
     
     
-    def get_embedding(self, batch):
-        if isinstance(batch, (list, tuple)):
-            if len(batch) == 2:
-                x, y = batch
-            elif len(batch) == 3:
-                x, _, y = batch
-            else:
-                raise ValueError(f"Unexpected batch format")
-        else:
-            assert isinstance(batch, torch.TensorType)
-            x = batch
+    def get_embedding(self, x):
+        
         
         z = self.model_module.get_embedding(x)
 
@@ -238,7 +229,8 @@ class LitResprMCDropoutCNNSimCLR(LitResprMCDropoutCNN):
         return z
     
     def _adjust_embedding_shape(self, z):
-        logger.error("TODO: implement")
+        if len(z.shape) == 1:
+            z = torch.unsqueeze(z, axis=0)
         return z
 
         
