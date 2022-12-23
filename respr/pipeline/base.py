@@ -1039,6 +1039,9 @@ class PredictionPipeline(TrainingPipeline):
         loaders_ = [test_loader, val_loader, train_loader]
         
         for tag, loader_ in zip(tags, loaders_):
+            if loader_ is None:
+                logger.info(f"Skipping `{tag}` : loader = `{loader_}`")
+                continue
             logger.info(f"Processing: `{tag}` : `{loader_}`")
             self.extract_embeddings(model=model, data_loader=loader_,
                                     tag=tag, output_dir=default_root_dir,
