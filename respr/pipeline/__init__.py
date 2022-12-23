@@ -1,5 +1,6 @@
 from .base import (Pipeline, Pipeline2, DatasetBuilder, TrainingPipeline,
-                   IndexedDatasetBuilder, DummyIndexedDatasetBuilder)
+                   IndexedDatasetBuilder, DummyIndexedDatasetBuilder,
+                   PredictionPipeline)
 from .train import TrainingPipelineSimCLR
 REGISTERED_PIPELINES = {
     "Pipeline": Pipeline,
@@ -8,6 +9,7 @@ REGISTERED_PIPELINES = {
     "IndexedDatasetBuilder": IndexedDatasetBuilder,
     "DummyIndexedDatasetBuilder": DummyIndexedDatasetBuilder,
     "TrainingPipeline":TrainingPipeline,
-    "TrainingPipelineSimCLR": TrainingPipelineSimCLR
+    "TrainingPipelineSimCLR": TrainingPipelineSimCLR,
+    "PredictionPipeline": PredictionPipeline
     
 }  

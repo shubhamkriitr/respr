@@ -23,6 +23,7 @@ import torch
 from respr.data.base import StandardDataRecord
 from respr.util.common import fill_missing_values
 import scipy
+import tqdm
 
 DTYPE_FLOAT = np.float32
 CONF_FEATURE_RESAMPLING_FREQ = 4 # Hz. (for riav/ rifv/ riiv resampling)
@@ -1010,7 +1011,53 @@ class TrainingPipeline(BasePipeline):
         return df
             
         
+class PredictionPipeline(TrainingPipeline):
+    
+    def __init__(self, config={}) -> None:
+        logger.info(f"Som of the default config items (from `TrainingPipeline`)"
+                    f"will not be used")
+        super().__init__(config)
+        default_instructions = {
+            "extract_embeddings": True
+        }
+        self._config["instructions"] = fill_missing_values(
+            default_values=default_instructions, 
+            target_container=self._config["instructions"]
+        )
+    
+    
+    def run_one_fold(self, dataloader_composer, fold):
+        model = self.get_model()
+        default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"      
+        train_loader, val_loader, test_loader \
+                = dataloader_composer.get_data_loaders(
+                    current_fold=fold, shuffle_train=False)
         
+        tags = ["test_data", "val_data", "train_data"]
+        loaders_ = [test_loader, val_loader, train_loader]
+        
+        for tag, loader_ in zip(tags, loaders_):
+            logger.info(f"Processing: `{tag}` : `{loader_}`")
+            self.extract_embeddings(model=model, data_loader=loader_,
+                                    tag=tag, output_dir=default_root_dir,
+                                    save=True)
+    
+    def extract_embeddings(self, model, data_loader, tag, output_dir=None,
+                           save=True):
+        if output_dir is not None:
+            output_filename = f"{tag}_embeddings.pkl"
+            output_path = output_dir / output_filename
+        
+        all_embeddings = []
+        for batch in tqdm.tqdm(data_loader):
+            embedding = model.get_embedding(batch)
+            all_embeddings.append(embedding)
+        
+        if save:
+            logger.info(f"Saving: {output_path}")
+            cutl.save_pickle(output_path, all_embeddings)
+        
+        return all_embeddings
         
         
         
