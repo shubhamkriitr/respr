@@ -217,21 +217,7 @@ class LitResprMCDropoutCNNSimCLR(LitResprMCDropoutCNN):
         model_module_class_name = self._config["model_module_class"]
         model_module_class = MODULE_CLASS_LOOKUP[model_module_class_name]
         return model_module_class
-    
-    
-    def get_embedding(self, x):
-        
-        
-        z = self.model_module.get_embedding(x)
 
-        z = self._adjust_embedding_shape(z)
-        
-        return z
-    
-    def _adjust_embedding_shape(self, z):
-        if len(z.shape) == 1:
-            z = torch.unsqueeze(z, axis=0)
-        return z
 
         
 if __name__ == "__main__":
