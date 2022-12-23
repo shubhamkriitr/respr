@@ -402,3 +402,17 @@ class LitResprMCDropoutCNN(pl.LightningModule):
         for m in model_module.modules():
             if m.__class__.__name__.startswith('Dropout'):
                 m.eval()
+    
+    def get_embedding(self, x):
+        
+        
+        z = self.model_module.get_embedding(x)
+
+        z = self._adjust_embedding_shape(z)
+        
+        return z
+    
+    def _adjust_embedding_shape(self, z):
+        if len(z.shape) == 1:
+            z = torch.unsqueeze(z, axis=0)
+        return z
