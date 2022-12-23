@@ -1018,7 +1018,8 @@ class PredictionPipeline(TrainingPipeline):
                     f"will not be used")
         super().__init__(config)
         default_instructions = {
-            "extract_embeddings": True
+            "extract_embeddings": True,
+            "device_id": "cpu" #full device string e.g. `cuda:0`
         }
         self._config["instructions"] = fill_missing_values(
             default_values=default_instructions, 
@@ -1030,7 +1031,16 @@ class PredictionPipeline(TrainingPipeline):
         model = self.get_model()
         default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"  
         os.makedirs(default_root_dir, exist_ok=True)
-            
+        
+        # lightning trainer is currently not being used. May swithc later to 
+        # this instead.. but every model will have to implement the proper
+        # interfacte to either 1)switch mode to embedding extraction
+        # or 2) return dict- containing embedding 
+        
+        device = self._config["instructions"]["device_id"]
+        logger.info(f"Using this device: {device}")
+        model.to(device)
+        
         train_loader, val_loader, test_loader \
                 = dataloader_composer.get_data_loaders(
                     current_fold=fold, shuffle_train=False)
