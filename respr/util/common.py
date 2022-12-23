@@ -2,11 +2,16 @@ from datetime import datetime
 from pathlib import Path
 import os
 import yaml
+import pickle
 from respr.util import logger
 
 PROJECT_NAME = "respr"
 PROJECT_ROOT = Path(os.path.abspath('')) / PROJECT_NAME
 
+def save_pickle(output_path, data):
+    with open(output_path, "wb") as f:
+        pickle.dump(data, f, 
+                    protocol=pickle.HIGHEST_PROTOCOL)
 
 def get_timestamp_str(granularity=1000):
     if granularity != 1000:

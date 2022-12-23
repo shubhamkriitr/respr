@@ -610,27 +610,32 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         return data
         
                 
-    def get_data_loaders(self, current_fold=-1):
+    def get_data_loaders(self, current_fold=-1, shuffle_train=True):
+        if not shuffle_train:
+            logger.warning(f"Training loader will have shuffling disabled.")
         if self._composer_mode == ComposerModes.TRAIN_ONLY:
-            return self._get_data_loaders_mode_train_only()
+            return self._get_data_loaders_mode_train_only(
+                shuffle_train=shuffle_train
+            )
     
         train_loader, val_loader, test_loader = self._get_data_loaders(
-            current_fold)
+            current_fold, shuffle_train=shuffle_train)
         
         return train_loader, val_loader, test_loader
     
-    def _get_data_loaders_mode_train_only(self):
+    def _get_data_loaders_mode_train_only(self, shuffle_train=True):
         train_ids = copy.deepcopy(self.subject_ids)
         logger.info(f"Subjects -> Train: {train_ids}")
         logger.info(f"Not creating val and test loaders")
         
-        train_loader = self.create_loader(self.data, train_ids, shuffle=True)
+        train_loader = self.create_loader(self.data, train_ids,
+                                          shuffle=shuffle_train)
         val_loader = None
         test_loader = None
                             
         return train_loader,val_loader,test_loader
 
-    def _get_data_loaders(self, current_fold):
+    def _get_data_loaders(self, current_fold, shuffle_train=True):
         if current_fold == -1:
             raise NotImplementedError()
         subject_ids = collections.deque(self.subject_ids)
@@ -649,7 +654,8 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         logger.info(f"Subjects -> Train: {train_ids} / Val: {val_ids}"
                     f"/ Test: {test_ids}")
         
-        train_loader = self.create_loader(self.data, train_ids, shuffle=True)
+        train_loader = self.create_loader(self.data, train_ids,
+                                          shuffle=shuffle_train)
         val_loader = self.create_loader(self.data, val_ids, shuffle=False,
                             loader_type="val")
         test_loader = self.create_loader(self.data, test_ids, shuffle=False,

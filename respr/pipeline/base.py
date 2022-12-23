@@ -23,6 +23,7 @@ import torch
 from respr.data.base import StandardDataRecord
 from respr.util.common import fill_missing_values
 import scipy
+import tqdm
 
 DTYPE_FLOAT = np.float32
 CONF_FEATURE_RESAMPLING_FREQ = 4 # Hz. (for riav/ rifv/ riiv resampling)
@@ -816,40 +817,43 @@ class TrainingPipeline(BasePipeline):
         for fold_num in range(dataloader_composer.num_folds):
             fold = start_fold + fold_num
             logger.info(f"Running fold number {fold}")
-            model = self.get_model()
-            default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"
+            self.run_one_fold(dataloader_composer, fold)
+
+    def run_one_fold(self, dataloader_composer, fold):
+        model = self.get_model()
+        default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"
             
-            if not self._instructions["do_only_test"]:
-                checkpoint_callback = self.create_main_checkpoint_callback()
-                callbacks = [checkpoint_callback]
-                additional_calllbacks = self.create_callbacks()
-                callbacks.extend(additional_calllbacks)
-            else:
-                assert self._instructions["ckpt_path"] != None
-                callbacks = None
-            train_loader, val_loader, test_loader \
+        if not self._instructions["do_only_test"]:
+            checkpoint_callback = self.create_main_checkpoint_callback()
+            callbacks = [checkpoint_callback]
+            additional_calllbacks = self.create_callbacks()
+            callbacks.extend(additional_calllbacks)
+        else:
+            assert self._instructions["ckpt_path"] != None
+            callbacks = None
+        train_loader, val_loader, test_loader \
                 = dataloader_composer.get_data_loaders(current_fold=fold)
-            if val_loader is None:
-                logger.info(f"Validation will be skipped "
+        if val_loader is None:
+            logger.info(f"Validation will be skipped "
                             f"(val_loader is `None`)")
-            trainer = pl.Trainer(default_root_dir=default_root_dir,
+        trainer = pl.Trainer(default_root_dir=default_root_dir,
                                  callbacks=callbacks,
                                  **self._config["trainer"]["kwargs"])
-            ckpt_path = None
-            if not self._instructions["do_only_test"]:
-                trainer.fit(model=model, train_dataloaders=train_loader,
+        ckpt_path = None
+        if not self._instructions["do_only_test"]:
+            trainer.fit(model=model, train_dataloaders=train_loader,
                             val_dataloaders=val_loader)
-                logger.info(f"Using best model@: {checkpoint_callback.best_model_path}")
-                ckpt_path="best" # set best
+            logger.info(f"Using best model@: {checkpoint_callback.best_model_path}")
+            ckpt_path="best" # set best
                 
-            else:
-                ckpt_path = self._instructions["ckpt_path"]
-                if isinstance(ckpt_path, (dict, list)):
-                    ckpt_path = ckpt_path[fold]
-            logger.info(f"For current fold ({fold}) using "
+        else:
+            ckpt_path = self._instructions["ckpt_path"]
+            if isinstance(ckpt_path, (dict, list)):
+                ckpt_path = ckpt_path[fold]
+        logger.info(f"For current fold ({fold}) using "
                         f" checkpoint: {ckpt_path}")
             # save predictions for all
-            self.save_test_predictions(fold, model, test_loader, trainer, ckpt_path)
+        self.save_test_predictions(fold, model, test_loader, trainer, ckpt_path)
 
     def save_test_predictions(self, fold, model, test_loader, trainer, ckpt_path):
         if test_loader is None:
@@ -1007,7 +1011,92 @@ class TrainingPipeline(BasePipeline):
         return df
             
         
+class PredictionPipeline(TrainingPipeline):
+    
+    def __init__(self, config={}) -> None:
+        logger.info(f"Som of the default config items (from `TrainingPipeline`)"
+                    f"will not be used")
+        super().__init__(config)
+        default_instructions = {
+            "extract_embeddings": True
+        }
+        self._config["instructions"] = fill_missing_values(
+            default_values=default_instructions, 
+            target_container=self._config["instructions"]
+        )
+    
+    
+    def run_one_fold(self, dataloader_composer, fold):
+        model = self.get_model()
+        default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"  
+        os.makedirs(default_root_dir, exist_ok=True)
+            
+        train_loader, val_loader, test_loader \
+                = dataloader_composer.get_data_loaders(
+                    current_fold=fold, shuffle_train=False)
         
+        tags = ["test_data", "val_data", "train_data"]
+        loaders_ = [test_loader, val_loader, train_loader]
+        
+        for tag, loader_ in zip(tags, loaders_):
+            if loader_ is None:
+                logger.info(f"Skipping `{tag}` : loader = `{loader_}`")
+                continue
+            logger.info(f"Processing: `{tag}` : `{loader_}`")
+            self.extract_embeddings(model=model, data_loader=loader_,
+                                    tag=tag, output_dir=default_root_dir,
+                                    save=True)
+    
+    def extract_embeddings(self, model, data_loader, tag, output_dir=None,
+                           save=True):
+        if output_dir is not None:
+            output_filename = f"{tag}_embeddings.npy"
+            output_filename_y = f"{tag}_ground_truth.npy"
+            output_path = output_dir / output_filename
+            output_path_y = output_dir / output_filename_y
+        
+        all_embeddings = []
+        all_ys = [] # groundtruth values
+        for batch in tqdm.tqdm(data_loader):
+            x, y = self.extract_x_and_y_from_batch(batch=batch)
+            x = x.to(model.device)
+            embedding = model.get_embedding(x)
+            embedding = embedding.detach().cpu().numpy()
+            all_embeddings.append(embedding)
+            
+            y = np.nan if y is None else y
+            all_ys.append(y)
+        
+        all_embeddings = np.concatenate(all_embeddings, axis=0)
+        all_ys = np.concatenate(all_ys, axis=0)
+        assert all_ys.shape[0] == all_embeddings.shape[0]
+        assert len(all_ys.shape) == 1
+        assert len(all_embeddings.shape) == 2
+        
+        if save:
+            logger.info(f"Saving: {output_path}")
+            np.save(output_path, all_embeddings)
+            logger.info(f"Saving: {output_path_y}")
+            np.save(output_path_y, all_ys)
+            
+        
+        
+        return all_embeddings
+    
+    def extract_x_and_y_from_batch(self, batch):
+        y = None
+        if isinstance(batch, (list, tuple)):
+            if len(batch) == 2:
+                x, y = batch
+            elif len(batch) == 3:
+                x, _, y = batch
+            else:
+                raise ValueError(f"Unexpected batch format")
+        else:
+            assert isinstance(batch, torch.TensorType)
+            x = batch
+        
+        return x, y
         
         
         
