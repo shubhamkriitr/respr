@@ -816,40 +816,43 @@ class TrainingPipeline(BasePipeline):
         for fold_num in range(dataloader_composer.num_folds):
             fold = start_fold + fold_num
             logger.info(f"Running fold number {fold}")
-            model = self.get_model()
-            default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"
+            self.run_one_fold(dataloader_composer, fold)
+
+    def run_one_fold(self, dataloader_composer, fold):
+        model = self.get_model()
+        default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"
             
-            if not self._instructions["do_only_test"]:
-                checkpoint_callback = self.create_main_checkpoint_callback()
-                callbacks = [checkpoint_callback]
-                additional_calllbacks = self.create_callbacks()
-                callbacks.extend(additional_calllbacks)
-            else:
-                assert self._instructions["ckpt_path"] != None
-                callbacks = None
-            train_loader, val_loader, test_loader \
+        if not self._instructions["do_only_test"]:
+            checkpoint_callback = self.create_main_checkpoint_callback()
+            callbacks = [checkpoint_callback]
+            additional_calllbacks = self.create_callbacks()
+            callbacks.extend(additional_calllbacks)
+        else:
+            assert self._instructions["ckpt_path"] != None
+            callbacks = None
+        train_loader, val_loader, test_loader \
                 = dataloader_composer.get_data_loaders(current_fold=fold)
-            if val_loader is None:
-                logger.info(f"Validation will be skipped "
+        if val_loader is None:
+            logger.info(f"Validation will be skipped "
                             f"(val_loader is `None`)")
-            trainer = pl.Trainer(default_root_dir=default_root_dir,
+        trainer = pl.Trainer(default_root_dir=default_root_dir,
                                  callbacks=callbacks,
                                  **self._config["trainer"]["kwargs"])
-            ckpt_path = None
-            if not self._instructions["do_only_test"]:
-                trainer.fit(model=model, train_dataloaders=train_loader,
+        ckpt_path = None
+        if not self._instructions["do_only_test"]:
+            trainer.fit(model=model, train_dataloaders=train_loader,
                             val_dataloaders=val_loader)
-                logger.info(f"Using best model@: {checkpoint_callback.best_model_path}")
-                ckpt_path="best" # set best
+            logger.info(f"Using best model@: {checkpoint_callback.best_model_path}")
+            ckpt_path="best" # set best
                 
-            else:
-                ckpt_path = self._instructions["ckpt_path"]
-                if isinstance(ckpt_path, (dict, list)):
-                    ckpt_path = ckpt_path[fold]
-            logger.info(f"For current fold ({fold}) using "
+        else:
+            ckpt_path = self._instructions["ckpt_path"]
+            if isinstance(ckpt_path, (dict, list)):
+                ckpt_path = ckpt_path[fold]
+        logger.info(f"For current fold ({fold}) using "
                         f" checkpoint: {ckpt_path}")
             # save predictions for all
-            self.save_test_predictions(fold, model, test_loader, trainer, ckpt_path)
+        self.save_test_predictions(fold, model, test_loader, trainer, ckpt_path)
 
     def save_test_predictions(self, fold, model, test_loader, trainer, ckpt_path):
         if test_loader is None:
