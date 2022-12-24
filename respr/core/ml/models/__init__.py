@@ -1,7 +1,7 @@
 from .mlp import LitResprVanillaMLP
 from .cnn import (LitResprResnet18, LitResprResnet18Small,
                   LitResprResnet18LinearScaledMeanHead,
-                  LitResprResnet18ReLUMeanHead)
+                  LitResprResnet18ReLUMeanHead, LitResprResnet18v2)
 from .cnn_mc import LitResprMCDropoutCNN
 from .cnn_clr import LitResprMCDropoutCNNSimCLR
 from respr.util.common import BaseFactory
@@ -16,7 +16,8 @@ ML_MODELS = {
     "LitResprResnet18LinearScaledMeanHead":\
         LitResprResnet18LinearScaledMeanHead,
     "LitResprResnet18ReLUMeanHead": LitResprResnet18ReLUMeanHead,
-    "LitResprMCDropoutCNNSimCLR": LitResprMCDropoutCNNSimCLR
+    "LitResprMCDropoutCNNSimCLR": LitResprMCDropoutCNNSimCLR,
+    "LitResprResnet18v2": LitResprResnet18v2
 }
 
 ML_FACTORY = BaseFactory({"resource_map": ML_MODELS})
