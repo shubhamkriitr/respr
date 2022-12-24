@@ -191,11 +191,34 @@ class _DebugResprMCDropoutCNN(nn.Module):
             (1, 512)   #conv5_x
         ]
 
+
+class ResprMCDropoutCNNResnet18v2(ResprMCDropoutCNNResnet18):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+    
+    def _build(self):
+        super()._build()
+        self.fc_mu = nn.Sequential(
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, 1)
+        )
+        self.fc_log_var = nn.Sequential(
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, 1)
+        )
+
 # This lookup is to support config based resolution of model module classes
 MODULE_CLASS_LOOKUP = {
     "_DebugResprMCDropoutCNN": _DebugResprMCDropoutCNN,
     "ResprMCDropoutCNNResnet18": ResprMCDropoutCNNResnet18,
-    "ResprMCDropoutCNNResnet18Small": ResprMCDropoutCNNResnet18Small
+    "ResprMCDropoutCNNResnet18Small": ResprMCDropoutCNNResnet18Small,
+    "ResprMCDropoutCNNResnet18v2": ResprMCDropoutCNNResnet18v2
 }
 
 class LitResprMCDropoutCNN(pl.LightningModule):
