@@ -227,6 +227,28 @@ class ResprResnet18LinearScaledMeanHead(ResprResnet18):
         return mu, log_var
 
 
+class ResprResnet18v2(ResprResnet18):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+    
+    def _build(self):
+        super()._build()
+        
+        self.fc_mu = nn.Sequential(
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, 1)
+        )
+        self.fc_log_var = nn.Sequential(
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, 1)
+        )
+
 def normalize_y(y):
     return (y - CAPNOBASE_RR_MEAN)/CAPNOBASE_RR_STD
 
@@ -389,6 +411,7 @@ LitResprResnet18Small = lightning_wrapper(ResprResnet18Small)
 LitResprResnet18LinearScaledMeanHead \
     = lightning_wrapper(ResprResnet18LinearScaledMeanHead)
 LitResprResnet18ReLUMeanHead = lightning_wrapper(ResprResnet18ReLUMeanHead)
+LitResprResnet18v2 = lightning_wrapper(ResprResnet18v2)
 
 if __name__=="__main__":
     x = torch.zeros(size=(10, 9600))
