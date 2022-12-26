@@ -789,6 +789,7 @@ class TrainingPipeline(BasePipeline):
         self._start_fold = self._config["dataloading"]["kwargs"]["config"]["start_fold"]
         
         default_config_items = {
+            "seed": None,
             "training_init_model_ckpt_path": None,
             "training_init_model_load_strictness": {
                     "strict": True,
@@ -806,7 +807,7 @@ class TrainingPipeline(BasePipeline):
         self._config = cutl.fill_missing_values(
             default_values=default_config_items, target_container=self._config)
         
-    
+        
     def run(self, *args, **kwargs):
         logger.info("Starting")
         
@@ -814,12 +815,23 @@ class TrainingPipeline(BasePipeline):
         dataloader_composer = DATA_ADAPTER_FACTORY.get(
                                             self._config["dataloading"])
         start_fold = self._start_fold
-        for fold_num in range(dataloader_composer.num_folds):
+        folds_to_run = dataloader_composer.folds_to_run
+        if folds_to_run is None:
+            folds_to_run = range(dataloader_composer.num_folds)
+        
+        logger.info(f"Fold numbers scheduled to run are: {folds_to_run}")
+        
+        for fold_num in folds_to_run:
             fold = start_fold + fold_num
             logger.info(f"Running fold number {fold}")
             self.run_one_fold(dataloader_composer, fold)
 
     def run_one_fold(self, dataloader_composer, fold):
+        rand_seed = self._config["seed"]
+        if rand_seed is not None:
+            logger.info(f"Setting seed to {rand_seed}")
+            pl.seed_everything(rand_seed)
+    
         model = self.get_model()
         default_root_dir = self.output_dir / f"fold_{str(fold).zfill(2)}"
             

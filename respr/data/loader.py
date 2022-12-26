@@ -380,6 +380,9 @@ class BaseResprDataLoaderComposer:
         self.batch_size = self._config["batch_size"]
         self.num_workers = self._config["num_workers"]
         self.random_state = 0
+        self.folds_to_run = None
+        
+        
         self.prepare()
     
     def prepare(self):
@@ -451,11 +454,12 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
             # normalizing using mean and std of the window
             "composer_mode": "normal", # see `ComposerModes`,
             
-            "global_preprocessing": None # this will be used to 
+            "global_preprocessing": None, # this will be used to 
             # modify the loaded data before actually passing to the 
             # underlying dataset class - (TODO: may include normalization as
             # its substep). Currently it is called after normalizing the data
-            # (if asked for in the config)
+            # (if asked for in the config),
+            "folds_to_run": None
             
         }
         
@@ -467,6 +471,7 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
 
         self._composer_mode = self._config["composer_mode"]
         self._global_preprocessing = self._config["global_preprocessing"]
+        self.folds_to_run = self._config["folds_to_run"]
         return self._config
         
     
