@@ -815,7 +815,13 @@ class TrainingPipeline(BasePipeline):
         dataloader_composer = DATA_ADAPTER_FACTORY.get(
                                             self._config["dataloading"])
         start_fold = self._start_fold
-        for fold_num in range(dataloader_composer.num_folds):
+        folds_to_run = dataloader_composer.folds_to_run
+        if folds_to_run is None:
+            folds_to_run = range(dataloader_composer.num_folds)
+        
+        logger.info(f"Fold numbers scheduled to run are: {folds_to_run}")
+        
+        for fold_num in folds_to_run:
             fold = start_fold + fold_num
             logger.info(f"Running fold number {fold}")
             self.run_one_fold(dataloader_composer, fold)
