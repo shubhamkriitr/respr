@@ -115,12 +115,7 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         
     def _build(self):
         self.block_0 = get_first_block(self._config["input_channels"])
-        self.blocks = [
-                conv2_x_block(
-                    num_channels=ch, num_sub_blocks=b, num_out_channels=ch)
-                for b, ch in
-                self.block_structure
-            ]
+        self.blocks = self.create_network_stem()
         
         self.blocks = nn.ModuleList(self.blocks)
         
@@ -135,6 +130,14 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool1d(1)
         self.fc_mu = nn.Linear(512, 1)
         self.fc_log_var = nn.Linear(512, 1)
+
+    def create_network_stem(self):
+        return [
+                conv2_x_block(
+                    num_channels=ch, num_sub_blocks=b, num_out_channels=ch)
+                for b, ch in
+                self.block_structure
+            ]
     
     
     def forward(self, x):
