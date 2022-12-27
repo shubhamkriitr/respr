@@ -7,14 +7,24 @@ from respr.core.ml.models.util import ModelUtil
 from respr.util.common import fill_missing_values
 import pytorch_lightning as pl
 
-def get_conv_bn_relu_block(num_channels, num_out_channels, dropout_p=0.4):
+def get_conv_bn_relu_block(num_channels, num_out_channels, dropout_p=0.4,
+                           dilations=[1, 1], paddings=[1, 1],
+                           strides=[1, 1]):
+    assert len(dilations) == 2
+    assert len(paddings) == 2
+    assert len(strides) == 2
+    d1, d2 = dilations
+    p1, p2 = paddings
+    s1, s2 = strides
     block = nn.Sequential(
         nn.Conv1d(in_channels=num_channels, out_channels=num_channels,
-                  kernel_size=3, stride=1, padding=1, bias=False),
+                  kernel_size=3, stride=s1, padding=p1, bias=False,
+                  dilation=d1),
         nn.BatchNorm1d(num_features=num_channels),
         nn.ReLU(inplace=True),
         nn.Conv1d(in_channels=num_channels, out_channels=num_out_channels,
-                  kernel_size=3, stride=1, padding=1, bias=False),
+                  kernel_size=3, stride=s2, padding=p2, bias=False,
+                  dilation=d2),
         nn.BatchNorm1d(num_features=num_out_channels),
         nn.ReLU(inplace=True),
         nn.Dropout(p=dropout_p)
@@ -22,10 +32,19 @@ def get_conv_bn_relu_block(num_channels, num_out_channels, dropout_p=0.4):
     
     return block
 
-def get_one_conv_relu_block(num_channels, num_out_channels, dropout_p=0.4):
+def get_one_conv_relu_block(num_channels, num_out_channels, dropout_p=0.4,
+                            dilations=[1], paddings=[1],
+                           strides=[1, 1]):
+    assert len(dilations) == 1
+    assert len(paddings) == 1
+    assert len(strides) == 1
+    d1 = dilations[0]
+    p1 = paddings[0]
+    s1 = strides[0]
     block = nn.Sequential(
         nn.Conv1d(in_channels=num_channels, out_channels=num_out_channels,
-                  kernel_size=3, stride=1, padding=1, bias=False),
+                  kernel_size=3, stride=s1, padding=p1, bias=False,
+                  dilation=d1),
         nn.BatchNorm1d(num_features=num_out_channels),
         nn.ReLU(inplace=True),
         nn.Dropout(p=dropout_p)
@@ -45,7 +64,9 @@ def get_first_block(num_in_channels, dropout_p=0.5):
     
     return block
 
-def conv2_x_block(num_channels, num_sub_blocks, num_out_channels):
+def conv2_x_block(num_channels, num_sub_blocks, num_out_channels, 
+                  dropout_p=0.4,
+                  dilations=[1, 1], paddings=[1, 1], strides=[1, 1]):
     class ResprResnetSubModule(nn.Module):
         def __init__(self) -> None:
             super().__init__()
@@ -57,7 +78,11 @@ def conv2_x_block(num_channels, num_sub_blocks, num_out_channels):
                 if i == num_sub_blocks - 1:
                     out_ch = num_out_channels
                 
-                b = get_conv_bn_relu_block(num_channels, out_ch)
+                b = get_conv_bn_relu_block(num_channels, out_ch,
+                        dropout_p=dropout_p,
+                        dilations=dilations,
+                        paddings=paddings,
+                        strides=strides)
                 self.blocks.append(b)
         
         def forward(self, x):
@@ -97,26 +122,33 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         
     def _build(self):
         self.block_0 = get_first_block(self._config["input_channels"])
-        self.blocks = [
-                conv2_x_block(
-                    num_channels=ch, num_sub_blocks=b, num_out_channels=ch)
-                for b, ch in
-                self.block_structure
-            ]
+        self.blocks, self.adjust_ch = self.create_network_stem()
         
         self.blocks = nn.ModuleList(self.blocks)
-        
-        bs = self.block_structure
-        self.adjust_ch = [
-            get_one_conv_relu_block(bs[i][1], bs[i+1][1]) 
-            for i in range(len(bs)-1)
-        ]
-        
         self.adjust_ch = nn.ModuleList(self.adjust_ch)
         
         self.avgpool = nn.AdaptiveAvgPool1d(1)
         self.fc_mu = nn.Linear(512, 1)
         self.fc_log_var = nn.Linear(512, 1)
+
+    def create_network_stem(self):
+        if all([len(b) == 2 for b in self.block_structure]): 
+            # implies use default dilation and dropout p
+            blocks = [
+                    conv2_x_block(
+                        num_channels=ch, num_sub_blocks=b, num_out_channels=ch)
+                    for b, ch in
+                    self.block_structure
+                ]
+            bs = self.block_structure
+            adjust_ch = [
+                get_one_conv_relu_block(bs[i][1], bs[i+1][1]) 
+                for i in range(len(bs)-1)
+            ]
+            
+            return blocks, adjust_ch
+        else:
+            raise NotImplementedError()
     
     
     def forward(self, x):
@@ -213,12 +245,62 @@ class ResprMCDropoutCNNResnet18v2(ResprMCDropoutCNNResnet18):
             nn.Linear(256, 1)
         )
 
+class ResprMCDropoutDilatedCNNResnet18(ResprMCDropoutCNNResnet18v2):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+    
+    def get_block_structure(self):
+        return {"front": [
+            # order of arguments:
+            # num sub-blocks, num channels, dilations, paddings and strides
+            # dropout_p
+            (2, 64,  [1, 1], [1, 1], [1, 1], 0.4) , #conv2_x
+            (2, 128, [1, 1], [1, 1], [1, 1], 0.4) , #conv3_x
+            (2, 256, [1, 1], [1, 1], [1, 1], 0.4) , #conv4_x
+            (2, 512, [1, 1], [1, 1], [1, 1], 0.4)   #conv5_x
+        ],
+            "channel_adjust": [
+            # order of arguments:
+            # in_channel, out_channels, dilations, paddings and strides,
+            # dropout_p
+            (64,  128, [1], [1], [1], 0.4) , #conv2_x
+            (128, 256, [1], [1], [1], 0.4) , #conv3_x
+            (256, 512, [1], [1], [1], 0.4) , #conv4_x
+        ]}
+    
+    def create_network_stem(self):
+        assert all([len(b) == 6 for b in self.block_structure["front"]])
+        assert all([len(b) == 6 for b
+                    in self.block_structure["channel_adjust"]])
+        assert len(self.block_structure["front"]) == \
+            len(self.block_structure["channel_adjust"]) + 1
+        blocks = [
+                conv2_x_block(
+                    num_channels=ch, num_sub_blocks=b, num_out_channels=ch,
+                    dilations=dilations, paddings=paddings, strides=strides,
+                    dropout_p=do_p)
+                for b, ch, dilations, paddings, strides, do_p in
+                self.block_structure["front"]
+            ]
+        bs_cha = self.block_structure["channel_adjust"]
+        
+        adjust_ch = [
+            get_one_conv_relu_block(in_ch, out_ch, dilations=dilations,
+                                    paddings=paddings, strides=strides,
+                                    dropout_p=do_p) 
+            for in_ch, out_ch, dilations, paddings, strides, do_p in
+                bs_cha
+        ]
+
+        return blocks, adjust_ch
+    
 # This lookup is to support config based resolution of model module classes
 MODULE_CLASS_LOOKUP = {
     "_DebugResprMCDropoutCNN": _DebugResprMCDropoutCNN,
     "ResprMCDropoutCNNResnet18": ResprMCDropoutCNNResnet18,
     "ResprMCDropoutCNNResnet18Small": ResprMCDropoutCNNResnet18Small,
-    "ResprMCDropoutCNNResnet18v2": ResprMCDropoutCNNResnet18v2
+    "ResprMCDropoutCNNResnet18v2": ResprMCDropoutCNNResnet18v2,
+    "ResprMCDropoutDilatedCNNResnet18": ResprMCDropoutDilatedCNNResnet18
 }
 
 class LitResprMCDropoutCNN(pl.LightningModule):
