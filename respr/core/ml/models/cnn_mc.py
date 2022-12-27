@@ -115,16 +115,9 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         
     def _build(self):
         self.block_0 = get_first_block(self._config["input_channels"])
-        self.blocks = self.create_network_stem()
+        self.blocks, self.adjust_ch = self.create_network_stem()
         
         self.blocks = nn.ModuleList(self.blocks)
-        
-        bs = self.block_structure
-        self.adjust_ch = [
-            get_one_conv_relu_block(bs[i][1], bs[i+1][1]) 
-            for i in range(len(bs)-1)
-        ]
-        
         self.adjust_ch = nn.ModuleList(self.adjust_ch)
         
         self.avgpool = nn.AdaptiveAvgPool1d(1)
@@ -134,12 +127,19 @@ class ResprMCDropoutCNNResnet18(nn.Module):
     def create_network_stem(self):
         if all([len(b) == 2 for b in self.block_structure]): 
             # implies use default dilation and dropout p
-            return [
+            blocks = [
                     conv2_x_block(
                         num_channels=ch, num_sub_blocks=b, num_out_channels=ch)
                     for b, ch in
                     self.block_structure
                 ]
+            bs = self.block_structure
+            adjust_ch = [
+                get_one_conv_relu_block(bs[i][1], bs[i+1][1]) 
+                for i in range(len(bs)-1)
+            ]
+            
+            return blocks, adjust_ch
         else:
             raise NotImplementedError()
     
@@ -238,6 +238,11 @@ class ResprMCDropoutCNNResnet18v2(ResprMCDropoutCNNResnet18):
             nn.Linear(256, 1)
         )
 
+class ResprMCDropoutDilatedCNNResnet18(ResprMCDropoutCNNResnet18v2):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+    
+    
 # This lookup is to support config based resolution of model module classes
 MODULE_CLASS_LOOKUP = {
     "_DebugResprMCDropoutCNN": _DebugResprMCDropoutCNN,
