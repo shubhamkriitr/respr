@@ -132,12 +132,16 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         self.fc_log_var = nn.Linear(512, 1)
 
     def create_network_stem(self):
-        return [
-                conv2_x_block(
-                    num_channels=ch, num_sub_blocks=b, num_out_channels=ch)
-                for b, ch in
-                self.block_structure
-            ]
+        if all([len(b) == 2 for b in self.block_structure]): 
+            # implies use default dilation and dropout p
+            return [
+                    conv2_x_block(
+                        num_channels=ch, num_sub_blocks=b, num_out_channels=ch)
+                    for b, ch in
+                    self.block_structure
+                ]
+        else:
+            raise NotImplementedError()
     
     
     def forward(self, x):
