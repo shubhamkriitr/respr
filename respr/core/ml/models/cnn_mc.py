@@ -323,6 +323,33 @@ class ResprMCDropoutDilatedCNNResnet18v2(ResprMCDropoutDilatedCNNResnet18):
             (128, 256, [1], [1], [2], 0.4) , #conv3_x
             (256, 512, [1], [1], [2], 0.4) , #conv4_x
         ]}
+
+class ResprMCDropoutDilatedCNNResnet18v3LowerDropoutP(
+    ResprMCDropoutDilatedCNNResnet18):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+    
+    def get_block_structure(self):
+        return {"front": [
+            # order of arguments:
+            # num sub-blocks, num channels, dilations, paddings and strides
+            # dropout_p
+            (2, 64,  [2, 2], [2, 2], [1, 1], 0.1) , #conv2_x
+            (2, 64, [4, 4], [4, 4], [1, 1], 0.1) , #conv3_x
+            (2, 128, [8, 8], [8, 8], [1, 1], 0.1) , #conv4_x
+            (2, 256, [16, 16], [16, 16], [1, 1], 0.1),   #conv5_x
+            (2, 512, [32, 32], [32, 32], [1, 1], 0.1)   #conv6_x
+        ],
+            "channel_adjust": [
+            # order of arguments:
+            # in_channel, out_channels, dilations, paddings and strides,
+            # dropout_p
+            (64,  64, [1], [1], [3], 0.1) , #conv2_x
+            (64, 128, [1], [1], [3], 0.1) , #conv3_x
+            (128, 256, [1], [1], [3], 0.1) , #conv4_x
+            (256, 512, [1], [1], [3], 0.1) , #conv5_x
+        ]}
+
 # This lookup is to support config based resolution of model module classes
 MODULE_CLASS_LOOKUP = {
     "_DebugResprMCDropoutCNN": _DebugResprMCDropoutCNN,
@@ -330,7 +357,9 @@ MODULE_CLASS_LOOKUP = {
     "ResprMCDropoutCNNResnet18Small": ResprMCDropoutCNNResnet18Small,
     "ResprMCDropoutCNNResnet18v2": ResprMCDropoutCNNResnet18v2,
     "ResprMCDropoutDilatedCNNResnet18": ResprMCDropoutDilatedCNNResnet18,
-    "ResprMCDropoutDilatedCNNResnet18v2": ResprMCDropoutDilatedCNNResnet18v2
+    "ResprMCDropoutDilatedCNNResnet18v2": ResprMCDropoutDilatedCNNResnet18v2,
+    "ResprMCDropoutDilatedCNNResnet18v3LowerDropoutP":\
+        ResprMCDropoutDilatedCNNResnet18v3LowerDropoutP
 }
 
 class LitResprMCDropoutCNN(pl.LightningModule):
