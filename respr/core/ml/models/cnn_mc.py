@@ -8,19 +8,22 @@ from respr.util.common import fill_missing_values
 import pytorch_lightning as pl
 
 def get_conv_bn_relu_block(num_channels, num_out_channels, dropout_p=0.4,
-                           dilations=[1, 1], paddings=[1, 1]):
+                           dilations=[1, 1], paddings=[1, 1],
+                           strides=[1, 1]):
     assert len(dilations) == 2
     assert len(paddings) == 2
+    assert len(strides) == 2
     d1, d2 = dilations
     p1, p2 = paddings
+    s1, s2 = strides
     block = nn.Sequential(
         nn.Conv1d(in_channels=num_channels, out_channels=num_channels,
-                  kernel_size=3, stride=1, padding=p1, bias=False,
+                  kernel_size=3, stride=s1, padding=p1, bias=False,
                   dilation=d1),
         nn.BatchNorm1d(num_features=num_channels),
         nn.ReLU(inplace=True),
         nn.Conv1d(in_channels=num_channels, out_channels=num_out_channels,
-                  kernel_size=3, stride=1, padding=p2, bias=False,
+                  kernel_size=3, stride=s2, padding=p2, bias=False,
                   dilation=d2),
         nn.BatchNorm1d(num_features=num_out_channels),
         nn.ReLU(inplace=True),
@@ -30,14 +33,17 @@ def get_conv_bn_relu_block(num_channels, num_out_channels, dropout_p=0.4,
     return block
 
 def get_one_conv_relu_block(num_channels, num_out_channels, dropout_p=0.4,
-                            dilations=[1], paddings=[1]):
+                            dilations=[1], paddings=[1],
+                           strides=[1, 1]):
     assert len(dilations) == 1
     assert len(paddings) == 1
+    assert len(strides) == 1
     d1 = dilations[0]
     p1 = paddings[0]
+    s1 = strides[0]
     block = nn.Sequential(
         nn.Conv1d(in_channels=num_channels, out_channels=num_out_channels,
-                  kernel_size=3, stride=1, padding=p1, bias=False,
+                  kernel_size=3, stride=s1, padding=p1, bias=False,
                   dilation=d1),
         nn.BatchNorm1d(num_features=num_out_channels),
         nn.ReLU(inplace=True),
