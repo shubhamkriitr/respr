@@ -58,7 +58,9 @@ def get_first_block(num_in_channels, dropout_p=0.5):
     
     return block
 
-def conv2_x_block(num_channels, num_sub_blocks, num_out_channels):
+def conv2_x_block(num_channels, num_sub_blocks, num_out_channels, 
+                  dropout_p=0.4,
+                  dilations=[1, 1], paddings=[1, 1]):
     class ResprResnetSubModule(nn.Module):
         def __init__(self) -> None:
             super().__init__()
@@ -70,7 +72,10 @@ def conv2_x_block(num_channels, num_sub_blocks, num_out_channels):
                 if i == num_sub_blocks - 1:
                     out_ch = num_out_channels
                 
-                b = get_conv_bn_relu_block(num_channels, out_ch)
+                b = get_conv_bn_relu_block(num_channels, out_ch,
+                        dropout_p=dropout_p,
+                        dilations=dilations,
+                        paddings=paddings)
                 self.blocks.append(b)
         
         def forward(self, x):
