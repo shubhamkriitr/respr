@@ -250,22 +250,26 @@ class ResprMCDropoutDilatedCNNResnet18(ResprMCDropoutCNNResnet18v2):
         super().__init__(config)
     
     def get_block_structure(self):
+        # this structure should have a receptive field of 757 points
+        # before average pooling (@300Hz) => 2.5 seconds of signal
         return {"front": [
             # order of arguments:
             # num sub-blocks, num channels, dilations, paddings and strides
             # dropout_p
-            (2, 64,  [1, 1], [1, 1], [1, 1], 0.4) , #conv2_x
-            (2, 128, [1, 1], [1, 1], [1, 1], 0.4) , #conv3_x
-            (2, 256, [1, 1], [1, 1], [1, 1], 0.4) , #conv4_x
-            (2, 512, [1, 1], [1, 1], [1, 1], 0.4)   #conv5_x
+            (2, 64,  [2, 2], [2, 2], [1, 1], 0.4) , #conv2_x
+            (2, 64, [4, 4], [4, 4], [1, 1], 0.4) , #conv3_x
+            (2, 128, [8, 8], [8, 8], [1, 1], 0.4) , #conv4_x
+            (2, 256, [16, 16], [16, 16], [1, 1], 0.4),   #conv5_x
+            (2, 512, [32, 32], [32, 32], [1, 1], 0.4)   #conv6_x
         ],
             "channel_adjust": [
             # order of arguments:
             # in_channel, out_channels, dilations, paddings and strides,
             # dropout_p
-            (64,  128, [1], [1], [1], 0.4) , #conv2_x
-            (128, 256, [1], [1], [1], 0.4) , #conv3_x
-            (256, 512, [1], [1], [1], 0.4) , #conv4_x
+            (64,  64, [1], [1], [3], 0.4) , #conv2_x
+            (64, 128, [1], [1], [3], 0.4) , #conv3_x
+            (128, 256, [1], [1], [3], 0.4) , #conv4_x
+            (256, 512, [1], [1], [3], 0.4) , #conv5_x
         ]}
     
     def create_network_stem(self):
