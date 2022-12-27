@@ -66,7 +66,7 @@ def get_first_block(num_in_channels, dropout_p=0.5):
 
 def conv2_x_block(num_channels, num_sub_blocks, num_out_channels, 
                   dropout_p=0.4,
-                  dilations=[1, 1], paddings=[1, 1]):
+                  dilations=[1, 1], paddings=[1, 1], strides=[1, 1]):
     class ResprResnetSubModule(nn.Module):
         def __init__(self) -> None:
             super().__init__()
@@ -81,7 +81,8 @@ def conv2_x_block(num_channels, num_sub_blocks, num_out_channels,
                 b = get_conv_bn_relu_block(num_channels, out_ch,
                         dropout_p=dropout_p,
                         dilations=dilations,
-                        paddings=paddings)
+                        paddings=paddings,
+                        strides=strides)
                 self.blocks.append(b)
         
         def forward(self, x):
@@ -248,13 +249,58 @@ class ResprMCDropoutDilatedCNNResnet18(ResprMCDropoutCNNResnet18v2):
     def __init__(self, config={}) -> None:
         super().__init__(config)
     
+    def get_block_structure(self):
+        return {"front": [
+            # order of arguments:
+            # num sub-blocks, num channels, dilations, paddings and strides
+            # dropout_p
+            (2, 64,  [1, 1], [1, 1], [1, 1], 0.4) , #conv2_x
+            (2, 128, [1, 1], [1, 1], [1, 1], 0.4) , #conv3_x
+            (2, 256, [1, 1], [1, 1], [1, 1], 0.4) , #conv4_x
+            (2, 512, [1, 1], [1, 1], [1, 1], 0.4)   #conv5_x
+        ],
+            "channel_adjust": [
+            # order of arguments:
+            # in_channel, out_channels, dilations, paddings and strides,
+            # dropout_p
+            (64,  128, [1], [1], [1], 0.4) , #conv2_x
+            (128, 256, [1], [1], [1], 0.4) , #conv3_x
+            (256, 512, [1], [1], [1], 0.4) , #conv4_x
+        ]}
+    
+    def create_network_stem(self):
+        assert all([len(b) == 6 for b in self.block_structure["front"]])
+        assert all([len(b) == 6 for b
+                    in self.block_structure["channel_adjust"]])
+        assert len(self.block_structure["front"]) == \
+            len(self.block_structure["channel_adjust"]) + 1
+        blocks = [
+                conv2_x_block(
+                    num_channels=ch, num_sub_blocks=b, num_out_channels=ch,
+                    dilations=dilations, paddings=paddings, strides=strides,
+                    dropout_p=do_p)
+                for b, ch, dilations, paddings, strides, do_p in
+                self.block_structure["front"]
+            ]
+        bs_cha = self.block_structure["channel_adjust"]
+        
+        adjust_ch = [
+            get_one_conv_relu_block(in_ch, out_ch, dilations=dilations,
+                                    paddings=paddings, strides=strides,
+                                    dropout_p=do_p) 
+            for in_ch, out_ch, dilations, paddings, strides, do_p in
+                bs_cha
+        ]
+
+        return blocks, adjust_ch
     
 # This lookup is to support config based resolution of model module classes
 MODULE_CLASS_LOOKUP = {
     "_DebugResprMCDropoutCNN": _DebugResprMCDropoutCNN,
     "ResprMCDropoutCNNResnet18": ResprMCDropoutCNNResnet18,
     "ResprMCDropoutCNNResnet18Small": ResprMCDropoutCNNResnet18Small,
-    "ResprMCDropoutCNNResnet18v2": ResprMCDropoutCNNResnet18v2
+    "ResprMCDropoutCNNResnet18v2": ResprMCDropoutCNNResnet18v2,
+    "ResprMCDropoutDilatedCNNResnet18": ResprMCDropoutDilatedCNNResnet18
 }
 
 class LitResprMCDropoutCNN(pl.LightningModule):
