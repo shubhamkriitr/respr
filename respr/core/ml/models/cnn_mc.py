@@ -96,7 +96,7 @@ def conv2_x_block(num_channels, num_sub_blocks, num_out_channels,
     
     module = ResprResnetSubModule()
     if not add_skip_conn:
-        class ResprResnetSubModuleNoSkip(ResprResnetSubModule):
+        class ResprSubModuleNoSkip(ResprResnetSubModule):
             def __init__(self) -> None:
                 super().__init__()
             
@@ -106,7 +106,7 @@ def conv2_x_block(num_channels, num_sub_blocks, num_out_channels,
                     z0 = block(z0)
                 return z0
         
-        module = ResprResnetSubModuleNoSkip()
+        module = ResprSubModuleNoSkip()
 
     return module
 
