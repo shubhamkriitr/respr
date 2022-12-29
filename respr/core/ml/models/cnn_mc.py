@@ -67,7 +67,8 @@ def get_first_block(num_in_channels, dropout_p=0.5):
 
 def conv2_x_block(num_channels, num_sub_blocks, num_out_channels, 
                   dropout_p=0.4,
-                  dilations=[1, 1], paddings=[1, 1], strides=[1, 1]):
+                  dilations=[1, 1], paddings=[1, 1], strides=[1, 1],
+                  add_skip_conn=True):
     class ResprResnetSubModule(nn.Module):
         def __init__(self) -> None:
             super().__init__()
@@ -92,8 +93,22 @@ def conv2_x_block(num_channels, num_sub_blocks, num_out_channels,
                 z1 = block(z0)
                 z0 = z1 + z0
             return z0
+    
+    module = ResprResnetSubModule()
+    if not add_skip_conn:
+        class ResprResnetSubModuleNoSkip(ResprResnetSubModule):
+            def __init__(self) -> None:
+                super().__init__()
+            
+            def forward(self, x):
+                z0 = x
+                for block in self.blocks:
+                    z0 = block(z0)
+                return z0
+        
+        module = ResprResnetSubModuleNoSkip()
 
-    return ResprResnetSubModule()
+    return module
 
 class ResprMCDropoutCNNResnet18(nn.Module):
     
