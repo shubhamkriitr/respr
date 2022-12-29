@@ -102,8 +102,10 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         self._config = config
         defaults = {
             "input_channels": 1,
-            "force_reshape_input": False # try to reshape input records to 
-            # get the desired number of input channels
+            "force_reshape_input": False, # try to reshape input records to 
+            # get the desired number of input channels,
+            "embedding_dim": 512 # dimension of input to the linear heads (for
+            # predicting mean and log(variance))
         }
         self._config = fill_missing_values(default_values=defaults,
                                            target_container=self._config)
@@ -128,8 +130,9 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         self.adjust_ch = nn.ModuleList(self.adjust_ch)
         
         self.avgpool = nn.AdaptiveAvgPool1d(1)
-        self.fc_mu = nn.Linear(512, 1)
-        self.fc_log_var = nn.Linear(512, 1)
+        embedding_dim = self._config["embedding_dim"]
+        self.fc_mu = nn.Linear(embedding_dim, 1)
+        self.fc_log_var = nn.Linear(embedding_dim, 1)
 
     def create_network_stem(self):
         if all([len(b) == 2 for b in self.block_structure]): 
