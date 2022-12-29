@@ -482,7 +482,30 @@ class ResprMCDropoutDilatedCNNResnet18v5(ResprMCDropoutDilatedCNNResnet18v4):
             nn.ReLU(),
             nn.Linear(256, 1)
         )
-
+class ResprMCDropoutDilatedCNNResnet18v6Deeper(ResprMCDropoutDilatedCNNResnet18):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+    
+    def get_block_structure(self):
+        return {"front": [
+            # order of arguments:
+            # num sub-blocks, num channels, dilations, paddings and strides
+            # dropout_p
+            (20, 64,  [ 1]*20, [ 0]*20, [1]*20, 0.0) , #conv?_x
+            (20, 128,  [ 1]*20, [ 0]*20, [1]*20, 0.1) , #conv?_x
+            (2, 256,  [ 1,  1], [ 0,  0], [1, 1], 0.1) , #conv?_x
+            (1, 512,  [ 1,] , [ 0,] , [1,], 0.1) , #conv?_x
+            
+            ],
+            "channel_adjust": [
+            # order of arguments:
+            # in_channel, out_channels, dilations, paddings and strides,
+            # dropout_p
+            (64,  128, [1], [1], [1], 0.1), #conv2_x
+            (128,  256, [1], [1], [1], 0.1), #conv2_x
+            (256, 512, [1], [1], [1], 0.1) #conv2_x
+        ]}
+    
 # This lookup is to support config based resolution of model module classes
 MODULE_CLASS_LOOKUP = {
     "_DebugResprMCDropoutCNN": _DebugResprMCDropoutCNN,
@@ -495,7 +518,9 @@ MODULE_CLASS_LOOKUP = {
         ResprMCDropoutDilatedCNNResnet18v3LowerDropoutP,
     "ResprMCDropoutDilatedCNNResnet18v4": ResprMCDropoutDilatedCNNResnet18v4,
     "ResprMCDropoutDilatedCNNResnet18v5": ResprMCDropoutDilatedCNNResnet18v5,
-    "ResprMCDropoutDilatedCNNBase": ResprMCDropoutDilatedCNNBase
+    "ResprMCDropoutDilatedCNNBase": ResprMCDropoutDilatedCNNBase,
+    "ResprMCDropoutDilatedCNNResnet18v6Deeper":\
+        ResprMCDropoutDilatedCNNResnet18v6Deeper
 }
     
 class LitResprMCDropoutCNN(pl.LightningModule):
