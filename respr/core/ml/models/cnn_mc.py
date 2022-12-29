@@ -394,7 +394,23 @@ class ResprMCDropoutDilatedCNNResnet18v4(
     def _build(self):
         return super()._build()
     
-        
+class ResprMCDropoutDilatedCNNResnet18v5(ResprMCDropoutDilatedCNNResnet18v4):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+    
+    def _build(self):
+        super()._build()
+        embedding_dim = self._config["embedding_dim"]
+        self.fc_mu = nn.Sequential(
+            nn.Linear(embedding_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 1)
+        )
+        self.fc_log_var = nn.Sequential(
+            nn.Linear(embedding_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 1)
+        )
 
 # This lookup is to support config based resolution of model module classes
 MODULE_CLASS_LOOKUP = {
@@ -406,9 +422,10 @@ MODULE_CLASS_LOOKUP = {
     "ResprMCDropoutDilatedCNNResnet18v2": ResprMCDropoutDilatedCNNResnet18v2,
     "ResprMCDropoutDilatedCNNResnet18v3LowerDropoutP":\
         ResprMCDropoutDilatedCNNResnet18v3LowerDropoutP,
-    "ResprMCDropoutDilatedCNNResnet18v4": ResprMCDropoutDilatedCNNResnet18v4
+    "ResprMCDropoutDilatedCNNResnet18v4": ResprMCDropoutDilatedCNNResnet18v4,
+    "ResprMCDropoutDilatedCNNResnet18v5": ResprMCDropoutDilatedCNNResnet18v5
 }
-
+    
 class LitResprMCDropoutCNN(pl.LightningModule):
     def __init__(self, *args, **kwargs) -> None:
         logger.warning(f"`activate_dropout_layers` method of this module"
