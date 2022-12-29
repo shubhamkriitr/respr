@@ -34,7 +34,7 @@ def get_conv_bn_relu_block(num_channels, num_out_channels, dropout_p=0.4,
 
 def get_one_conv_relu_block(num_channels, num_out_channels, dropout_p=0.4,
                             dilations=[1], paddings=[1],
-                           strides=[1, 1]):
+                           strides=[1]):
     assert len(dilations) == 1
     assert len(paddings) == 1
     assert len(strides) == 1
