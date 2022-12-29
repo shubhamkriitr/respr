@@ -129,7 +129,7 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         self.blocks = nn.ModuleList(self.blocks)
         self.adjust_ch = nn.ModuleList(self.adjust_ch)
         
-        self.avgpool = nn.AdaptiveAvgPool1d(1)
+        self.compute_embedding = nn.AdaptiveAvgPool1d(1)
         embedding_dim = self._config["embedding_dim"]
         self.fc_mu = nn.Linear(embedding_dim, 1)
         self.fc_log_var = nn.Linear(embedding_dim, 1)
@@ -179,7 +179,7 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         
         z = self.blocks[-1](z)
         
-        z = self.avgpool(z)
+        z = self.compute_embedding(z)
         z = torch.squeeze(z)
         return z
         
