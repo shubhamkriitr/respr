@@ -6,6 +6,7 @@ from respr.util import logger
 from respr.core.ml.models.util import ModelUtil
 from respr.util.common import fill_missing_values
 import pytorch_lightning as pl
+import copy
 
 def get_conv_bn_relu_block(num_channels, num_out_channels, dropout_p=0.4,
                            dilations=[1, 1], paddings=[1, 1],
@@ -102,8 +103,10 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         self._config = config
         defaults = {
             "input_channels": 1,
-            "force_reshape_input": False # try to reshape input records to 
-            # get the desired number of input channels
+            "force_reshape_input": False, # try to reshape input records to 
+            # get the desired number of input channels,
+            "embedding_dim": 512 # dimension of input to the linear heads (for
+            # predicting mean and log(variance))
         }
         self._config = fill_missing_values(default_values=defaults,
                                            target_container=self._config)
@@ -127,9 +130,10 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         self.blocks = nn.ModuleList(self.blocks)
         self.adjust_ch = nn.ModuleList(self.adjust_ch)
         
-        self.avgpool = nn.AdaptiveAvgPool1d(1)
-        self.fc_mu = nn.Linear(512, 1)
-        self.fc_log_var = nn.Linear(512, 1)
+        self.compute_embedding = nn.AdaptiveAvgPool1d(1)
+        embedding_dim = self._config["embedding_dim"]
+        self.fc_mu = nn.Linear(embedding_dim, 1)
+        self.fc_log_var = nn.Linear(embedding_dim, 1)
 
     def create_network_stem(self):
         if all([len(b) == 2 for b in self.block_structure]): 
@@ -176,7 +180,7 @@ class ResprMCDropoutCNNResnet18(nn.Module):
         
         z = self.blocks[-1](z)
         
-        z = self.avgpool(z)
+        z = self.compute_embedding(z)
         z = torch.squeeze(z)
         return z
         
@@ -350,6 +354,47 @@ class ResprMCDropoutDilatedCNNResnet18v3LowerDropoutP(
             (256, 512, [1], [1], [3], 0.1) , #conv5_x
         ]}
 
+
+class ResprMCDropoutDilatedCNNResnet18v4(
+    ResprMCDropoutDilatedCNNResnet18):
+    def __init__(self, config={}) -> None:
+        """This is very shallow version of the network.
+        """
+        config = copy.deepcopy(config)
+        defaults = {
+            "embedding_dim": 256
+        }
+        config = fill_missing_values(default_values=defaults,
+                                     target_container=config)
+        super().__init__(config)
+    
+    def get_block_structure(self):
+        # final receptive field: 385 points
+        return {"front": [
+            # order of arguments:
+            # num sub-blocks, num channels, dilations, paddings and strides
+            # dropout_p
+            (1, 64,  [2, 2], [2, 2], [1, 1], 0.1) , #conv2_x
+            (1, 64, [4, 4], [4, 4], [1, 1], 0.1) , #conv3_x
+            (1, 64, [8, 8], [8, 8], [1, 1], 0.1) , #conv4_x
+            (1, 128, [16, 16], [16, 16], [1, 1], 0.1),   #conv5_x
+            (1, 256, [32, 32], [32, 32], [1, 1], 0.1)   #conv6_x
+        ],
+            "channel_adjust": [
+            # order of arguments:
+            # in_channel, out_channels, dilations, paddings and strides,
+            # dropout_p
+            (64,  64, [1], [1], [3], 0.1) , #conv2_x
+            (64, 64, [1], [1], [3], 0.1) , #conv3_x
+            (64, 128, [1], [1], [3], 0.1) , #conv4_x
+            (128, 256, [1], [1], [3], 0.1) , #conv5_x
+        ]}
+    
+    def _build(self):
+        return super()._build()
+    
+        
+
 # This lookup is to support config based resolution of model module classes
 MODULE_CLASS_LOOKUP = {
     "_DebugResprMCDropoutCNN": _DebugResprMCDropoutCNN,
@@ -359,7 +404,8 @@ MODULE_CLASS_LOOKUP = {
     "ResprMCDropoutDilatedCNNResnet18": ResprMCDropoutDilatedCNNResnet18,
     "ResprMCDropoutDilatedCNNResnet18v2": ResprMCDropoutDilatedCNNResnet18v2,
     "ResprMCDropoutDilatedCNNResnet18v3LowerDropoutP":\
-        ResprMCDropoutDilatedCNNResnet18v3LowerDropoutP
+        ResprMCDropoutDilatedCNNResnet18v3LowerDropoutP,
+    "ResprMCDropoutDilatedCNNResnet18v4": ResprMCDropoutDilatedCNNResnet18v4
 }
 
 class LitResprMCDropoutCNN(pl.LightningModule):
