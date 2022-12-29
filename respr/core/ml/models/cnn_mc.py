@@ -553,6 +553,9 @@ class LitResprMCDropoutCNN(pl.LightningModule):
         return self._config
     
     def compute_loss(self, mu, log_var, y_true):
+        mu = torch.ravel(mu)
+        log_var = torch.ravel(log_var)
+        y_true = torch.ravel(y_true)
         delta = (y_true - mu)
         loss = (delta*delta)/torch.exp(log_var) + log_var
         loss = torch.mean(loss)
