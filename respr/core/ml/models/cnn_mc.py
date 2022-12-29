@@ -719,3 +719,24 @@ class LitResprMCDropoutCNN(pl.LightningModule):
         if len(z.shape) == 1:
             z = torch.unsqueeze(z, axis=0)
         return z
+
+class LitResprMCDropoutCNNOnlyRegressionCostFunc(LitResprMCDropoutCNN):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+    
+    def compute_loss(self, mu, log_var, y_true):
+        mu = torch.ravel(mu)
+        dummy_log_y = torch.ravel(log_var)
+        y_true = torch.ravel(y_true)
+        delta = (y_true - mu)
+        loss = (delta*delta)
+        loss = torch.mean(loss)
+        
+        dummy_y = torch.exp(dummy_log_y)
+        delta_2 = (y_true - dummy_y)
+        dummy_loss = torch.mean(delta_2*delta_2)
+        
+        loss = loss + dummy_loss # this is to use the existing pipeline.
+        #Essentially the two heads should be predicting y and log(y) respectively
+        
+        return loss
