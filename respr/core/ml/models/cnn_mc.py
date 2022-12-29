@@ -67,7 +67,8 @@ def get_first_block(num_in_channels, dropout_p=0.5):
 
 def conv2_x_block(num_channels, num_sub_blocks, num_out_channels, 
                   dropout_p=0.4,
-                  dilations=[1, 1], paddings=[1, 1], strides=[1, 1]):
+                  dilations=[1, 1], paddings=[1, 1], strides=[1, 1],
+                  add_skip_conn=True):
     class ResprResnetSubModule(nn.Module):
         def __init__(self) -> None:
             super().__init__()
@@ -92,8 +93,22 @@ def conv2_x_block(num_channels, num_sub_blocks, num_out_channels,
                 z1 = block(z0)
                 z0 = z1 + z0
             return z0
+    
+    module = ResprResnetSubModule()
+    if not add_skip_conn:
+        class ResprSubModuleNoSkip(ResprResnetSubModule):
+            def __init__(self) -> None:
+                super().__init__()
+            
+            def forward(self, x):
+                z0 = x
+                for block in self.blocks:
+                    z0 = block(z0)
+                return z0
+        
+        module = ResprSubModuleNoSkip()
 
-    return ResprResnetSubModule()
+    return module
 
 class ResprMCDropoutCNNResnet18(nn.Module):
     
@@ -249,6 +264,62 @@ class ResprMCDropoutCNNResnet18v2(ResprMCDropoutCNNResnet18):
             nn.ReLU(),
             nn.Linear(256, 1)
         )
+
+
+class ResprMCDropoutDilatedCNNBase(ResprMCDropoutCNNResnet18v2):
+    def __init__(self, config={}) -> None:
+        """This network has no skip/shortcut connections"""
+        super().__init__(config)
+    
+    def get_block_structure(self):
+        # this structure should have a receptive field of 757 points
+        # before average pooling (@300Hz) => 2.5 seconds of signal
+        return {"front": [
+            # order of arguments:
+            # num sub-blocks, num channels, dilations, paddings and strides
+            # dropout_p, add_skip_connection or not
+            (2, 64,  [2, 2], [2, 2], [1, 1], 0.1, False) , #conv2_x
+            (2, 64, [4, 4], [4, 4], [1, 1], 0.1, False ), #conv3_x
+            (2, 128, [8, 8], [8, 8], [1, 1], 0.1, False) , #conv4_x
+            (2, 256, [16, 16], [16, 16], [1, 1], 0.1, False),   #conv5_x
+            (2, 512, [32, 32], [32, 32], [1, 1], 0.1, False)   #conv6_x
+        ],
+            "channel_adjust": [
+            # order of arguments:
+            # in_channel, out_channels, dilations, paddings and strides,
+            # dropout_p
+            (64,  64, [1], [1], [3], 0.1) , #conv2_x
+            (64, 128, [1], [1], [3], 0.1) , #conv3_x
+            (128, 256, [1], [1], [3], 0.1) , #conv4_x
+            (256, 512, [1], [1], [3], 0.1) , #conv5_x
+        ]}
+    
+    def create_network_stem(self):
+        assert all([len(b) == 7 for b in self.block_structure["front"]])
+        assert all([len(b) == 6 for b
+                    in self.block_structure["channel_adjust"]])
+        assert len(self.block_structure["front"]) == \
+            len(self.block_structure["channel_adjust"]) + 1
+        blocks = [
+                conv2_x_block(
+                    num_channels=ch, num_sub_blocks=b, num_out_channels=ch,
+                    dilations=dilations, paddings=paddings, strides=strides,
+                    dropout_p=do_p, add_skip_conn=add_skip)
+                for b, ch, dilations, paddings, strides, do_p, add_skip in
+                self.block_structure["front"]
+            ]
+        bs_cha = self.block_structure["channel_adjust"]
+        
+        adjust_ch = [
+            get_one_conv_relu_block(in_ch, out_ch, dilations=dilations,
+                                    paddings=paddings, strides=strides,
+                                    dropout_p=do_p) 
+            for in_ch, out_ch, dilations, paddings, strides, do_p in
+                bs_cha
+        ]
+
+        return blocks, adjust_ch
+
 
 class ResprMCDropoutDilatedCNNResnet18(ResprMCDropoutCNNResnet18v2):
     def __init__(self, config={}) -> None:
@@ -423,7 +494,8 @@ MODULE_CLASS_LOOKUP = {
     "ResprMCDropoutDilatedCNNResnet18v3LowerDropoutP":\
         ResprMCDropoutDilatedCNNResnet18v3LowerDropoutP,
     "ResprMCDropoutDilatedCNNResnet18v4": ResprMCDropoutDilatedCNNResnet18v4,
-    "ResprMCDropoutDilatedCNNResnet18v5": ResprMCDropoutDilatedCNNResnet18v5
+    "ResprMCDropoutDilatedCNNResnet18v5": ResprMCDropoutDilatedCNNResnet18v5,
+    "ResprMCDropoutDilatedCNNBase": ResprMCDropoutDilatedCNNBase
 }
     
 class LitResprMCDropoutCNN(pl.LightningModule):
