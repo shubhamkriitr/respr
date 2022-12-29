@@ -234,15 +234,16 @@ class ResprMCDropoutCNNResnet18v2(ResprMCDropoutCNNResnet18):
     
     def _build(self):
         super()._build()
+        embedding_dim = self._config["embedding_dim"]
         self.fc_mu = nn.Sequential(
-            nn.Linear(512, 256),
+            nn.Linear(embedding_dim, 256),
             nn.ReLU(),
             nn.Linear(256, 256),
             nn.ReLU(),
             nn.Linear(256, 1)
         )
         self.fc_log_var = nn.Sequential(
-            nn.Linear(512, 256),
+            nn.Linear(embedding_dim, 256),
             nn.ReLU(),
             nn.Linear(256, 256),
             nn.ReLU(),
