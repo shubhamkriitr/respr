@@ -326,8 +326,8 @@ class ResprMCDropoutDilatedCNNResnet18(ResprMCDropoutCNNResnet18v2):
         super().__init__(config)
     
     def get_block_structure(self):
-        # this structure should have a receptive field of 757 points
-        # before average pooling (@300Hz) => 2.5 seconds of signal
+        # this structure should have a receptive field of 24973 points
+        # before average pooling
         return {"front": [
             # order of arguments:
             # num sub-blocks, num channels, dilations, paddings and strides
@@ -380,8 +380,8 @@ class ResprMCDropoutDilatedCNNResnet18v2(ResprMCDropoutDilatedCNNResnet18):
         super().__init__(config)
     
     def get_block_structure(self):
-        # this structure should have a receptive field of 315 points
-        # before average pooling (@300Hz) => 1 second of signal
+        # this structure should have a receptive field of TODO points
+        # before average pooling (@300Hz) => ???TODO second of signal
         return {"front": [
             # order of arguments:
             # num sub-blocks, num channels, dilations, paddings and strides
@@ -487,24 +487,52 @@ class ResprMCDropoutDilatedCNNResnet18v6Deeper(ResprMCDropoutDilatedCNNResnet18)
         super().__init__(config)
     
     def get_block_structure(self):
+        raise NotImplementedError()
+        #>>> return {"front": [
+        #>>>     # order of arguments:
+        #>>>     # num sub-blocks, num channels, dilations, paddings and strides
+        #>>>     # dropout_p
+        #>>>     (20,  64,  [ 1, 1], [ 0, 0], [1, 1], 0.0) , #conv?_x
+        #>>>     (20, 128,  [ 1, 1], [ 0, 0], [1, 1], 0.1) , #conv?_x
+        #>>>     ( 2, 256,  [ 1, 1], [ 0, 0], [1, 1], 0.1) , #conv?_x
+        #>>>     ( 1, 512,  [ 1, 1], [ 0, 0], [1, 1], 0.1) , #conv?_x
+        #>>>     ],
+        #>>>     "channel_adjust": [
+        #>>>     # order of arguments:
+        #>>>     # in_channel, out_channels, dilations, paddings and strides,
+        #>>>     # dropout_p
+        #>>>     ( 64, 128, [1], [1], [1], 0.1), #conv2_x
+        #>>>     (128, 256, [1], [1], [1], 0.1), #conv2_x
+        #>>>     (256, 512, [1], [1], [1], 0.1) #conv2_x
+        #>>> ]}
+
+class ResprMCDropoutDilatedCNNResnet18v7(ResprMCDropoutDilatedCNNResnet18):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+    
+    def get_block_structure(self):
+        # receptive field = 1003 points (before final embedding calculation)
+        # @300Hz -> ~3.3 seconds
         return {"front": [
             # order of arguments:
             # num sub-blocks, num channels, dilations, paddings and strides
             # dropout_p
-            (20, 64,  [ 1]*20, [ 0]*20, [1]*20, 0.0) , #conv?_x
-            (20, 128,  [ 1]*20, [ 0]*20, [1]*20, 0.1) , #conv?_x
-            (2, 256,  [ 1,  1], [ 0,  0], [1, 1], 0.1) , #conv?_x
-            (1, 512,  [ 1,] , [ 0,] , [1,], 0.1) , #conv?_x
-            
+            (2, 64,  [2, 2], [2, 2], [1, 1], 0.0) , #conv2_x
+            (2, 64, [4, 4], [4, 4], [1, 1], 0.1) , #conv3_x
+            (2, 128, [8, 8], [8, 8], [1, 1], 0.1) , #conv4_x
+            (2, 256, [16, 16], [16, 16], [1, 1], 0.1),   #conv5_x
+            (2, 512, [32, 32], [32, 32], [1, 1], 0.1)   #conv6_x
             ],
             "channel_adjust": [
             # order of arguments:
             # in_channel, out_channels, dilations, paddings and strides,
             # dropout_p
-            (64,  128, [1], [1], [1], 0.1), #conv2_x
-            (128,  256, [1], [1], [1], 0.1), #conv2_x
-            (256, 512, [1], [1], [1], 0.1) #conv2_x
+            (64,  64, [1], [1], [2], 0.1) , #conv2_x
+            (64, 128, [1], [1], [1], 0.1) , #conv3_x
+            (128, 256, [1], [1], [1], 0.1) , #conv4_x
+            (256, 512, [1], [1], [1], 0.1) , #conv5_x
         ]}
+        
     
 # This lookup is to support config based resolution of model module classes
 MODULE_CLASS_LOOKUP = {
@@ -520,7 +548,8 @@ MODULE_CLASS_LOOKUP = {
     "ResprMCDropoutDilatedCNNResnet18v5": ResprMCDropoutDilatedCNNResnet18v5,
     "ResprMCDropoutDilatedCNNBase": ResprMCDropoutDilatedCNNBase,
     "ResprMCDropoutDilatedCNNResnet18v6Deeper":\
-        ResprMCDropoutDilatedCNNResnet18v6Deeper
+        ResprMCDropoutDilatedCNNResnet18v6Deeper,
+    "ResprMCDropoutDilatedCNNResnet18v7": ResprMCDropoutDilatedCNNResnet18v7
 }
     
 class LitResprMCDropoutCNN(pl.LightningModule):
