@@ -509,6 +509,29 @@ class ResprMCDropoutDilatedCNNResnet18v6Deeper(ResprMCDropoutDilatedCNNResnet18)
 class ResprMCDropoutDilatedCNNResnet18v7(ResprMCDropoutDilatedCNNResnet18):
     def __init__(self, config={}) -> None:
         super().__init__(config)
+    
+    def get_block_structure(self):
+        # receptive field = 1003 points (before final embedding calculation)
+        # @300Hz -> ~3.3 seconds
+        return {"front": [
+            # order of arguments:
+            # num sub-blocks, num channels, dilations, paddings and strides
+            # dropout_p
+            (2, 64,  [2, 2], [2, 2], [1, 1], 0.0) , #conv2_x
+            (2, 64, [4, 4], [4, 4], [1, 1], 0.1) , #conv3_x
+            (2, 128, [8, 8], [8, 8], [1, 1], 0.1) , #conv4_x
+            (2, 256, [16, 16], [16, 16], [1, 1], 0.1),   #conv5_x
+            (2, 512, [32, 32], [32, 32], [1, 1], 0.1)   #conv6_x
+            ],
+            "channel_adjust": [
+            # order of arguments:
+            # in_channel, out_channels, dilations, paddings and strides,
+            # dropout_p
+            (64,  64, [1], [1], [2], 0.1) , #conv2_x
+            (64, 128, [1], [1], [1], 0.1) , #conv3_x
+            (128, 256, [1], [1], [1], 0.1) , #conv4_x
+            (256, 512, [1], [1], [1], 0.1) , #conv5_x
+        ]}
         
     
 # This lookup is to support config based resolution of model module classes
@@ -525,7 +548,8 @@ MODULE_CLASS_LOOKUP = {
     "ResprMCDropoutDilatedCNNResnet18v5": ResprMCDropoutDilatedCNNResnet18v5,
     "ResprMCDropoutDilatedCNNBase": ResprMCDropoutDilatedCNNBase,
     "ResprMCDropoutDilatedCNNResnet18v6Deeper":\
-        ResprMCDropoutDilatedCNNResnet18v6Deeper
+        ResprMCDropoutDilatedCNNResnet18v6Deeper,
+    "ResprMCDropoutDilatedCNNResnet18v7": ResprMCDropoutDilatedCNNResnet18v7
 }
     
 class LitResprMCDropoutCNN(pl.LightningModule):
