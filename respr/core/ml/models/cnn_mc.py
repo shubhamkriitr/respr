@@ -491,18 +491,18 @@ class ResprMCDropoutDilatedCNNResnet18v6Deeper(ResprMCDropoutDilatedCNNResnet18)
             # order of arguments:
             # num sub-blocks, num channels, dilations, paddings and strides
             # dropout_p
-            (20, 64,  [ 1]*20, [ 0]*20, [1]*20, 0.0) , #conv?_x
-            (20, 128,  [ 1]*20, [ 0]*20, [1]*20, 0.1) , #conv?_x
-            (2, 256,  [ 1,  1], [ 0,  0], [1, 1], 0.1) , #conv?_x
-            (1, 512,  [ 1,] , [ 0,] , [1,], 0.1) , #conv?_x
+            (20,  64,  [ 1, 1], [ 0, 0], [1, 1], 0.0) , #conv?_x
+            (20, 128,  [ 1, 1], [ 0, 0], [1, 1], 0.1) , #conv?_x
+            ( 2, 256,  [ 1, 1], [ 0, 0], [1, 1], 0.1) , #conv?_x
+            ( 1, 512,  [ 1, 1], [ 0, 0], [1, 1], 0.1) , #conv?_x
             
             ],
             "channel_adjust": [
             # order of arguments:
             # in_channel, out_channels, dilations, paddings and strides,
             # dropout_p
-            (64,  128, [1], [1], [1], 0.1), #conv2_x
-            (128,  256, [1], [1], [1], 0.1), #conv2_x
+            ( 64, 128, [1], [1], [1], 0.1), #conv2_x
+            (128, 256, [1], [1], [1], 0.1), #conv2_x
             (256, 512, [1], [1], [1], 0.1) #conv2_x
         ]}
     
