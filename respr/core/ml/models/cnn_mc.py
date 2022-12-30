@@ -326,8 +326,8 @@ class ResprMCDropoutDilatedCNNResnet18(ResprMCDropoutCNNResnet18v2):
         super().__init__(config)
     
     def get_block_structure(self):
-        # this structure should have a receptive field of 757 points
-        # before average pooling (@300Hz) => 2.5 seconds of signal
+        # this structure should have a receptive field of 24973 points
+        # before average pooling
         return {"front": [
             # order of arguments:
             # num sub-blocks, num channels, dilations, paddings and strides
@@ -380,8 +380,8 @@ class ResprMCDropoutDilatedCNNResnet18v2(ResprMCDropoutDilatedCNNResnet18):
         super().__init__(config)
     
     def get_block_structure(self):
-        # this structure should have a receptive field of 315 points
-        # before average pooling (@300Hz) => 1 second of signal
+        # this structure should have a receptive field of TODO points
+        # before average pooling (@300Hz) => ???TODO second of signal
         return {"front": [
             # order of arguments:
             # num sub-blocks, num channels, dilations, paddings and strides
@@ -487,24 +487,29 @@ class ResprMCDropoutDilatedCNNResnet18v6Deeper(ResprMCDropoutDilatedCNNResnet18)
         super().__init__(config)
     
     def get_block_structure(self):
-        return {"front": [
-            # order of arguments:
-            # num sub-blocks, num channels, dilations, paddings and strides
-            # dropout_p
-            (20,  64,  [ 1, 1], [ 0, 0], [1, 1], 0.0) , #conv?_x
-            (20, 128,  [ 1, 1], [ 0, 0], [1, 1], 0.1) , #conv?_x
-            ( 2, 256,  [ 1, 1], [ 0, 0], [1, 1], 0.1) , #conv?_x
-            ( 1, 512,  [ 1, 1], [ 0, 0], [1, 1], 0.1) , #conv?_x
-            
-            ],
-            "channel_adjust": [
-            # order of arguments:
-            # in_channel, out_channels, dilations, paddings and strides,
-            # dropout_p
-            ( 64, 128, [1], [1], [1], 0.1), #conv2_x
-            (128, 256, [1], [1], [1], 0.1), #conv2_x
-            (256, 512, [1], [1], [1], 0.1) #conv2_x
-        ]}
+        raise NotImplementedError()
+        #>>> return {"front": [
+        #>>>     # order of arguments:
+        #>>>     # num sub-blocks, num channels, dilations, paddings and strides
+        #>>>     # dropout_p
+        #>>>     (20,  64,  [ 1, 1], [ 0, 0], [1, 1], 0.0) , #conv?_x
+        #>>>     (20, 128,  [ 1, 1], [ 0, 0], [1, 1], 0.1) , #conv?_x
+        #>>>     ( 2, 256,  [ 1, 1], [ 0, 0], [1, 1], 0.1) , #conv?_x
+        #>>>     ( 1, 512,  [ 1, 1], [ 0, 0], [1, 1], 0.1) , #conv?_x
+        #>>>     ],
+        #>>>     "channel_adjust": [
+        #>>>     # order of arguments:
+        #>>>     # in_channel, out_channels, dilations, paddings and strides,
+        #>>>     # dropout_p
+        #>>>     ( 64, 128, [1], [1], [1], 0.1), #conv2_x
+        #>>>     (128, 256, [1], [1], [1], 0.1), #conv2_x
+        #>>>     (256, 512, [1], [1], [1], 0.1) #conv2_x
+        #>>> ]}
+
+class ResprMCDropoutDilatedCNNResnet18v7(ResprMCDropoutDilatedCNNResnet18):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+        
     
 # This lookup is to support config based resolution of model module classes
 MODULE_CLASS_LOOKUP = {
