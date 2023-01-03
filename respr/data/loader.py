@@ -659,9 +659,16 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         logger.info(f"Subjects -> Train: {train_ids} / Val: {val_ids}"
                     f"/ Test: {test_ids}")
         
-        train_loader = self.create_loader(self.data, train_ids,
+        # TODO: compute these
+        train_data_view = self.data
+        val_data_view = self.data
+        train_ids = train_ids
+        val_ids = val_ids
+        
+        
+        train_loader = self.create_loader(train_data_view, train_ids,
                                           shuffle=shuffle_train)
-        val_loader = self.create_loader(self.data, val_ids, shuffle=False,
+        val_loader = self.create_loader(val_data_view, val_ids, shuffle=False,
                             loader_type="val")
         test_loader = self.create_loader(self.data, test_ids, shuffle=False,
                             loader_type="test")
