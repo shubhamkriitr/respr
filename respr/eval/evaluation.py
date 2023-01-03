@@ -16,23 +16,6 @@ TYPE_PNN = 1
 
 
 
-def gather_results_from_source(results_source, loaders=DEFAULT_LOADER_MAPPING):
-    logger.info(f"Loader mapping: {loaders}")
-    all_model_results = []
-    loocv_fold_wise_metric = {}
-    for source, type_code, tag in results_source:
-        if type_code == TYPE_PNN:
-            if tag in loocv_fold_wise_metric:
-                logger.warning(f"Duplicate tag: {tag}")
-            info_dict = {}
-            data = loaders[type_code].load(source, result_container=info_dict)
-            loocv_fold_wise_metric[tag] = info_dict
-        else:
-            data = loaders[type_code].load(source)
-        all_model_results.append((data, type_code, tag))
-    
-    return all_model_results, loocv_fold_wise_metric
-
 
 class BaseResprEvaluator:
     def __init__(self, config={}):
