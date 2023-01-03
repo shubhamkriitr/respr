@@ -446,6 +446,8 @@ class Pipeline(BasePipeline):
     def apply_preprocessing_on_whole_signal(self, data, context):
         """Transformations that are supposed to be done before the signal
         is processed window by window. Modifies `context`."""
+        if self._instructions["resample_ppg"]:
+            data = self.resample_ppg(data)
         return data, context
     
     def accumulate_results(self, new_result, results_container):
@@ -482,8 +484,9 @@ class Pipeline2(Pipeline):
     
     def apply_preprocessing_on_whole_signal(self, data, context):
         
-        if self._instructions["resample_ppg"]:
-            data = self.resample_ppg(data)
+        data, context = super().apply_preprocessing_on_whole_signal(
+            data=data, context=context
+        )
         
         ppg = data.get("signals/ppg")
         fs = data.get("_metadata/signals/ppg/fs")
