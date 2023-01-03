@@ -8,9 +8,9 @@ instructions:
     3: ../../artifacts/2022-11-24_150935/fold_00/lightning_logs/version_0/checkpoints/model-epoch=00-s-step=1-val_mae=9.01.ckpt
     4: ../../artifacts/2022-11-24_150935/fold_00/lightning_logs/version_0/checkpoints/model-epoch=00-s-step=2-val_mae=10.30.ckpt
     
-training_init_model_ckpt_path: "../../artifacts/2022-12-16_033756/fold_00\
-  /lightning_logs/version_0/checkpoints/model-epoch=01-s-step=10-train_\
-  contrastive_loss=1.95.ckpt" # loads weights from here before training
+training_init_model_ckpt_path: null #"../../artifacts/2022-12-16_033756/fold_00\
+  # /lightning_logs/version_0/checkpoints/model-epoch=01-s-step=10-train_\
+  # contrastive_loss=1.95.ckpt" # loads weights from here before training
 
 
 
@@ -91,7 +91,7 @@ dataloading:
       # ckpt_path: ../../artifacts/2022-11-17_050120/fold_00/lightning_logs/version_2482287/checkpoints/epoch=7-step=6717.ckpt
     # MINI DATASET FOR DEV
     config:
-      composer_mode: "train_only" # change to `train_only` if validation and
+      composer_mode: "normal:split_by_rr" #"train_only" # change to `train_only` if validation and
             # test loaders are not needed. In that case fold number will have
             # no effect and  val_loader & test_loader will be `None`
       dataset: 

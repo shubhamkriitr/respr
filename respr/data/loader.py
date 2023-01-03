@@ -663,8 +663,6 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         # TODO: compute these
         train_data_view = self.data
         val_data_view = self.data
-        train_ids = train_ids
-        val_ids = val_ids
         
         if self._composer_mode == ComposerModes.NORMAL_TRAIN_VAL_BY_RR:
             train_data_view, train_ids, val_data_view, val_ids = \
@@ -683,15 +681,51 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
     
     
     def _split_train_and_val_by_rr(self, data, train_ids, val_ids):
+        logger.debug(f"Splitting data by RR")
         train_data_view = None
         val_data_view = None
+        
         assert len(set(train_ids)) == len(train_ids)
         assert len(set(val_ids)) == len(val_ids)
         # no common ids
         assert len(set(train_ids + val_ids)) == len(train_ids + val_ids)
         
-        train_ids = copy.deepcopy(train_ids) + copy.deepcopy(val_ids)
-        val_ids = copy.deepcopy(val_ids)
+        # ids will be mixed so both train and val are same
+        combined_ids = copy.deepcopy(train_ids) + copy.deepcopy(val_ids)
+        val_ids = copy.deepcopy(combined_ids)
+        train_ids = copy.deepcopy(combined_ids)
+        
+        # choose only given ids
+        data = data.loc[data["subject_ids"].isin(combined_ids)]
+        
+        y_values = data["y"].to_numpy()
+        n_total = y_values.shape[0]
+        
+        sorted_idx = np.argsort(y_values)
+        
+        val_step = 1/self.val_split
+        val_marker = val_step
+        
+        train_indices = []
+        val_indices = []
+        for i in range(n_total):
+            idx = sorted_idx[i]
+            if i > val_marker:
+                val_marker += val_step
+                val_indices.append(idx)
+            else:
+                train_indices.append(idx)
+        
+        n_train = len(train_indices)
+        n_val = len(val_indices)
+        
+        val_percent = (100.0*n_val)/(n_train + n_val)
+        
+        logger.info(f"Final split.Total[{n_total}] Train[{n_train}] "
+                    f"Val[{n_val}] Val[{val_percent}]\%")
+        
+        train_data_view = data.iloc[train_indices]
+        val_data_view = data.iloc[val_indices]
         
         return train_data_view, train_ids, val_data_view, val_ids
         
