@@ -21,6 +21,7 @@ DTYPE_FLOAT = np.float32
 @dataclasses.dataclass(frozen=True)
 class ComposerModes:
     NORMAL = "normal"
+    NORMAL_TRAIN_VAL_BY_RR = "normal:split_by_rr" # train and val set will be split by resp rate
     TRAIN_ONLY = "train_only"
     TRAIN_AND_VAL = "train_and_val_only" # not implement in composer yet #TODO
     
@@ -665,6 +666,11 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
         train_ids = train_ids
         val_ids = val_ids
         
+        if self._composer_mode == ComposerModes.NORMAL_TRAIN_VAL_BY_RR:
+            train_data_view, train_ids, val_data_view, val_ids = \
+                self._split_train_and_val_by_rr(data=self.data,
+                        train_ids=train_ids, val_ids=val_ids)
+        
         
         train_loader = self.create_loader(train_data_view, train_ids,
                                           shuffle=shuffle_train)
@@ -674,6 +680,20 @@ class ResprCsvDataLoaderComposer(BaseResprDataLoaderComposer):
                             loader_type="test")
                             
         return train_loader,val_loader,test_loader
+    
+    
+    def _split_train_and_val_by_rr(self, data, train_ids, val_ids):
+        train_data_view = None
+        val_data_view = None
+        assert len(set(train_ids)) == len(train_ids)
+        assert len(set(val_ids)) == len(val_ids)
+        # no common ids
+        assert len(set(train_ids + val_ids)) == len(train_ids + val_ids)
+        
+        train_ids = copy.deepcopy(train_ids) + copy.deepcopy(val_ids)
+        val_ids = copy.deepcopy(val_ids)
+        
+        return train_data_view, train_ids, val_data_view, val_ids
         
     def create_loader(self,  data, subject_ids_subset, shuffle=True,
                       loader_type=None):
