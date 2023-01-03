@@ -453,6 +453,24 @@ class Pipeline(BasePipeline):
     
     def summarize_results(self, result_container):
         pass
+    
+    def resample_ppg(self, data):
+        fs_old = data.value()["_metadata"]["signals"]["ppg"]["fs"]
+        fs_old = int(fs_old)
+        ppg_old = data.value()["signals"]["ppg"]
+        expected_signal_duration = self._instructions["expected_signal_duration"]
+        assert ppg_old.shape[0] == 1 + expected_signal_duration*fs_old
+            
+        f_resample = self._instructions["resampling_frequency"]
+        data_adapter = self._global_context["data_adapter"]
+        num_points = 1 + f_resample * expected_signal_duration
+        logger.debug(f"Resampling ppg @ {f_resample}Hz "
+                         f": #points=[{num_points}]")
+        data = data_adapter.resample_ppg(data=data,
+                                             num_points=num_points,
+                                             f_resample=f_resample)
+                                         
+        return data
 
 
 class Pipeline2(Pipeline):
@@ -482,23 +500,7 @@ class Pipeline2(Pipeline):
         
         return data, context
 
-    def resample_ppg(self, data):
-        fs_old = data.value()["_metadata"]["signals"]["ppg"]["fs"]
-        fs_old = int(fs_old)
-        ppg_old = data.value()["signals"]["ppg"]
-        expected_signal_duration = self._instructions["expected_signal_duration"]
-        assert ppg_old.shape[0] == 1 + expected_signal_duration*fs_old
-            
-        f_resample = self._instructions["resampling_frequency"]
-        data_adapter = self._global_context["data_adapter"]
-        num_points = 1 + f_resample * expected_signal_duration
-        logger.debug(f"Resampling ppg @ {f_resample}Hz "
-                         f": #points=[{num_points}]")
-        data = data_adapter.resample_ppg(data=data,
-                                             num_points=num_points,
-                                             f_resample=f_resample)
-                                         
-        return data
+    
             
     
     def resample_resp_induced_signals(self, proc, resp_signals_and_times,
