@@ -350,6 +350,7 @@ class PpgSignalProcessorUpdateResample(PpgSignalProcessor):
         super().__init__(config)
     
     def resample(self, signal_data, timesteps, output_sampling_freq, number_of_points):
+        assert output_sampling_freq is not None
         if number_of_points is None:
             time_interval = timesteps[-1] - timesteps[0]
             num_points = round(time_interval * output_sampling_freq) + 1
