@@ -537,7 +537,59 @@ class ResprMCDropoutDilatedCNNResnet18v7(ResprMCDropoutDilatedCNNResnet18):
             (128, 256, [1], [1], [1], 0.1) , #conv4_x
             (256, 512, [1], [1], [1], 0.1) , #conv5_x
         ]}
+
+
+class ResprMCDropoutDilatedCNNResnet18v8(ResprMCDropoutDilatedCNNResnet18):
+    def __init__(self, config={}) -> None:
+        """This net has receptive field = 5493 pts (@300Hz => 18.31 seconds).
+        Also the final heads for mu and log_var are shallower (2 layers deep)
+        """
+        super().__init__(config)
+    
+    def get_block_structure(self):
+        return {"front": [
+            # order of arguments:
+            # num sub-blocks, num channels, dilations, paddings and strides
+            # dropout_p
+            (2, 64,  [2, 2], [2, 2], [1, 1], 0.0) , #conv2_x
+            (2, 64, [4, 4], [4, 4], [1, 1], 0.1) , #conv3_x
+            (2, 128, [8, 8], [8, 8], [1, 1], 0.1) , #conv4_x
+            (2, 256, [16, 16], [16, 16], [1, 1], 0.1),   #conv5_x
+            (2, 512, [32, 32], [32, 32], [1, 1], 0.1)   #conv6_x
+            ],
+            "channel_adjust": [
+            # order of arguments:
+            # in_channel, out_channels, dilations, paddings and strides,
+            # dropout_p
+            (64,  64, [1], [1], [2], 0.1) , #conv2_x
+            (64, 128, [1], [1], [2], 0.1) , #conv3_x
+            (128, 256, [1], [1], [2], 0.1) , #conv4_x
+            (256, 512, [1], [1], [2], 0.1) , #conv5_x
+        ]}
         
+    def get_first_block(self, num_in_channels):
+        block = nn.Sequential(
+            nn.Conv1d(in_channels=num_in_channels, out_channels=64,
+                    kernel_size=7, stride=1, bias=False),
+            nn.BatchNorm1d(num_features=64),
+            nn.ReLU(inplace=True),
+        )
+        
+        return block
+    
+    def _build(self):
+        super()._build()
+        embedding_dim = self._config["embedding_dim"]
+        self.fc_mu = nn.Sequential(
+            nn.Linear(embedding_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 1)
+        )
+        self.fc_log_var = nn.Sequential(
+            nn.Linear(embedding_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 1)
+        )
     
 # This lookup is to support config based resolution of model module classes
 MODULE_CLASS_LOOKUP = {
@@ -554,7 +606,8 @@ MODULE_CLASS_LOOKUP = {
     "ResprMCDropoutDilatedCNNBase": ResprMCDropoutDilatedCNNBase,
     "ResprMCDropoutDilatedCNNResnet18v6Deeper":\
         ResprMCDropoutDilatedCNNResnet18v6Deeper,
-    "ResprMCDropoutDilatedCNNResnet18v7": ResprMCDropoutDilatedCNNResnet18v7
+    "ResprMCDropoutDilatedCNNResnet18v7": ResprMCDropoutDilatedCNNResnet18v7,
+    "ResprMCDropoutDilatedCNNResnet18v8": ResprMCDropoutDilatedCNNResnet18v8
 }
     
 class LitResprMCDropoutCNN(pl.LightningModule):
