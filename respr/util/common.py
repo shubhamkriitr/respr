@@ -4,6 +4,8 @@ import os
 import yaml
 import pickle
 from respr.util import logger
+from pathlib import Path
+import os
 
 PROJECT_NAME = "respr"
 PROJECT_ROOT = Path(os.path.abspath('')) / PROJECT_NAME
@@ -65,3 +67,22 @@ class BaseFactory(object):
         instance = self.create(name, config=None, args_to_pass=args,
                                kwargs_to_pass=kwargs)
         return instance
+
+
+class BaseVideoWriter:
+    def __init__(self) -> None:
+        self.ouput_path = None
+        
+    def open(self, file_path):
+        self.ouput_path = Path(file_path)
+        os.makedirs(file_path, exist_ok=False)
+        self.frame_counter = 0
+    
+    def write(self, frame):
+        frame_str = str(self.frame_counter).zfill(6)
+        p = self.ouput_path / f"frame_{frame_str}.jpg"
+        frame.savefig(p)
+        self.frame_counter += 1
+        
+    def release(self):
+        logger.info("OK")
