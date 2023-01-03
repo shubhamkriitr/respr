@@ -1,15 +1,14 @@
 description: "
-  [SmartFusion + PpgSignalProcessorUpdateResample on bidmc, w32 s4]
-  This is exp SF003
+  [SmartFusion + PpgSignalProcessorUpdateResample on capnobase, w32 s4]
+  This is exp SF004
   "
-output_dir: "../../artifacts/frozen/smartfusion_result/exp_SF003_bidmc_w32_s4_gt_mean"
+output_dir: "../../artifacts/frozen/smartfusion_result/exp_SF004_capnobase_w32_s4_gt_mean"
 data_adapter:
-  name: "BidmcDataAdapter"
+  name: "CapnobaseMatDataAdapter"
   args: []
   kwargs:
     config:
-      data_root_dir: "../../Datasets/\
-        bidmc-ppg-and-respiration-dataset-1.0.0/bidmc_csv"
+      data_root_dir: "../../Datasets/capnobase-dataverse/data/mat"
 instructions:
   exclude_artifacts: true
   expected_signal_duration: 480
