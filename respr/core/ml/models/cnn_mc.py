@@ -4,7 +4,9 @@ import pytorch_lightning as pl
 from respr.core.metrics import RMSELoss
 from respr.util import logger
 from respr.core.ml.models.util import ModelUtil
+from respr.core.ml.models.layers import SummaryStatsModule
 from respr.util.common import fill_missing_values
+
 import pytorch_lightning as pl
 import copy
 
@@ -590,6 +592,20 @@ class ResprMCDropoutDilatedCNNResnet18v8(ResprMCDropoutDilatedCNNResnet18):
             nn.ReLU(),
             nn.Linear(256, 1)
         )
+
+class ResprMCDropoutDilatedCNNResnet18v9(ResprMCDropoutDilatedCNNResnet18v8):
+    def __init__(self, config={}) -> None:
+        """Same as ResprMCDropoutDilatedCNNResnet18v8 ,
+        but the final features (pooling) contains summary statistics
+        like MAD, Median , std dev etc. Make sure to adjust embedding dimension
+        in config.
+        """
+        super().__init__(config)
+    
+    def _build(self):
+        super()._build()
+        # override how embedding is computed (final pooling step)
+        self.compute_embedding = SummaryStatsModule()
     
 # This lookup is to support config based resolution of model module classes
 MODULE_CLASS_LOOKUP = {
@@ -607,7 +623,8 @@ MODULE_CLASS_LOOKUP = {
     "ResprMCDropoutDilatedCNNResnet18v6Deeper":\
         ResprMCDropoutDilatedCNNResnet18v6Deeper,
     "ResprMCDropoutDilatedCNNResnet18v7": ResprMCDropoutDilatedCNNResnet18v7,
-    "ResprMCDropoutDilatedCNNResnet18v8": ResprMCDropoutDilatedCNNResnet18v8
+    "ResprMCDropoutDilatedCNNResnet18v8": ResprMCDropoutDilatedCNNResnet18v8,
+    "ResprMCDropoutDilatedCNNResnet18v9": ResprMCDropoutDilatedCNNResnet18v9
 }
     
 class LitResprMCDropoutCNN(pl.LightningModule):
