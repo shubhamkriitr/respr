@@ -1,6 +1,6 @@
 description: "
   [SmartFusion + PpgSignalProcessorUpdateResample on bidmc, w32 s4]
-  This is exp SF001
+  This is exp SF002
   "
 output_dir: "../../artifacts/frozen/smartfusion_result/exp_SF002_resampled_bidmc_w32_s4_gt_mean"
 data_adapter:
