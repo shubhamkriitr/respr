@@ -82,7 +82,15 @@ class Pipeline(BasePipeline):
     def __init__(self, config={}) -> None:
         super().__init__(config)
         
-        
+        default_config_items = {
+            "processor": {
+                "name": "PpgSignalProcessor",
+                "args": [],
+                "kwargs": {"config": {}}
+            }
+        }
+        self._config = fill_missing_values(default_values=default_config_items,
+                                           target_container=self._config)
         self._fill_missing_instructions()
         self._instructions = self._config["instructions"]
         
@@ -302,7 +310,9 @@ class Pipeline(BasePipeline):
 
     def create_new_context(self):
         # TODO: make reusable objects shared for all the runs
-        proc = PpgSignalProcessor({}) # TODO : use config/ factory
+        proc_name =self._config["processor"]["name"]
+        logger.info(f"Using processor: {proc_name}")
+        proc = PROCESSOR_FACTORY.get(self._config["processor"])
         pulse_detector = PulseDetector()
         model = PROCESSOR_FACTORY.get(self._config["model"])
         
