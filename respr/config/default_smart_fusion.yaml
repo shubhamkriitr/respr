@@ -1,8 +1,8 @@
 description: "
-  [SmartFusion + PpgSignalProcessorUpdateResample on bidmc, w32 s1]
+  [SmartFusion + PpgSignalProcessorUpdateResample on bidmc, w32 s4]
   This is exp SF001
   "
-output_dir: "../../artifacts/frozen/smartfusion_result/exp_SF001_resampled_bidmc_w32_s1_gt_mean"
+output_dir: "../../artifacts/frozen/smartfusion_result/exp_SF002_resampled_bidmc_w32_s4_gt_mean"
 data_adapter:
   name: "BidmcDataAdapter"
   args: []
@@ -17,7 +17,7 @@ instructions:
   num_samples_to_process: null
   sample_index_offset: 0
   window_duration: 32
-  window_step_duration: 1
+  window_step_duration: 4
   window_type: hamming
   resample_ppg: true
   resampling_frequency: 300
