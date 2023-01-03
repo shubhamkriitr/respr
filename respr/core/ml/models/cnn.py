@@ -96,7 +96,12 @@ class ResprResnet18(nn.Module):
         
         
     def _build(self):
-        self.block_0 = get_first_block(self._config["input_channels"])
+        if hasattr(self, "get_first_block"):
+            logger.info(f"Creating first block (using specified structure)")
+            self.block_0 = self.get_first_block(self._config["input_channels"])
+        else:
+            logger.info(f"Creating first block (using generic structure)")
+            self.block_0 = get_first_block(self._config["input_channels"])
         self.blocks = [
                 conv2_x_block(
                     num_channels=ch, num_sub_blocks=b, num_out_channels=ch)

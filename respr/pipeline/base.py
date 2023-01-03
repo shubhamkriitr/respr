@@ -107,18 +107,18 @@ class Pipeline(BasePipeline):
         return self._config
     
     def run(self, *args, **kwargs):
-        # bidmc_data_adapter = BidmcDataAdapter(
+        # current_data_adapter = BidmcDataAdapter(
         #     {"data_root_dir": BIDMC_DATSET_CSV_DIR})
         # TODO: change var name
-        bidmc_data_adapter = DATA_ADAPTER_FACTORY.get(
+        current_data_adapter = DATA_ADAPTER_FACTORY.get(
             self._config["data_adapter"])
         
         # add data adapter to global context for later use  (e.g. resampling
         # ppg in place)
-        self._global_context["data_adapter"] = bidmc_data_adapter
+        self._global_context["data_adapter"] = current_data_adapter
         
-        file_names = bidmc_data_adapter.inspect()
-        subject_ids = bidmc_data_adapter.extract_subject_ids_from_file_names(file_names)
+        file_names = current_data_adapter.inspect()
+        subject_ids = current_data_adapter.extract_subject_ids_from_file_names(file_names)
         
         
         results = []
@@ -137,7 +137,7 @@ class Pipeline(BasePipeline):
         # give access to subject ids and data adapter to subclasses, in case
         # some precomputation are required. e.g. calculation of global statis-
         # tics
-        self.on_data_loaded(subject_ids, bidmc_data_adapter)
+        self.on_data_loaded(subject_ids, current_data_adapter)
         
         
         for idx, subject_id in enumerate(subject_ids):
@@ -146,7 +146,7 @@ class Pipeline(BasePipeline):
             
             
             logger.info(f"Processing subject#{subject_id}")
-            data = bidmc_data_adapter.get(subject_id)
+            data = current_data_adapter.get(subject_id)
             try:
                 output = self.process_one_sample(data)
                 logger.debug(f"#output(num windows): {len(output['window_idx'])}")

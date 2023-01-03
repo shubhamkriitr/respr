@@ -273,6 +273,7 @@ class BaseResprEvaluator:
 
 # TODO: merge with BaseResprEvaluator or extend it
 # To create histogram  (with binning MAE  but y -values can be RR/ Uncertainty etc. )
+# To create histogram  (with binning MAE  but y -values can be RR/ Uncertainty etc. )
 class EvalHelper:
     def get_bin_indices(self, x, bins):
         """`x` is a 1D numpy array. `bins` is a dictionary
@@ -356,26 +357,32 @@ class EvalHelper:
         results = {
             "bins": [], # lisst of str
             "MAE": [], # center
-            "RR[mean]": [],
+            "RR[mean]": [], # it is estimated respiratory rate
             "Uncertainty[mean]": [],
             "num_samples": [],
-            "percent_samples": []
+            "percent_samples": [],
+            "gt[mean]": [],
+            "cumulative_percent_samples":[]
         }
         
         rr_array = all_results_df["rr_est_pnn"].to_numpy()
         std_array = all_results_df["std_rr_est_pnn"].to_numpy()
         mae_array = all_results_df["MAE"].to_numpy()
+        gt_array = all_results_df["gt"].to_numpy() # ground truth rr
+        cumulative_percent_samples = 0.
+        
         for idx, b in enumerate(bins):
             start, end = b
             bin_name = f"{start:.2f}-{end:.2f}"
             index_arr = indices[idx]
             if index_arr.shape[0] < 1:
-                print(f"Skipping bin: {b}")
+                # print(f"Skipping bin: {b}")
                 continue
                 
             rr = rr_array[index_arr].mean()
             uncertainty = std_array[index_arr].mean()
             bin_mae = mae_array[index_arr].mean()
+            gt_rr_bin_mean = gt_array[index_arr].mean() # mean gt for current bin
             
             results["bins"].append(bin_name)
             results["MAE"].append(bin_mae)
@@ -383,8 +390,11 @@ class EvalHelper:
             results["Uncertainty[mean]"].append(uncertainty)
             num_s = index_arr.shape[0]
             percent_s= (num_s/x.shape[0])*100
+            cumulative_percent_samples += percent_s
             results["num_samples"].append(num_s)
             results["percent_samples"].append(percent_s)
+            results["gt[mean]"].append(gt_rr_bin_mean)
+            results["cumulative_percent_samples"].append(cumulative_percent_samples)
             
         
         return results, all_results_df
@@ -392,7 +402,7 @@ class EvalHelper:
     def plot_histogram(self, results: dict, x_col, y_cols,
                        x_label, y_label, figsize=(8, 6), x_lim=None,
                        y_lim=None, x_ticks=None, y_ticks=None,
-                       title=None, fig_axs=None):
+                       title=None, fig_axs=None, title_fontsize=10):
         if fig_axs is None:
             fig, axs = plt.subplots(ncols=1, nrows=1, figsize=figsize,
                             layout="constrained")
@@ -401,7 +411,7 @@ class EvalHelper:
         
         
         
-        if title is not None: axs.set_title(title)
+        if title is not None: axs.set_title(title, fontsize=title_fontsize)
         
         handles = []
         legend_items = []
