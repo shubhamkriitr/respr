@@ -334,6 +334,10 @@ class EvalHelper:
         all_results_df = []
         for df, type_, tag_ in all_model_results:
             try:
+                if type_ in [TYPE_SIGNAL_PROCESSING_2, TYPE_SIGNAL_PROCESSING_2B]:
+                    logger.info(f"Renaming columns. Results data type received = {type_}")
+                    df["rr_est_pnn"] = df["rr_est_fused"]
+                    df["std_rr_est_pnn"] = df["std_rr_est_fused"]
                 df = df[["rr_est_pnn", "std_rr_est_pnn", "gt"]] #project
             except KeyError:
                 logger.error(f"Skipping : {tag_} due to KeyError")
