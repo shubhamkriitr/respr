@@ -3,16 +3,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from respr.util import logger
-from respr.eval.result_loader import (ResultLoaderPnn, ResultLoaderSignalProc,
-                                      ResultLoaderSignalProcOld)
+
+
+
+# if you add new type: also add mapping to `_type_to_prediction_col` in BaseResprEvaluator
+# and dalaoader mapping
 TYPE_SIGNAL_PROCESSING = 0
 TYPE_SIGNAL_PROCESSING_2 = 2
+TYPE_SIGNAL_PROCESSING_2B = 3 # use only RIIV 
 TYPE_PNN = 1
 
 
-DEFAULT_LOADER_MAPPING = {TYPE_PNN: ResultLoaderPnn(),
-                          TYPE_SIGNAL_PROCESSING_2: ResultLoaderSignalProc(),
-                          TYPE_SIGNAL_PROCESSING: ResultLoaderSignalProcOld()}
+
 
 def gather_results_from_source(results_source, loaders=DEFAULT_LOADER_MAPPING):
     logger.info(f"Loader mapping: {loaders}")
@@ -31,6 +33,7 @@ def gather_results_from_source(results_source, loaders=DEFAULT_LOADER_MAPPING):
     
     return all_model_results, loocv_fold_wise_metric
 
+
 class BaseResprEvaluator:
     def __init__(self, config={}):
         self._config = config
@@ -43,7 +46,9 @@ class BaseResprEvaluator:
         self._type_to_prediction_col = {
         TYPE_PNN: "rr_est_pnn",
         TYPE_SIGNAL_PROCESSING: "rr_fused",
-        TYPE_SIGNAL_PROCESSING_2: "rr_est_fused"
+        TYPE_SIGNAL_PROCESSING_2: "rr_est_fused",
+        TYPE_SIGNAL_PROCESSING_2B: "rr_est_fused",
+        
         }
         
     
@@ -267,9 +272,7 @@ class BaseResprEvaluator:
         
         axs[1].axvline(x=4.0, color="red", linestyle="--")
         axs[1].grid(color = 'green', linestyle = '--', linewidth = 0.3)
-
-
-
+        
 
 # TODO: merge with BaseResprEvaluator or extend it
 # To create histogram  (with binning MAE  but y -values can be RR/ Uncertainty etc. )

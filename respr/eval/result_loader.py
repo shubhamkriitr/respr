@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-
 class BaseResultLoader:
     def __init__(self):
         pass
@@ -44,6 +43,24 @@ class ResultLoaderSignalProc(BaseResultLoader):
                 cont[k] = new_entry[k]
 
         return cont
+
+class ResultLoaderSignalProcType2B(ResultLoaderSignalProc):
+    def __init__(self):
+        super().__init__()
+    
+    def load(self, path):
+        all_data = super().load(path)
+        # overwriting actual rr_est_fused (fused resp rate estimation)
+        all_data["rr_est_fused"] = self.get_rr_est_fused(all_data)
+        return all_data
+    
+    def get_rr_est_fused(self, df):
+        
+        r1 = df["rr_est_riav"]
+        r2 = df["rr_est_rifv"]
+        r3 = df["rr_est_riiv"]
+        
+        return r1
     
 class ResultLoaderSignalProcOld(ResultLoaderSignalProc):
     def __init__(self):
@@ -128,3 +145,4 @@ class ResultLoaderPnn(BaseResultLoader):
         container[fold] = info_to_add
         
         
+
