@@ -1,0 +1,39 @@
+description: "
+  [SmartFusion + PpgSignalProcessorUpdateResample on bidmc, w32 s4]
+  This is exp SF003
+  "
+output_dir: "../../artifacts/frozen/smartfusion_result/exp_SF003_bidmc_w32_s4_gt_mean"
+data_adapter:
+  name: "BidmcDataAdapter"
+  args: []
+  kwargs:
+    config:
+      data_root_dir: "../../Datasets/\
+        bidmc-ppg-and-respiration-dataset-1.0.0/bidmc_csv"
+instructions:
+  exclude_artifacts: true
+  expected_signal_duration: 480
+  ground_truth_mode: mean
+  num_samples_to_process: null
+  sample_index_offset: 0
+  window_duration: 32
+  window_step_duration: 4
+  window_type: hamming
+  resample_ppg: false
+  resampling_frequency: null
+model:
+  args: []
+  kwargs:
+    config:
+      resp_rate_cutoff_high: 90
+      resp_rate_cutoff_low: 2
+      butterworth_filter_order: 4
+  name: MultiparameterSmartFusion
+processor: # declare processor class to use
+  name: PpgSignalProcessorUpdateResample
+  args: []
+  kwargs:
+    config: {}
+pipeline:
+  name: Pipeline2
+window_type: hamming
