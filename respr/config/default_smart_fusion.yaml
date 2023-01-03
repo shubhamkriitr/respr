@@ -1,6 +1,6 @@
 description: This is a sample config to run the pipeline\
   [SmartFusion on bidmc, w32 s1]
-output_dir: "../../artifacts/frozen/smartfusion_result/bidmc_w32_s1_gt_mean"
+output_dir: "../../artifacts/frozen/smartfusion_result/resampled_bidmc_w32_s1_gt_mean"
 data_adapter:
   name: "BidmcDataAdapter"
   args: []
@@ -17,6 +17,8 @@ instructions:
   window_duration: 32
   window_step_duration: 1
   window_type: hamming
+  resample_ppg: true
+  resampling_frequency: 300
 model:
   args: []
   kwargs:
