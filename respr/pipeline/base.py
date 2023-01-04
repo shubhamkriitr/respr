@@ -82,7 +82,15 @@ class Pipeline(BasePipeline):
     def __init__(self, config={}) -> None:
         super().__init__(config)
         
-        
+        default_config_items = {
+            "processor": {
+                "name": "PpgSignalProcessor",
+                "args": [],
+                "kwargs": {"config": {}}
+            }
+        }
+        self._config = fill_missing_values(default_values=default_config_items,
+                                           target_container=self._config)
         self._fill_missing_instructions()
         self._instructions = self._config["instructions"]
         
@@ -302,7 +310,9 @@ class Pipeline(BasePipeline):
 
     def create_new_context(self):
         # TODO: make reusable objects shared for all the runs
-        proc = PpgSignalProcessor({}) # TODO : use config/ factory
+        proc_name =self._config["processor"]["name"]
+        logger.info(f"Using processor: {proc_name}")
+        proc = PROCESSOR_FACTORY.get(self._config["processor"])
         pulse_detector = PulseDetector()
         model = PROCESSOR_FACTORY.get(self._config["model"])
         
@@ -414,19 +424,21 @@ class Pipeline(BasePipeline):
         expected_length = np.ceil(
             (end_ - offset)*CONF_FEATURE_RESAMPLING_FREQ/fs).astype(int)
         re_riav, re_riiv, re_rifv = self.resample_resp_induced_signals(
-            proc, resp_signals_and_times, expected_length)
+            proc, resp_signals_and_times, expected_length,
+            freq_resample=CONF_FEATURE_RESAMPLING_FREQ)
                                              
         return re_riav,re_riiv,re_rifv
 
     def resample_resp_induced_signals(self, proc, resp_signals_and_times,
-                                      expected_length):
+                                      expected_length,
+                                      freq_resample):
         riav, riav_t, rifv, rifv_t, riiv, riiv_t = resp_signals_and_times
         re_riav, re_riav_t = proc.resample(riav, riav_t,
-                                        CONF_FEATURE_RESAMPLING_FREQ, None)
+                                            freq_resample, None)
         re_riiv, re_riiv_t = proc.resample(riiv, riiv_t,
-                                        CONF_FEATURE_RESAMPLING_FREQ, None)
+                                            freq_resample, None)
         re_rifv, re_rifv_t = proc.resample(rifv, rifv_t,
-                                        CONF_FEATURE_RESAMPLING_FREQ, None)
+                                            freq_resample, None)
                                         
         return re_riav,re_riiv,re_rifv
         
@@ -434,6 +446,8 @@ class Pipeline(BasePipeline):
     def apply_preprocessing_on_whole_signal(self, data, context):
         """Transformations that are supposed to be done before the signal
         is processed window by window. Modifies `context`."""
+        if self._instructions["resample_ppg"]:
+            data = self.resample_ppg(data)
         return data, context
     
     def accumulate_results(self, new_result, results_container):
@@ -441,35 +455,7 @@ class Pipeline(BasePipeline):
     
     def summarize_results(self, result_container):
         pass
-
-
-class Pipeline2(Pipeline):
-    def __init__(self, config={}) -> None:
-        """Pipeline to extract respiratory signals RIAV, RIFV and RIIV
-        for the whole signal before analysing it window by window"""
-        super().__init__(config)
     
-    
-    def apply_preprocessing_on_whole_signal(self, data, context):
-        
-        if self._instructions["resample_ppg"]:
-            data = self.resample_ppg(data)
-        
-        ppg = data.get("signals/ppg")
-        fs = data.get("_metadata/signals/ppg/fs")
-        offset = 0
-        end_ = ppg.shape[0] # end_ index in exclusive
-        proc, pulse_detector, model = context["signal_processor"],\
-            context["pulse_detector"], context["model"]
-        re_riav,re_riiv,re_rifv = self.extract_respiratory_signal(
-            data, proc, pulse_detector, fs, offset, end_)
-        
-        context["ppg_riav"] = re_riav
-        context["ppg_rifv"] = re_rifv
-        context["ppg_riiv"] = re_riiv
-        
-        return data, context
-
     def resample_ppg(self, data):
         fs_old = data.value()["_metadata"]["signals"]["ppg"]["fs"]
         fs_old = int(fs_old)
@@ -487,17 +473,49 @@ class Pipeline2(Pipeline):
                                              f_resample=f_resample)
                                          
         return data
+
+
+class Pipeline2(Pipeline):
+    def __init__(self, config={}) -> None:
+        """Pipeline to extract respiratory signals RIAV, RIFV and RIIV
+        for the whole signal before analysing it window by window"""
+        super().__init__(config)
+    
+    
+    def apply_preprocessing_on_whole_signal(self, data, context):
+        
+        data, context = super().apply_preprocessing_on_whole_signal(
+            data=data, context=context
+        )
+        
+        ppg = data.get("signals/ppg")
+        fs = data.get("_metadata/signals/ppg/fs")
+        offset = 0
+        end_ = ppg.shape[0] # end_ index in exclusive
+        proc, pulse_detector, model = context["signal_processor"],\
+            context["pulse_detector"], context["model"]
+        re_riav,re_riiv,re_rifv = self.extract_respiratory_signal(
+            data, proc, pulse_detector, fs, offset, end_)
+        
+        context["ppg_riav"] = re_riav
+        context["ppg_rifv"] = re_rifv
+        context["ppg_riiv"] = re_riiv
+        
+        return data, context
+
+    
             
     
     def resample_resp_induced_signals(self, proc, resp_signals_and_times,
-                                      expected_length):
+                                      expected_length,
+                                      freq_resample):
         riav, riav_t, rifv, rifv_t, riiv, riiv_t = resp_signals_and_times
         re_riav, re_riav_t = proc.resample(riav, riav_t,
-                                        None, expected_length)
+                                        freq_resample, expected_length)
         re_riiv, re_riiv_t = proc.resample(riiv, riiv_t,
-                                        None, expected_length)
+                                        freq_resample, expected_length)
         re_rifv, re_rifv_t = proc.resample(rifv, rifv_t,
-                                        None, expected_length)
+                                        freq_resample, expected_length)
                                         
         return re_riav,re_riiv,re_rifv
     

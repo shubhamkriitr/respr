@@ -125,6 +125,7 @@ class BidmcDataAdapter(BaseDataAdapter):
         numerics = data[1]
         t_numerics = numerics["Time [s]"].to_numpy(dtype=self.signal_dtype)
         t_signals = signals["Time [s]"].to_numpy(dtype=self.signal_dtype)
+        assert t_signals.shape[0] == 125 * 8 * 60 + 1
         ppg = signals[" PLETH"].to_numpy(dtype=self.signal_dtype)
         gt_resp = numerics[" RESP"].to_numpy(dtype=self.signal_dtype)
         meta = data[3]

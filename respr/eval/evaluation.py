@@ -3,33 +3,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from respr.util import logger
-from respr.eval.result_loader import (ResultLoaderPnn, ResultLoaderSignalProc,
-                                      ResultLoaderSignalProcOld)
+
+
+
+# if you add new type: also add mapping to `_type_to_prediction_col` in BaseResprEvaluator
+# and dalaoader mapping
 TYPE_SIGNAL_PROCESSING = 0
 TYPE_SIGNAL_PROCESSING_2 = 2
+TYPE_SIGNAL_PROCESSING_2B = 3 # use only RIIV 
 TYPE_PNN = 1
 
 
-DEFAULT_LOADER_MAPPING = {TYPE_PNN: ResultLoaderPnn(),
-                          TYPE_SIGNAL_PROCESSING_2: ResultLoaderSignalProc(),
-                          TYPE_SIGNAL_PROCESSING: ResultLoaderSignalProcOld()}
 
-def gather_results_from_source(results_source, loaders=DEFAULT_LOADER_MAPPING):
-    logger.info(f"Loader mapping: {loaders}")
-    all_model_results = []
-    loocv_fold_wise_metric = {}
-    for source, type_code, tag in results_source:
-        if type_code == TYPE_PNN:
-            if tag in loocv_fold_wise_metric:
-                logger.warning(f"Duplicate tag: {tag}")
-            info_dict = {}
-            data = loaders[type_code].load(source, result_container=info_dict)
-            loocv_fold_wise_metric[tag] = info_dict
-        else:
-            data = loaders[type_code].load(source)
-        all_model_results.append((data, type_code, tag))
-    
-    return all_model_results, loocv_fold_wise_metric
+
 
 class BaseResprEvaluator:
     def __init__(self, config={}):
@@ -43,7 +29,9 @@ class BaseResprEvaluator:
         self._type_to_prediction_col = {
         TYPE_PNN: "rr_est_pnn",
         TYPE_SIGNAL_PROCESSING: "rr_fused",
-        TYPE_SIGNAL_PROCESSING_2: "rr_est_fused"
+        TYPE_SIGNAL_PROCESSING_2: "rr_est_fused",
+        TYPE_SIGNAL_PROCESSING_2B: "rr_est_fused",
+        
         }
         
     
@@ -267,9 +255,9 @@ class BaseResprEvaluator:
         
         axs[1].axvline(x=4.0, color="red", linestyle="--")
         axs[1].grid(color = 'green', linestyle = '--', linewidth = 0.3)
-
-
-
+        
+        return (fig, axs)
+        
 
 # TODO: merge with BaseResprEvaluator or extend it
 # To create histogram  (with binning MAE  but y -values can be RR/ Uncertainty etc. )
@@ -331,6 +319,10 @@ class EvalHelper:
         all_results_df = []
         for df, type_, tag_ in all_model_results:
             try:
+                if type_ in [TYPE_SIGNAL_PROCESSING_2, TYPE_SIGNAL_PROCESSING_2B]:
+                    logger.info(f"Renaming columns. Results data type received = {type_}")
+                    df["rr_est_pnn"] = df["rr_est_fused"]
+                    df["std_rr_est_pnn"] = df["std_rr_est_fused"]
                 df = df[["rr_est_pnn", "std_rr_est_pnn", "gt"]] #project
             except KeyError:
                 logger.error(f"Skipping : {tag_} due to KeyError")

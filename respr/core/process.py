@@ -345,7 +345,44 @@ class PpgSignalProcessor(BasePpgSignalProcessor):
         # that is artifact
         return has_artifact_in_this_chunk
         
-
+class PpgSignalProcessorUpdateResample(PpgSignalProcessor):
+    def __init__(self, config):
+        super().__init__(config)
+    
+    def resample(self, signal_data, timesteps, output_sampling_freq,
+                 number_of_points,
+                 fill_value="last_value"):
+        assert output_sampling_freq is not None
+        if number_of_points is None:
+            time_interval = timesteps[-1] - timesteps[0]
+            num_points = round(time_interval * output_sampling_freq) + 1
+            logger.debug(f"num_points={num_points} / freq: {output_sampling_freq}")
+        else:
+            num_points = number_of_points
+        
+        _start = timesteps[0]
+        _step = 1./output_sampling_freq
+        _stop = _start + num_points*(1/output_sampling_freq) + _step
+                    
+        new_timesteps = np.arange(start=_start, stop=_stop,
+                                  step=_step)
+        if new_timesteps.shape[0] > num_points:
+            new_timesteps = new_timesteps[0:num_points]
+        elif new_timesteps.shape[0] < num_points:
+            raise AssertionError()
+        assert new_timesteps.shape[0] == num_points
+        
+        if fill_value == "last_value":
+            fill_value = signal_data[-1] # it means for extrapolated
+            # part the signal will have constant value
+        
+        f = scipy.interpolate.interp1d(x=timesteps, y=signal_data,
+                                            kind="cubic",
+                                            bounds_error=False,
+                                            fill_value=fill_value)
+        resampled_signal = f(new_timesteps)
+        
+        return resampled_signal, new_timesteps
         
 
 from scipy.fft import fft, fftfreq
@@ -538,7 +575,10 @@ class PpgSignalProcessor2(PpgSignalProcessor):
 
 COMPONENTS_MAP = {
     "MultiparameterSmartFusion2": MultiparameterSmartFusion2,
-    "MultiparameterSmartFusion": MultiparameterSmartFusion
+    "MultiparameterSmartFusion": MultiparameterSmartFusion,
+    "PpgSignalProcessorUpdateResample": PpgSignalProcessorUpdateResample,
+    "PpgSignalProcessor": PpgSignalProcessor,
+    "PpgSignalProcessor2": PpgSignalProcessor2
 }
 
 PROCESSOR_FACTORY = BaseFactory({"resource_map" : COMPONENTS_MAP})
