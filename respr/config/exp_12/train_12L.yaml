@@ -1,5 +1,8 @@
-description: "Leave one out CV"
-output_dir: "../../artifacts/exp_12_cnn_on_mean_gt_old_csv_w32_stride4_LOOCV"
+description: "Leave one out CV
+  # same as exp 12 +
+    - use normal:split_by_rr mode for dataloader
+  "
+output_dir: "../../artifacts/DEBUG_exp_12L_cnn_on_mean_gt_old_csv_w32_stride4_LOOCV_split_val_by_rr"
 pipeline:
   name: "TrainingPipeline"
 instructions:
@@ -21,7 +24,7 @@ trainer: # currently using trainer from pytorch lightning
     # resume_from_checkpoint: null
     # <<< FOR GPU >>>
     accelerator: gpu
-    devices: [2]
+    devices: [3]
 
 
 model:
@@ -30,6 +33,7 @@ model:
   kwargs: {}
 dataloading:
   name: "ResprCsvDataLoaderComposer"
+
   args: []
   kwargs:
     # config:
@@ -45,6 +49,7 @@ dataloading:
       # ckpt_path: ../../artifacts/2022-11-17_050120/fold_00/lightning_logs/version_2482287/checkpoints/epoch=7-step=6717.ckpt
     # MINI DATASET FOR DEV
     config:
+      composer_mode: "normal:split_by_rr" #splits val set by rr (and not by subject ids)
       dataset: "BaseResprCsvDataset"
       dataset_path: "../../artifacts/frozen/dataset_capnobase_w32_s4_artif_cleaned_gt_mean_commit-f69eea50.csv"
       batch_size: 16
