@@ -622,9 +622,9 @@ class ResprMCDropoutDilatedCNNResnetWithProjectionHeadBase(
     
     def get_first_block(self, num_in_channels):
         block = nn.Sequential(
-            nn.Conv1d(in_channels=num_in_channels, out_channels=64,
+            nn.Conv1d(in_channels=num_in_channels, out_channels=32,
                     kernel_size=7, stride=1, bias=False),
-            nn.BatchNorm1d(num_features=64),
+            nn.BatchNorm1d(num_features=32),
             nn.ReLU(inplace=True),
         )
         
