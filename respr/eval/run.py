@@ -23,6 +23,7 @@ from respr.eval.evaluation import (TYPE_PNN,
     TYPE_SIGNAL_PROCESSING_2B)
 from respr.eval.result_loader import (ResultLoaderPnn, ResultLoaderSignalProc,
         ResultLoaderSignalProcOld, ResultLoaderSignalProcType2B)
+from respr.eval.evaluation import BaseResprEvaluator, EvalHelper
 
 DEFAULT_LOADER_MAPPING = {TYPE_PNN: ResultLoaderPnn(),
                           TYPE_SIGNAL_PROCESSING_2: ResultLoaderSignalProc(),
@@ -92,9 +93,70 @@ def convert_loocv_fold_wise_metric_to_df(loocv_fold_wise_metric, fold_numbers):
 class EvalPipeline(BasePipeline):
     def __init__(self, config={}) -> None:
         super().__init__(config)
+        
+        self.selected_experiments = self._config["selected_experiments"]
     
     def run(self, *args, **kwargs):
-        return super().run(*args, **kwargs)
+        for tag, experiments_set in self.selected_experiments:
+            output_dir = self.output_dir / f"{tag}"
+            os.makedirs(output_dir, exist_ok=False)
+            try:
+                self.run_one_set(experiments_chosen=experiments_set,
+                    output_dir=output_dir, tag=tag)
+            except Exception as exc:
+                logger.exception(exc)
+    
+    def get_objs(self):
+        ev = BaseResprEvaluator()
+        eval_helper = EvalHelper()
+
+        return ev, eval_helper
+    def run_one_set(self, experiments_chosen, output_dir, tag):
+        results_source = []
+        ev, eval_helper = self.get_objs()
+        
+        
+        for exp in experiments_chosen:
+            if exp in experiment_num_to_result:
+                results_source.append(experiment_num_to_result[exp])
+            else:
+                logger.warning(f"Could not find experiment: {exp}")
+        
+        all_model_results, loocv_fold_wise_metric \
+            = gather_results_from_source(results_source=results_source,
+                                         loaders=DEFAULT_LOADER_MAPPING)
+        
+        # plot MAE 
+        std_cutoffs = np.arange(0.5, 50.1, 0.1)
+        x_ticks = [i for i in range(0, 50, 2)]
+        img_idx = 0
+        fig_and_axs = ev.plot_all(all_model_results, metrics=["mae"],
+                    figsize=(16, 6), std_cutoffs=std_cutoffs, x_ticks=x_ticks)
+        self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
+                      index=img_idx, file_tag="mae"
+                      )
+        img_idx +=1
+        
+        #plot RMSE
+        fig_and_axs = ev.plot_all(all_model_results, metrics=["rmse"],
+                                  figsize=(16, 6))
+        self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
+                      index=img_idx, file_tag="rmse"
+                      )
+        img_idx +=1
+        
+    def save_fig(self, fig_and_axs, output_dir, file_tag, index,  prefix="fig_"):
+        fig = fig_and_axs[0]
+        fig_filename = f"{prefix}{str(index).zfill(6)}_{file_tag}.jpg"
+        p = Path(output_dir) / fig_filename
+        fig.savefig(p)
+        logger.debug(f"Saved: {p}")
+        
+        
+        
+        
+                
+        
     
     
 if __name__ == "__main__":

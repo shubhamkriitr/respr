@@ -256,6 +256,8 @@ class BaseResprEvaluator:
         axs[1].axvline(x=4.0, color="red", linestyle="--")
         axs[1].grid(color = 'green', linestyle = '--', linewidth = 0.3)
         
+        return (fig, axs)
+        
 
 # TODO: merge with BaseResprEvaluator or extend it
 # To create histogram  (with binning MAE  but y -values can be RR/ Uncertainty etc. )
