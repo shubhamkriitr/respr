@@ -3,3 +3,5 @@ pipeline:
 output_dir: "../../artifacts/_eval/DEBUG"
 selected_experiments: # list of ( tuple (tag:str, list of (experiment_ids:str)))
   - ["set_01", ["SF004", "20I"]]
+  - ["set_02", [ "20I"]]
+  - ["set_03", ["SF004"]]

@@ -145,6 +145,96 @@ class EvalPipeline(BasePipeline):
                       )
         img_idx +=1
         
+        
+        # HISTOGRAMS
+        model_results_for_histogram = all_model_results
+        model_names_used_for_histogram = [m[2] for m in model_results_for_histogram]
+        results_for_hist_by_mae, df_for_hist_by_mae = eval_helper.create_histogram(
+            model_results_for_histogram, bins={"start":0, "end": 100, "step": 2}, binning_col="$MAE")
+        results_for_hist_by_rr, df_for_hist_by_rr = eval_helper.create_histogram(
+            model_results_for_histogram, bins={"start":0, "end": 100, "step": 2}, binning_col="rr_est_pnn")
+        results_for_hist_by_ground_truth_rr, df_for_hist_by_ground_truth_rr = eval_helper.create_histogram(
+            model_results_for_histogram, bins={"start":0, "end": 100, "step": 2}, binning_col="gt")
+        results_for_hist_by_confidence, df_for_hist_by_confidence = eval_helper.create_histogram(
+            model_results_for_histogram, bins={"start":0, "end": 100, "step": 2}, binning_col="std_rr_est_pnn")
+        print(f"Used this models for histogram data preparation: {model_names_used_for_histogram}")
+        hist_title = " *".join(model_names_used_for_histogram)
+        hist_title = "\n".join(textwrap.wrap(hist_title, 120))
+        
+        # 
+        fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_mae, x_col="bins", y_cols=["cumulative_percent_samples"],
+                           x_label="MAE bins", y_label="% of windows (cumulative)", title=hist_title, title_fontsize=7)
+        
+        self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
+                      index=img_idx, file_tag=""
+                      )
+        img_idx += 1
+        
+        # FIG
+        fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_mae, x_col="bins", y_cols=["percent_samples"],
+                           x_label="MAE bins", y_label="% of windows", title=hist_title, title_fontsize=7)
+        self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
+                      index=img_idx, file_tag=""
+                      )
+        img_idx += 1
+        
+        
+        # FIG
+        fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_mae, x_col="bins", y_cols=["RR[mean]"],
+                           x_label="MAE bins", y_label="RR[mean]", title=hist_title, title_fontsize=7)
+        self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
+                      index=img_idx, file_tag=""
+                      )
+        img_idx += 1
+        
+        
+        # FIG
+        fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_rr, x_col="bins", y_cols=["MAE"],
+                           x_label="RR[estimate] bins", y_label="MAE")
+        self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
+                      index=img_idx, file_tag=""
+                      )
+        img_idx += 1
+        
+        
+        # FIG
+        fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_ground_truth_rr, x_col="bins", y_cols=["MAE"],
+                           x_label="RR[groundtruth] bins", y_label="MAE", title=hist_title, title_fontsize=7)
+        self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
+                      index=img_idx, file_tag=""
+                      )
+        img_idx += 1
+        
+        
+        # FIG
+        fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_ground_truth_rr, x_col="bins", y_cols=["Uncertainty[mean]"],
+                           x_label="RR[groundtruth] bins", y_label="$\sigma$ (uncertainty)", title=hist_title, title_fontsize=7)
+        self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
+                      index=img_idx, file_tag=""
+                      )
+        img_idx += 1
+        
+        
+        # FIG
+        fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_ground_truth_rr, x_col="bins", y_cols=["RR[mean]"],
+                           x_label="RR[groundtruth] bins", y_label="mean predicted RR", title=hist_title, title_fontsize=7)
+        self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
+                      index=img_idx, file_tag=""
+                      )
+        img_idx += 1
+        
+        
+        # FIG
+        fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_ground_truth_rr, x_col="bins", y_cols=["percent_samples"],
+                           x_label="RR[groundtruth] bins", y_label="% windows", title=hist_title, title_fontsize=7)
+        self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
+                      index=img_idx, file_tag=""
+                      )
+        img_idx += 1
+        
+        
+        
+        
     def save_fig(self, fig_and_axs, output_dir, file_tag, index,  prefix="fig_"):
         fig = fig_and_axs[0]
         fig_filename = f"{prefix}{str(index).zfill(6)}_{file_tag}.jpg"
