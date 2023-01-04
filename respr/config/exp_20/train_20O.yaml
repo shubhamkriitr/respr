@@ -15,9 +15,11 @@ description: "Leave one out CV (Code @ commit 148d704292)
     * use model ResprMCDropoutDilatedCNNResnet18v8
   # same as experiment 20 M
     * use ResprMCDropoutDilatedCNNResnet18v9
-  # this is experiment 20 M
+  # same as experiment 20 O +
+    * use ResprModelv0
+  # this is experiment 20 O
   "
-output_dir: "../../artifacts/exp_20N_MC_dil_v9_cnn_on_mean_gt_old_csv_w32_stride4_LOOCV"
+output_dir: "../../artifacts/exp_20O_ResprModelv0_mean_gt_old_csv_w32_stride4_LOOCV"
 pipeline:
   name: "TrainingPipeline"
 instructions:
@@ -51,7 +53,7 @@ model: # model => actual model + lighting wrapper
         lr: 0.0005
         weight_decay: 1.0e-4
       num_monte_carlo_rollouts: 10
-      model_module_class: ResprMCDropoutDilatedCNNResnet18v9
+      model_module_class: ResprModelv0
       module_config: # config for the actual pytorch model
       # it will be passed as config kwarg like so `model_module(config=...)`
         input_channels: 1
