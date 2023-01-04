@@ -1,5 +1,6 @@
 from respr.core.ml.models.cnn_mc import (
-    ResprMCDropoutCNNResnet18, LitResprMCDropoutCNN)
+    ResprMCDropoutCNNResnet18, LitResprMCDropoutCNN,
+    ResprModelv1)
 from respr.util.common import fill_missing_values
 import torch
 from torch import nn, optim
@@ -58,7 +59,8 @@ class ResprMCDropoutCNNResnet18SimCLR(ResprMCDropoutCNNResnet18):
 
 
 MODULE_CLASS_LOOKUP = {
-    "ResprMCDropoutCNNResnet18SimCLR": ResprMCDropoutCNNResnet18SimCLR
+    "ResprMCDropoutCNNResnet18SimCLR": ResprMCDropoutCNNResnet18SimCLR,
+    "ResprModelv1": ResprModelv1
 }
 class LitResprMCDropoutCNNSimCLR(LitResprMCDropoutCNN):
     MODE_CONTRASTIVE = "contrastive"

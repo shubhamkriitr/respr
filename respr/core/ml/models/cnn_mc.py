@@ -606,6 +606,119 @@ class ResprMCDropoutDilatedCNNResnet18v9(ResprMCDropoutDilatedCNNResnet18v8):
         super()._build()
         # override how embedding is computed (final pooling step)
         self.compute_embedding = SummaryStatsModule()
+        
+
+class ResprMCDropoutDilatedCNNResnetWithProjectionHeadBase(
+    ResprMCDropoutDilatedCNNResnet18):
+    
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+        defaults = {
+            "projection_dim": 64
+        }
+        self._config = fill_missing_values(default_values=defaults,
+                                           target_container=self._config)
+    
+    def get_first_block(self, num_in_channels):
+        block = nn.Sequential(
+            nn.Conv1d(in_channels=num_in_channels, out_channels=64,
+                    kernel_size=7, stride=1, bias=False),
+            nn.BatchNorm1d(num_features=64),
+            nn.ReLU(inplace=True),
+        )
+        
+        return block
+    
+    def get_block_structure(self):
+        raise NotImplementedError()
+    
+    def _build(self):
+        super()._build()
+        embedding_dim = self._config["embedding_dim"]
+        self.fc_mu = nn.Sequential(
+            nn.Linear(embedding_dim, 128, bias=False),
+            nn.ReLU(),
+            nn.Linear(128, 1, bias=False)
+        )
+        self.fc_log_var = nn.Sequential(
+            nn.Linear(embedding_dim, 128, bias=False),
+            nn.ReLU(),
+            nn.Linear(128, 1, bias=False)
+        )
+        self._create_projection_head()
+    
+    def _create_projection_head(self):
+        embedding_dim = self._config["embedding_dim"]
+        projection_dim = self._config["projection_dim"]
+        
+        self.projection_head = nn.Sequential(
+            nn.Linear(embedding_dim, 128, bias=False),
+            nn.ReLU(),
+            nn.Linear(128, projection_dim, bias=False),
+        )
+    
+    def project_embedding(self, z):
+        p = self.projection_head(z)
+        return p
+
+# lighter version of v9
+class ResprModelv0(ResprMCDropoutDilatedCNNResnetWithProjectionHeadBase):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+    
+    def get_block_structure(self):
+        # receptive field of ~5 sec @ 300Hz
+        return {"front": [
+            # order of arguments:
+            # num sub-blocks, num channels, dilations, paddings and strides
+            # dropout_p
+            (2, 32,  [2, 2], [2, 2], [1, 1], 0.0) , #conv2_x
+            (2, 64, [2, 2], [2, 2], [1, 1], 0.1) , #conv3_x
+            (2, 64, [4, 4], [4, 4], [1, 1], 0.1) , #conv4_x
+            (2, 128, [4, 4], [4, 4], [1, 1], 0.1),   #conv5_x
+            (2, 256, [8, 8], [8, 8], [1, 1], 0.1)   #conv6_x
+            ],
+            "channel_adjust": [
+            # order of arguments:
+            # in_channel, out_channels, dilations, paddings and strides,
+            # dropout_p
+            (32,  64, [1], [1], [2], 0.1) , #conv2_x
+            (64, 64, [1], [1], [2], 0.1) , #conv3_x
+            (64, 128, [1], [1], [2], 0.1) , #conv4_x
+            (128, 256, [1], [1], [2], 0.1) , #conv5_x
+        ]}
+
+class ResprModelv1(ResprMCDropoutDilatedCNNResnetWithProjectionHeadBase):
+    def __init__(self, config={}) -> None:
+        super().__init__(config)
+    
+    def get_block_structure(self):
+        # receptive field of ~5 sec @ 300Hz
+        return {"front": [
+            # order of arguments:
+            # num sub-blocks, num channels, dilations, paddings and strides
+            # dropout_p
+            (2, 32,  [2, 2], [2, 2], [1, 1], 0.0) , #conv2_x
+            (2, 64, [2, 2], [2, 2], [1, 1], 0.1) , #conv3_x
+            (2, 64, [4, 4], [4, 4], [1, 1], 0.1) , #conv4_x
+            (2, 64, [4, 4], [4, 4], [1, 1], 0.1),   #conv5_x
+            (2, 64, [8, 8], [8, 8], [1, 1], 0.1)   #conv6_x
+            ],
+            "channel_adjust": [
+            # order of arguments:
+            # in_channel, out_channels, dilations, paddings and strides,
+            # dropout_p
+            (32,  64, [1], [1], [2], 0.1) , #conv2_x
+            (64, 64, [1], [1], [2], 0.1) , #conv3_x
+            (64, 64, [1], [1], [2], 0.1) , #conv4_x
+            (64, 64, [1], [1], [2], 0.1) , #conv5_x
+        ]}
+    
+    def _build(self):
+        super()._build()
+        # override how embedding is computed (final pooling step)
+        self.compute_embedding = SummaryStatsModule()
+
     
 # This lookup is to support config based resolution of model module classes
 MODULE_CLASS_LOOKUP = {
@@ -624,7 +737,9 @@ MODULE_CLASS_LOOKUP = {
         ResprMCDropoutDilatedCNNResnet18v6Deeper,
     "ResprMCDropoutDilatedCNNResnet18v7": ResprMCDropoutDilatedCNNResnet18v7,
     "ResprMCDropoutDilatedCNNResnet18v8": ResprMCDropoutDilatedCNNResnet18v8,
-    "ResprMCDropoutDilatedCNNResnet18v9": ResprMCDropoutDilatedCNNResnet18v9
+    "ResprMCDropoutDilatedCNNResnet18v9": ResprMCDropoutDilatedCNNResnet18v9,
+    "ResprModelv1": ResprModelv1,
+    "ResprModelv0": ResprModelv0
 }
     
 class LitResprMCDropoutCNN(pl.LightningModule):
