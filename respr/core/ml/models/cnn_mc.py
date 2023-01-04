@@ -612,12 +612,13 @@ class ResprMCDropoutDilatedCNNResnetWithProjectionHeadBase(
     ResprMCDropoutDilatedCNNResnet18):
     
     def __init__(self, config={}) -> None:
-        super().__init__(config)
+        self._config = config
         defaults = {
             "projection_dim": 64
         }
         self._config = fill_missing_values(default_values=defaults,
                                            target_container=self._config)
+        super().__init__(copy.deepcopy(self._config))
     
     def get_first_block(self, num_in_channels):
         block = nn.Sequential(
