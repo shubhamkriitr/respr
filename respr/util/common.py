@@ -77,6 +77,7 @@ class BaseVideoWriter:
         self.ouput_path = Path(file_path)
         os.makedirs(file_path, exist_ok=False)
         self.frame_counter = 0
+        return self
     
     def write(self, frame):
         frame_str = str(self.frame_counter).zfill(6)

@@ -24,6 +24,8 @@ from respr.data.base import StandardDataRecord
 from respr.util.common import fill_missing_values
 import scipy
 import tqdm
+from respr.util.common import BaseVideoWriter
+import matplotlib.pyplot as plt
 
 DTYPE_FLOAT = np.float32
 CONF_FEATURE_RESAMPLING_FREQ = 4 # Hz. (for riav/ rifv/ riiv resampling)
@@ -87,13 +89,17 @@ class Pipeline(BasePipeline):
                 "name": "PpgSignalProcessor",
                 "args": [],
                 "kwargs": {"config": {}}
-            }
+            },
+            "save_window_fig": False
         }
         self._config = fill_missing_values(default_values=default_config_items,
                                            target_container=self._config)
         self._fill_missing_instructions()
         self._instructions = self._config["instructions"]
-        
+        self._save_window_fig = self._config["save_window_fig"]
+        self._fig_writers = {
+            "save_window": BaseVideoWriter().open(self.output_dir / "windows_")
+        }
         cutl.save_yaml(self._config, self.output_dir/"config.yaml")
     
     def _fill_missing_instructions(self):
@@ -285,6 +291,9 @@ class Pipeline(BasePipeline):
                                                     current_window_data)
             
             
+            if self._save_window_fig:
+                self._plot_and_save(data=data, 
+                                    current_window_data=current_window_data)
             
             rr_results = self.process_one_signal_window(
                 data, context, fs, offset, end_)
@@ -292,6 +301,26 @@ class Pipeline(BasePipeline):
             self.append_results(results, rr_results)
         
         return results
+    
+    def _plot_and_save(self, data, current_window_data):
+        c = current_window_data
+        offset = c["offset"]
+        end_ = c["end_"]
+        t = c["t"]
+        gt = c["gt"]
+        has_artifacts = c["has_artifacts"]
+        ppg = data.get("signals/ppg")[offset:end_]
+        timesteps = data.get_t("ppg")[offset:end_]
+        figsize=(10, 6)
+        fig, ax = fig, axs = plt.subplots(ncols=1, nrows=1, figsize=figsize,
+                            layout="constrained")
+        
+        title = f"t={t:.3f} | ofst: {offset} | en: {end_} | gt: {gt:.4f} |"
+        axs.set_title(title, fontsize=7)
+        ax.plot(timesteps, ppg)
+        
+        writer = self._fig_writers["save_window"]
+        writer.write(fig)
 
     def add_current_window_info_to_results(self, results_container, current_window_data):
         
