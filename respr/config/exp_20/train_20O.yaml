@@ -16,7 +16,7 @@ description: "Leave one out CV (Code @ commit 148d704292)
   # same as experiment 20 M
     * use ResprMCDropoutDilatedCNNResnet18v9
   # same as experiment 20 O +
-    * use ResprModelv0
+    * use ResprModelv0 / change mbedding dim to 256
   # this is experiment 20 O
   "
 output_dir: "../../artifacts/exp_20O_ResprModelv0_mean_gt_old_csv_w32_stride4_LOOCV"
@@ -58,7 +58,7 @@ model: # model => actual model + lighting wrapper
       # it will be passed as config kwarg like so `model_module(config=...)`
         input_channels: 1
         force_reshape_input: false
-        embedding_dim: 3072 # 512 * 6
+        embedding_dim: 256
       y_normalization: # added in new #TODO: use this entry
         y_mean: 18.8806 # from CAPNOBASE (as was used for older experiments)
         y_std: 9.8441 # from CAPNOBASE (as was used for older experiments)
