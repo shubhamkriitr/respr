@@ -23,8 +23,11 @@ description: "Leave one out CV
     * `composer_mode` -> train_only
     * specify `x_length` for sanity check
   # same as last exp 27 + code to use @ commit ed11f787b26feae6
+  #same as exp 27 + 
+    * use 300 Hz data / use lighter model ResprModelv1
+    * change x length -> 9600 / epochs to 600/ module configg and model module
     "
-output_dir: "../../artifacts/exp_27_SimCLR_MC_CNN_w32_stride4_2datasets_feature_only"
+output_dir: "../../artifacts/exp_27B_SimCLR_ResprModelv1_300Hz_w32_stride4_2datasets_feature_only"
 pipeline:
   name: "TrainingPipelineSimCLR"
 instructions:
@@ -34,7 +37,7 @@ trainer: # currently using trainer from pytorch lightning
   name: null
   args: []
   kwargs:
-    max_epochs: 500
+    max_epochs: 600
     # not use `check_val_every_n_epoch` if using `val_check_interval`
     # check_val_every_n_epoch: 1
     val_check_interval: 1.0 
@@ -46,7 +49,7 @@ trainer: # currently using trainer from pytorch lightning
     # resume_from_checkpoint: null
     # <<< FOR GPU >>>
     accelerator: gpu
-    devices: [0]
+    devices: [3]
 
 callbacks: [
   {type: model_checkpoint, 
@@ -77,15 +80,16 @@ model: # model => actual model + lighting wrapper
         lr: 1.0e-3
         weight_decay: 1.0e-4
       num_monte_carlo_rollouts: 10
-      model_module_class: ResprMCDropoutCNNResnet18SimCLR
+      model_module_class: ResprModelv1
       module_config: # config for the actual pytorch model
       # it will be passed as config kwarg like so `model_module(config=...)`
         input_channels: 1
         force_reshape_input: false
+        embedding_dim: 384 # 64 * 6
       y_normalization: # added in new #TODO: use this entry
         y_mean: 18.8806 # from CAPNOBASE (as was used for older experiments)
         y_std: 9.8441 # from CAPNOBASE (as was used for older experiments)
-      mode_schedule: [[[0, 501], "contrastive"]]
+      mode_schedule: [[[0, 601], "contrastive"]]
       batch_size: 32 # MUST match training batch size
       model_save_step: 1 # NOT USED
 
@@ -127,14 +131,12 @@ dataloading:
       val_dataset: "BaseResprCsvDatasetDuplicateX"
       test_dataset: "BaseResprCsvDatasetDuplicateX"
       dataset_path:
-        - "../../artifacts/frozen/2022-12-22_000752-dataset_capnobase_w32_s4_fs_final_125Hz\
-        _artif_cleaned_gt_mean-commit-5c20d53d2/2022-12-22_000752/\
-        dataset_capnobase_w32_s4_fs_final_125Hz_artif_cleaned_gt_\
-        mean-commit-5c20d53d2.csv"
-        - "../../artifacts/frozen/2022-12-22_003927-dataset_bidmc_w32_s4_fs_\
-        final_125Hz_raw-commit-ebb7ec50/2022-12-22_003927/dataset_bidmc_w32_s4\
-        _fs_final_125Hz_raw-commit-ebb7ec50.csv"
-      x_length: 4000 # specify x_length explicitly - for sanity check
+        - "../../artifacts/frozen/dataset_capnobase_w32_s4_artif_cleaned_gt_mean_commit-f69eea50.csv"
+        - "../../artifacts/frozen/2023-01-04_173920-dataset_bidmc\
+        _w32_s4_fs_final_300Hz_raw-commit 51482974cf3/2023-01-04_173920/2023-\
+        01-04_173920-dataset_bidmc_w32_s4_fs_final_300Hz_raw-commit 51482974cf\
+        3.csv"
+      x_length: 9600 # specify x_length explicitly - for sanity check
       batch_size: 32
       augmentation: null # to be added later #TODO
       num_folds: 1
