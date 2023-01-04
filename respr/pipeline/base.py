@@ -24,6 +24,8 @@ from respr.data.base import StandardDataRecord
 from respr.util.common import fill_missing_values
 import scipy
 import tqdm
+from respr.util.common import BaseVideoWriter
+import matplotlib.pyplot as plt
 
 DTYPE_FLOAT = np.float32
 CONF_FEATURE_RESAMPLING_FREQ = 4 # Hz. (for riav/ rifv/ riiv resampling)
@@ -87,13 +89,21 @@ class Pipeline(BasePipeline):
                 "name": "PpgSignalProcessor",
                 "args": [],
                 "kwargs": {"config": {}}
-            }
+            },
+            "save_window_fig": False,
+            "save_induced_signals_fig": True 
         }
         self._config = fill_missing_values(default_values=default_config_items,
                                            target_container=self._config)
         self._fill_missing_instructions()
         self._instructions = self._config["instructions"]
-        
+        self._save_window_fig = self._config["save_window_fig"]
+        self.save_induced_signals_fig = self._config["save_induced_signals_fig"]
+        self._fig_writers = {
+            "save_window": BaseVideoWriter().open(self.output_dir / "windows_"),
+            "induced":\
+                BaseVideoWriter().open(self.output_dir / "induced_")
+        }
         cutl.save_yaml(self._config, self.output_dir/"config.yaml")
     
     def _fill_missing_instructions(self):
@@ -285,6 +295,9 @@ class Pipeline(BasePipeline):
                                                     current_window_data)
             
             
+            if self._save_window_fig:
+                self._plot_and_save(data=data, 
+                                    current_window_data=current_window_data)
             
             rr_results = self.process_one_signal_window(
                 data, context, fs, offset, end_)
@@ -292,6 +305,27 @@ class Pipeline(BasePipeline):
             self.append_results(results, rr_results)
         
         return results
+    
+    def _plot_and_save(self, data, current_window_data):
+        c = current_window_data
+        offset = c["offset"]
+        end_ = c["end_"]
+        t = c["t"]
+        gt = c["gt"]
+        has_artifacts = c["has_artifacts"]
+        ppg = data.get("signals/ppg")[offset:end_]
+        timesteps = data.get_t("ppg")[offset:end_]
+        figsize=(10, 6)
+        fig, ax = fig, axs = plt.subplots(ncols=1, nrows=1, figsize=figsize,
+                            layout="constrained")
+        
+        title = f"t={t:.3f} | ofst: {offset} | en: {end_} | gt: {gt:.4f} |"
+        axs.set_title(title, fontsize=7)
+        ax.plot(timesteps, ppg)
+        
+        writer = self._fig_writers["save_window"]
+        writer.write(fig)
+        plt.close(fig=fig)
 
     def add_current_window_info_to_results(self, results_container, current_window_data):
         
@@ -527,6 +561,7 @@ class Pipeline2(Pipeline):
         re_riav, re_riiv, re_rifv = self._get_induced_signal_chunk(
             data, context, fs, offset, end_)
         
+        
         rr_est_riav = model.estimate_respiratory_rate(
             re_riav, CONF_FEATURE_RESAMPLING_FREQ, detrend=False,
             window_type=self._config["window_type"])
@@ -551,7 +586,59 @@ class Pipeline2(Pipeline):
             "rr_est_fused_valid": is_valid,
             "std_rr_est_fused": rr_std
         }
+        
+        if self.save_induced_signals_fig:
+            self.plot_and_save_induced_signals(re_riav, re_rifv, re_riiv, data, 
+                                               results, context)
         return results
+    
+    
+    def plot_and_save_induced_signals(self, riav, rifv, riiv, data, 
+                                               results, context):
+        rr_est_riav = results["rr_est_riav"]
+        rr_est_riiv = results["rr_est_riiv"]
+        rr_est_rifv = results["rr_est_rifv"]
+        rr_est_fused = results["rr_est_fused"]
+        id_ = data.get("id")
+        rr_est_fused_valid = results["rr_est_fused_valid"]
+        std_rr_est_fused = results["std_rr_est_fused"]
+        current_window_data = context["current_window"]
+        
+        # TODO : fix code duplication
+        c = current_window_data
+        offset = c["offset"]
+        end_ = c["end_"]
+        t = c["t"]
+        gt = c["gt"]
+        has_artifacts = c["has_artifacts"]
+        ppg = data.get("signals/ppg")[offset:end_]
+        timesteps = data.get_t("ppg")[offset:end_]
+        figsize=(20, 12)
+        fig, axs = plt.subplots(ncols=1, nrows=4, figsize=figsize,
+                            layout="constrained")
+        
+        title = f"[sample: {id_}] t={t:.3f} | ofst: {offset} |"\
+            f" en: {end_} | gt: {gt:.4f} |\n"\
+            f"av:{rr_est_riav:.3f} fv:{rr_est_rifv:.3f} iv:{rr_est_riiv:.3f}"\
+            f"rr:{rr_est_fused:.3f} std:{std_rr_est_fused:.3f}"
+        axs[0].set_title(title, fontsize=10)
+        axs[0].plot(timesteps, ppg)
+        
+        axs[1].set_title("resampled riav", fontsize=10)
+        axs[1].plot(np.arange(len(riav)), riav)
+        
+        
+        axs[2].set_title("resampled rifv", fontsize=10)
+        axs[2].plot(np.arange(len(rifv)), rifv)
+        
+        
+        axs[3].set_title("resampled riiv", fontsize=10)
+        axs[3].plot(np.arange(len(riiv)), riiv)
+        
+        writer = self._fig_writers["induced"]
+        writer.write(fig)
+        plt.close(fig=fig)
+        
         
     def _get_induced_signal_chunk(self, data, context, fs, offset, end_):
         re_riav = context["ppg_riav"]

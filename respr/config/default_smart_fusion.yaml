@@ -5,7 +5,7 @@ description: "
       are not computed on whole signal and then chunked)
   # This is exp SF005
   "
-output_dir: "../../artifacts/frozen/smartfusion_result/exp_SF005_bidmc_w32_s4_gt_mean"
+output_dir: "../../artifacts/frozen/smartfusion_result/DEBUG_exp_SF005_bidmc_w32_s4_gt_mean"
 data_adapter:
   name: "BidmcDataAdapter"
   args: []
@@ -38,5 +38,5 @@ processor: # declare processor class to use
   kwargs:
     config: {}
 pipeline:
-  name: Pipeline
+  name: Pipeline2
 window_type: hamming
