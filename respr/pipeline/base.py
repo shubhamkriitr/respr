@@ -90,15 +90,19 @@ class Pipeline(BasePipeline):
                 "args": [],
                 "kwargs": {"config": {}}
             },
-            "save_window_fig": False
+            "save_window_fig": False,
+            "save_induced_signals_fig": False 
         }
         self._config = fill_missing_values(default_values=default_config_items,
                                            target_container=self._config)
         self._fill_missing_instructions()
         self._instructions = self._config["instructions"]
         self._save_window_fig = self._config["save_window_fig"]
+        self.save_induced_signals_fig = self._config["save_induced_signals_fig"]
         self._fig_writers = {
-            "save_window": BaseVideoWriter().open(self.output_dir / "windows_")
+            "save_window": BaseVideoWriter().open(self.output_dir / "windows_"),
+            "induced":\
+                BaseVideoWriter().open(self.output_dir / "induced_")
         }
         cutl.save_yaml(self._config, self.output_dir/"config.yaml")
     
