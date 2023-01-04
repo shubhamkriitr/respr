@@ -93,8 +93,21 @@ class EvalPipeline(BasePipeline):
     def __init__(self, config={}) -> None:
         super().__init__(config)
     
+    def run(self, *args, **kwargs):
+        return super().run(*args, **kwargs)
     
     
 if __name__ == "__main__":
-    from ._results_file_paths import experiment_num_to_result
-    
+    from respr.eval._results_file_paths import experiment_num_to_result
+    import yaml
+    from argparse import ArgumentParser
+    ap = ArgumentParser()
+    ap.add_argument("-c", "--config", default=None, type=str)
+    DEFAULT_PIPELINE = "Pipeline2"
+    args = ap.parse_args()
+    config_path = args.config
+    config_data = None
+    with open(config_path, 'r', encoding="utf-8") as f:
+        config_data = yaml.load(f, Loader=yaml.FullLoader)
+    eval_pipeline = EvalPipeline(config=config_data)
+    eval_pipeline.run()
