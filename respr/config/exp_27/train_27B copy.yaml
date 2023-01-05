@@ -1,0 +1,167 @@
+description: "Leave one out CV
+  same as exp 12, but monitor val_rmse
+  same as exp 12g + @changes: 
+    * monitor val_mae
+    * use contrastive loss training (code@ commit 7405b61b516d22)
+  same as exp 22 + @changes
+    *use new code (with more augmenation funcs) 
+    * code @ commit 8208be754ec7
+    * epochs 90
+  same as exp 22a + @changes:
+    * use different mode_schedule
+  same as exp 22b + @changes:
+    * use only contrastive schedule to learn base model for regression task
+      on all folds
+    * limit val/ test to 1 fold [current workaround/ later use all data]
+  #same as exp 23 + @changes:
+    * use BIDMC + CAPNOBASE datasets -  ppg resampled @125Hz
+    * use all subjects
+    * no validation
+    * update batch size, epochs, 
+    NOTE: make sure to use the same batch sizes in `LitResprMCDropoutCNNSimCLR`
+    config and dataloading config.
+    * `composer_mode` -> train_only
+    * specify `x_length` for sanity check
+  # same as last exp 27 + code to use @ commit ed11f787b26feae6
+  #same as exp 27 + 
+    * use 300 Hz data / use lighter model ResprModelv1
+    * change x length -> 9600 / epochs to 600/ module configg and model module
+    "
+output_dir: "../../artifacts/exp_27B_SimCLR_ResprModelv1_300Hz_w32_stride4_2datasets_feature_only"
+pipeline:
+  name: "TrainingPipelineSimCLR"
+instructions:
+  do_only_test: false # make sure to set `ckpt_path`
+
+trainer: # currently using trainer from pytorch lightning 
+  name: null
+  args: []
+  kwargs:
+    max_epochs: 600
+    # not use `check_val_every_n_epoch` if using `val_check_interval`
+    # check_val_every_n_epoch: 1
+    val_check_interval: 1.0 
+    # fast_dev_run: true # for debugging only
+    # limit_train_batches: 0.01 # for debugging only
+    # overfit_batches=0.01 # for debugging only
+    enable_progress_bar: true
+    # overfit_batches: 5 #batches
+    # resume_from_checkpoint: null
+    # <<< FOR GPU >>>
+    accelerator: gpu
+    devices: [3]
+
+callbacks: [
+  {type: model_checkpoint, 
+  monitor: train_contrastive_loss,
+  save_top_k: 5,
+  ckpt_filename: null},
+  {type: model_checkpoint,
+  monitor: epoch,
+  mode: "max", # track latest epoch model
+  save_top_k: 5,
+  every_n_epochs: 20, #Number of epochs between checkpoints.
+  save_on_train_epoch_end: true,
+  ckpt_filename: "model-{epoch:04d}-s-{step}-{train_contrastive_loss:.5f}"}
+]
+
+
+model_checkpoint:
+  monitor: val_rmse
+  save_top_k: 1
+  ckpt_filename: null
+
+model: # model => actual model + lighting wrapper
+  name: "LitResprMCDropoutCNNSimCLR"
+  args: []
+  kwargs:
+    config:
+      optimization:
+        lr: 1.0e-3
+        weight_decay: 1.0e-4
+      num_monte_carlo_rollouts: 10
+      model_module_class: ResprModelv1
+      module_config: # config for the actual pytorch model
+      # it will be passed as config kwarg like so `model_module(config=...)`
+        input_channels: 1
+        force_reshape_input: false
+        embedding_dim: 384 # 64 * 6
+      y_normalization: # added in new #TODO: use this entry
+        y_mean: 18.8806 # from CAPNOBASE (as was used for older experiments)
+        y_std: 9.8441 # from CAPNOBASE (as was used for older experiments)
+      mode_schedule: [[[0, 601], "contrastive"]]
+      batch_size: 32 # MUST match training batch size
+      model_save_step: 1 # NOT USED
+
+dataloading:
+  name: "ResprCsvDataLoaderComposer"
+  args: []
+  kwargs:
+    # config:
+      # dataset: "BaseResprCsvDataset"
+      # dataset_path: "../../artifacts/frozen/dataset_capnobase_w32_s1_artif_cleaned_commit_c4dec47.csv"
+      # batch_size: 16
+      # num_workers: 0
+      # augmentation: null # to be added later #TODO
+      # num_folds: 5
+      # start_fold: 0
+      # val_split: 0.2
+      # test_split: 0.2
+      # ckpt_path: ../../artifacts/2022-11-17_050120/fold_00/lightning_logs/version_2482287/checkpoints/epoch=7-step=6717.ckpt
+    # MINI DATASET FOR DEV
+    config:
+      composer_mode: "train_only" # change to `train_only` if validation and
+            # test loaders are not needed. In that case fold number will have
+            # no effect and  val_loader & test_loader will be `None`
+      dataset: 
+        name: "DatasetAndAugmentationWrapper"
+        args: []
+        kwargs:
+          config:
+            underlying_dataset:
+              name: "BaseResprCsvDataset"
+              args: []
+              kwargs:
+                config: {}
+            data_augmentation:
+              name: "BaseResprDataAugmentationComposerSimCLR"
+              args: []
+              kwargs:
+                config: {}
+      val_dataset: "BaseResprCsvDatasetDuplicateX"
+      test_dataset: "BaseResprCsvDatasetDuplicateX"
+      dataset_path:
+        - "../../artifacts/frozen/dataset_capnobase_w32_s4_artif_cleaned_gt_mean_commit-f69eea50.csv"
+        - "../../artifacts/frozen/2023-01-04_173920-dataset_bidmc\
+        _w32_s4_fs_final_300Hz_raw-commit 51482974cf3/2023-01-04_173920/2023-\
+        01-04_173920-dataset_bidmc_w32_s4_fs_final_300Hz_raw-commit 51482974cf\
+        3.csv"
+      x_length: 9600 # specify x_length explicitly - for sanity check
+      batch_size: 32
+      augmentation: null # to be added later #TODO
+      num_folds: 1
+      start_fold: 0
+      val_split: 0.023
+      test_split: 0.03
+      num_workers: 0
+
+
+
+# data_adapter:
+#   name: "CapnobaseMatDataAdapter"
+#   args: []
+#   kwargs:
+#     config:
+#       data_root_dir: "../../Datasets/bidmc-ppg-and-respiration-dataset-1.0.0/bidmc_csv"
+
+
+# dataset_capnobase_w32_s16_artif_cleaned_gt_mean_commit_cbcf0ac2b00.csv
+# dataset_capnobase_w32_s16_artif_cleaned_gt_mid_commit_71f269d1a7.csv
+# dataset_capnobase_w32_s1_artif_cleaned_commit_c4dec47.csv
+# dataset_capnobase_w32_s1_artif_cleaned_gt_mid_commit_1995ef9cc.csv
+# dataset_capnobase_w32_s32_artif_cleaned_gt_mean_commit_176d24c06a.csv
+# dataset_capnobase_w32_s32_artif_cleaned_gt_mid_commit_4f6bc5f69fb.csv
+# dataset_capnobase_w32_s4_artif_cleaned_gt_mean_commit-f69eea50.csv
+# dataset_capnobase_w32_s4_artif_cleaned_gt_mid_commit_63b398dd.csv
+# dataset_capnobase_w32_s8_artif_cleaned_gt_mean_commit_0ff4049a.csv
+# dataset_capnobase_w32_s8_artif_cleaned_gt_mid_commit_cba0919a699.csv
