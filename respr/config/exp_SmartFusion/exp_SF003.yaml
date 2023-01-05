@@ -10,6 +10,8 @@ data_adapter:
     config:
       data_root_dir: "../../Datasets/\
         bidmc-ppg-and-respiration-dataset-1.0.0/bidmc_csv"
+save_induced_signals_fig: false
+save_whole_induced_signals_fig: false
 instructions:
   exclude_artifacts: true
   expected_signal_duration: 480

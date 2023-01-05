@@ -9,6 +9,8 @@ data_adapter:
   kwargs:
     config:
       data_root_dir: "../../Datasets/capnobase-dataverse/data/mat"
+save_induced_signals_fig: false
+save_whole_induced_signals_fig: false
 instructions:
   exclude_artifacts: true
   expected_signal_duration: 480
