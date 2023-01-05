@@ -91,7 +91,8 @@ class Pipeline(BasePipeline):
                 "kwargs": {"config": {}}
             },
             "save_window_fig": False,
-            "save_induced_signals_fig": True 
+            "save_induced_signals_fig": False,
+            "save_whole_induced_signals_fig": False 
         }
         self._config = fill_missing_values(default_values=default_config_items,
                                            target_container=self._config)
@@ -102,7 +103,9 @@ class Pipeline(BasePipeline):
         self._fig_writers = {
             "save_window": BaseVideoWriter().open(self.output_dir / "windows_"),
             "induced":\
-                BaseVideoWriter().open(self.output_dir / "induced_")
+                BaseVideoWriter().open(self.output_dir / "induced_"),
+            "induced_full":\
+                BaseVideoWriter().open(self.output_dir / "induced_full_")
         }
         cutl.save_yaml(self._config, self.output_dir/"config.yaml")
     
@@ -435,7 +438,8 @@ class Pipeline(BasePipeline):
         }
         return results
 
-    def extract_respiratory_signal(self, data, proc, pulse_detector, fs, offset, end_):
+    def extract_respiratory_signal(self, data, proc, pulse_detector, fs, offset,
+                                   end_, return_original=False):
         ppg = data.get("signals/ppg")
         filtered_signal = proc.eliminate_very_high_freq(signal_=ppg,
                                                         sampling_freq=fs)
@@ -460,6 +464,10 @@ class Pipeline(BasePipeline):
         re_riav, re_riiv, re_rifv = self.resample_resp_induced_signals(
             proc, resp_signals_and_times, expected_length,
             freq_resample=CONF_FEATURE_RESAMPLING_FREQ)
+        
+        if return_original:
+            original = resp_signals_and_times # before resampling
+            return re_riav,re_riiv,re_rifv, original
                                              
         return re_riav,re_riiv,re_rifv
 
@@ -528,14 +536,79 @@ class Pipeline2(Pipeline):
         end_ = ppg.shape[0] # end_ index in exclusive
         proc, pulse_detector, model = context["signal_processor"],\
             context["pulse_detector"], context["model"]
-        re_riav,re_riiv,re_rifv = self.extract_respiratory_signal(
-            data, proc, pulse_detector, fs, offset, end_)
         
+        re_riav,re_riiv,re_rifv, original_resp_signals_and_times \
+            = self.extract_respiratory_signal(
+            data, proc, pulse_detector, fs, offset, end_, return_original=True)
+        
+        #these are resampled ones
         context["ppg_riav"] = re_riav
         context["ppg_rifv"] = re_rifv
         context["ppg_riiv"] = re_riiv
         
+        if self._config["save_whole_induced_signals_fig"]:
+            # save whole signal
+            self.plot_and_save_whole_induced_signal(re_riav,re_riiv,re_rifv,
+                original_resp_signals_and_times, data, context)
+        
         return data, context
+    
+    def plot_and_save_whole_induced_signal(self, re_riav,re_riiv,re_rifv,
+        original_resp_signals_and_times, data, context):
+        
+        id_ = data.get("id")
+        ppg = data.get("signals/ppg")
+        ppg_t = data.get_t("ppg")
+        fs = data.get("_metadata/signals/ppg/fs")
+        assert ppg.shape == ppg_t.shape
+        
+        end_ = ppg.shape[0] # end_ index in exclusive
+        end_time = (1.0/fs)*end_
+        figsize=(60, 21)
+        fig, axs = plt.subplots(ncols=1, nrows=4, figsize=figsize,
+                            layout="constrained")
+        
+        title = f"[PPG sample: {id_}]| ofst: {0} |"\
+            f" en: {end_}"
+        
+        axs[0].set_title(title, fontsize=10)
+        axs[0].plot(ppg_t, ppg)
+        
+        # to get time for resampled induced signal (assuming equal spacing)
+        get_t = lambda x : np.linspace(start=0, stop=end_time, num=len(x)) 
+        
+        axs[1].set_title("resampled riav", fontsize=10)
+        axs[1].plot(get_t(re_riav), re_riav)
+        
+        
+        axs[2].set_title("resampled rifv", fontsize=10)
+        axs[2].plot(get_t(re_rifv), re_rifv)
+        
+        
+        axs[3].set_title("resampled riiv", fontsize=10)
+        axs[3].plot(get_t(re_riiv) , re_riiv)
+        
+        # Original induced signals
+        riav, riav_t, rifv, rifv_t, riiv, riiv_t \
+            = original_resp_signals_and_times
+        axs[1].set_title("RIAV", fontsize=10)
+        axs[1].plot(riav_t, riav)
+        
+        
+        axs[2].set_title("RIFV", fontsize=10)
+        axs[2].plot(rifv_t, rifv)
+        
+        
+        axs[3].set_title("RIIV", fontsize=10)
+        axs[3].plot(riiv_t, riiv)
+        axs[3].plot(ppg_t, ppg)
+        
+        writer = self._fig_writers["induced_full"]
+        
+        
+        writer.write(fig)
+        plt.close(fig=fig)
+        
 
     
             
