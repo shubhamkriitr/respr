@@ -351,7 +351,7 @@ class PpgSignalProcessorUpdateResample(PpgSignalProcessor):
     
     def resample(self, signal_data, timesteps, output_sampling_freq,
                  number_of_points,
-                 fill_value="last_value"):
+                 fill_value="last_value", start_t=None):
         assert output_sampling_freq is not None
         if number_of_points is None:
             time_interval = timesteps[-1] - timesteps[0]
@@ -360,7 +360,12 @@ class PpgSignalProcessorUpdateResample(PpgSignalProcessor):
         else:
             num_points = number_of_points
         
-        _start = timesteps[0]
+        if start_t is None:
+            _start = timesteps[0]
+        else:
+            # for cases when first peak was not detected at say t=start_t
+            _start = start_t
+        
         _step = 1./output_sampling_freq
         _stop = _start + num_points*(1/output_sampling_freq) + _step
                     

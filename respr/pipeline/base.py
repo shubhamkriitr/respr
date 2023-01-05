@@ -467,7 +467,7 @@ class Pipeline(BasePipeline):
             (end_ - offset)*CONF_FEATURE_RESAMPLING_FREQ/fs).astype(int)
         re_riav, re_riiv, re_rifv = self.resample_resp_induced_signals(
             proc, resp_signals_and_times, expected_length,
-            freq_resample=CONF_FEATURE_RESAMPLING_FREQ)
+            freq_resample=CONF_FEATURE_RESAMPLING_FREQ, start_t=timesteps[0])
         
         if return_original:
             original = resp_signals_and_times # before resampling
@@ -477,14 +477,15 @@ class Pipeline(BasePipeline):
 
     def resample_resp_induced_signals(self, proc, resp_signals_and_times,
                                       expected_length,
-                                      freq_resample):
+                                      freq_resample, start_t=None):
+        # TODO: adjust strt and end times properly
         riav, riav_t, rifv, rifv_t, riiv, riiv_t = resp_signals_and_times
         re_riav, re_riav_t = proc.resample(riav, riav_t,
-                                            freq_resample, None)
+                                freq_resample, None, start_t=start_t)
         re_riiv, re_riiv_t = proc.resample(riiv, riiv_t,
-                                            freq_resample, None)
+                                freq_resample, None, start_t=start_t)
         re_rifv, re_rifv_t = proc.resample(rifv, rifv_t,
-                                            freq_resample, None)
+                                freq_resample, None, start_t=start_t)
                                         
         return re_riav,re_riiv,re_rifv
         
@@ -623,14 +624,14 @@ class Pipeline2(Pipeline):
     
     def resample_resp_induced_signals(self, proc, resp_signals_and_times,
                                       expected_length,
-                                      freq_resample):
+                                      freq_resample, start_t=None):
         riav, riav_t, rifv, rifv_t, riiv, riiv_t = resp_signals_and_times
         re_riav, re_riav_t = proc.resample(riav, riav_t,
-                                        freq_resample, expected_length)
+                            freq_resample, expected_length, start_t=start_t)
         re_riiv, re_riiv_t = proc.resample(riiv, riiv_t,
-                                        freq_resample, expected_length)
+                            freq_resample, expected_length, start_t=start_t)
         re_rifv, re_rifv_t = proc.resample(rifv, rifv_t,
-                                        freq_resample, expected_length)
+                            freq_resample, expected_length, start_t=start_t)
                                         
         return re_riav,re_riiv,re_rifv
     

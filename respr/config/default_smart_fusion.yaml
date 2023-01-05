@@ -35,7 +35,7 @@ model:
       butterworth_filter_order: 4
   name: MultiparameterSmartFusion
 processor: # declare processor class to use
-  name: PpgSignalProcessorUpdateResample
+  name: PpgSignalProcessorResampleLinearInterpolate
   args: []
   kwargs:
     config: {}
