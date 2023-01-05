@@ -1,5 +1,5 @@
 description: "
-  [SmartFusion + PpgSignalProcessorUpdateResample on bidmc, w32 s4]
+  [SmartFusion + PpgSignalProcessorResampleLinearInterpolate on bidmc, w32 s4]
   # same as exp SF003 +
     * use pipeline where rifv riiv riav are calculated window wise (i.e. they
       are not computed on whole signal and then chunked)
@@ -35,7 +35,7 @@ model:
       butterworth_filter_order: 4
   name: MultiparameterSmartFusion
 processor: # declare processor class to use
-  name: PpgSignalProcessorUpdateResample
+  name: PpgSignalProcessorResampleLinearInterpolate
   args: []
   kwargs:
     config: {}

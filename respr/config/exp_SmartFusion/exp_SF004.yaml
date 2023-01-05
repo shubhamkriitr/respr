@@ -1,5 +1,5 @@
 description: "
-  [SmartFusion + PpgSignalProcessorUpdateResample on capnobase, w32 s4]
+  [SmartFusion + PpgSignalProcessorResampleLinearInterpolate on capnobase, w32 s4]
   This is exp SF004
   "
 output_dir: "../../artifacts/frozen/smartfusion_result/exp_SF004_capnobase_w32_s4_gt_mean"
@@ -31,7 +31,7 @@ model:
       butterworth_filter_order: 4
   name: MultiparameterSmartFusion
 processor: # declare processor class to use
-  name: PpgSignalProcessorUpdateResample
+  name: PpgSignalProcessorResampleLinearInterpolate
   args: []
   kwargs:
     config: {}
