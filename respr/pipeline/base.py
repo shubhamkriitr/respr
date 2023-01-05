@@ -299,8 +299,12 @@ class Pipeline(BasePipeline):
             
             
             if self._save_window_fig:
-                self._plot_and_save(data=data, 
-                                    current_window_data=current_window_data)
+                try:
+                    self._plot_and_save(data=data, 
+                                        current_window_data=current_window_data)
+                except Exception as exc:
+                    logger.exception(exc)
+                    input("Press enter to continue")
             
             rr_results = self.process_one_signal_window(
                 data, context, fs, offset, end_)
@@ -548,8 +552,12 @@ class Pipeline2(Pipeline):
         
         if self._config["save_whole_induced_signals_fig"]:
             # save whole signal
-            self.plot_and_save_whole_induced_signal(re_riav,re_riiv,re_rifv,
-                original_resp_signals_and_times, data, context)
+            try:
+                self.plot_and_save_whole_induced_signal(re_riav,re_riiv,re_rifv,
+                    original_resp_signals_and_times, data, context)
+            except Exception as exc:
+                    logger.exception(exc)
+                    input("Press enter to continue")
         
         return data, context
     
@@ -661,8 +669,12 @@ class Pipeline2(Pipeline):
         }
         
         if self.save_induced_signals_fig:
-            self.plot_and_save_induced_signals(re_riav, re_rifv, re_riiv, data, 
-                                               results, context)
+            try:
+                self.plot_and_save_induced_signals(re_riav, re_rifv, re_riiv, data, 
+                                                results, context)
+            except Exception as exc:
+                    logger.exception(exc)
+                    input("Press enter to continue")
         return results
     
     
