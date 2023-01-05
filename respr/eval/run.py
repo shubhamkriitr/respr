@@ -131,7 +131,9 @@ class EvalPipeline(BasePipeline):
         x_ticks = [i for i in range(0, 50, 2)]
         img_idx = 0
         fig_and_axs = ev.plot_all(all_model_results, metrics=["mae"],
-                    figsize=(16, 6), std_cutoffs=std_cutoffs, x_ticks=x_ticks)
+                    figsize=(16, 6), std_cutoffs=std_cutoffs, x_ticks=x_ticks,
+                    save_data=True, output_dir=output_dir,
+                    run_tag=f"{tag}_mae_")
         self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
                       index=img_idx, file_tag="mae"
                       )

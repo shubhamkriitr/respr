@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from respr.util import logger
-
+from pathlib import Path
 
 
 # if you add new type: also add mapping to `_type_to_prediction_col` in BaseResprEvaluator
@@ -200,7 +200,8 @@ class BaseResprEvaluator:
         
         return (fig, axs)
     
-    def plot_all(self, results, metrics=["mae"], std_cutoffs=None, x_ticks=None, figsize=(16, 6)):
+    def plot_all(self, results, metrics=["mae"], std_cutoffs=None, x_ticks=None, figsize=(16, 6),
+                 save_data=False, output_dir=None, run_tag="run"):
     
         # PLotting %retained
         datalist = []
@@ -220,6 +221,16 @@ class BaseResprEvaluator:
                 "y_colname": y_col,
                 "tag": tag
             }
+            if save_data:
+                try:
+                    filename = f"{run_tag}_{tag}_{std_dev_colname}.csv"
+                    file_loc = Path(output_dir) / filename
+                    logger.info(f"saving: {file_loc}")
+                    df_processed.to_csv(file_loc)
+                except Exception as exc:
+                    logger.exception(exc)
+                    
+                    
             datalist.append(datalist_entry)
         
         fig, axs = plt.subplots(ncols=2, nrows=1, figsize=figsize,
