@@ -26,8 +26,10 @@ description: "Leave one out CV
   #same as exp 27 + 
     * use 300 Hz data / use lighter model ResprModelv1
     * change x length -> 9600 / epochs to 600/ module configg and model module
+  # same as exp 27 B+
+    * use ResprMCDropoutCNNResnet18SimCLR model
     "
-output_dir: "../../artifacts/exp_27B_SimCLR_ResprModelv1_300Hz_w32_stride4_2datasets_feature_only"
+output_dir: "../../artifacts/exp_27C_ResprMCDropoutCNNResnet18SimCLR_300Hz_w32_stride4_2datasets_feature_only"
 pipeline:
   name: "TrainingPipelineSimCLR"
 instructions:
@@ -80,12 +82,11 @@ model: # model => actual model + lighting wrapper
         lr: 1.0e-3
         weight_decay: 1.0e-4
       num_monte_carlo_rollouts: 10
-      model_module_class: ResprModelv1
+      model_module_class: ResprMCDropoutCNNResnet18SimCLR
       module_config: # config for the actual pytorch model
       # it will be passed as config kwarg like so `model_module(config=...)`
         input_channels: 1
         force_reshape_input: false
-        embedding_dim: 384 # 64 * 6
       y_normalization: # added in new #TODO: use this entry
         y_mean: 18.8806 # from CAPNOBASE (as was used for older experiments)
         y_std: 9.8441 # from CAPNOBASE (as was used for older experiments)
