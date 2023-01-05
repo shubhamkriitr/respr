@@ -376,13 +376,31 @@ class PpgSignalProcessorUpdateResample(PpgSignalProcessor):
             fill_value = signal_data[-1] # it means for extrapolated
             # part the signal will have constant value
         
+        resampled_signal = self._resampling_method(signal_data, timesteps,
+                                                   fill_value, new_timesteps)
+        
+        return resampled_signal, new_timesteps
+
+    def _resampling_method(self, signal_data, timesteps, fill_value, new_timesteps):
         f = scipy.interpolate.interp1d(x=timesteps, y=signal_data,
                                             kind="cubic",
                                             bounds_error=False,
                                             fill_value=fill_value)
         resampled_signal = f(new_timesteps)
-        
-        return resampled_signal, new_timesteps
+        return resampled_signal
+
+class PpgSignalProcessorResampleLinearInterpolate(
+    PpgSignalProcessorUpdateResample):
+    def __init__(self, config):
+        super().__init__(config)
+    
+    def _resampling_method(self, signal_data, timesteps, fill_value, new_timesteps):
+        f = scipy.interpolate.interp1d(x=timesteps, y=signal_data,
+                                            kind="linear",
+                                            bounds_error=False,
+                                            fill_value=fill_value)
+        resampled_signal = f(new_timesteps)
+        return resampled_signal
         
 
 from scipy.fft import fft, fftfreq
@@ -578,7 +596,9 @@ COMPONENTS_MAP = {
     "MultiparameterSmartFusion": MultiparameterSmartFusion,
     "PpgSignalProcessorUpdateResample": PpgSignalProcessorUpdateResample,
     "PpgSignalProcessor": PpgSignalProcessor,
-    "PpgSignalProcessor2": PpgSignalProcessor2
+    "PpgSignalProcessor2": PpgSignalProcessor2,
+    "PpgSignalProcessorResampleLinearInterpolate": \
+        PpgSignalProcessorResampleLinearInterpolate
 }
 
 PROCESSOR_FACTORY = BaseFactory({"resource_map" : COMPONENTS_MAP})
