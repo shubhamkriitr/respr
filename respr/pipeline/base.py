@@ -65,6 +65,7 @@ class BasePipeline:
                 os.makedirs(new_path, exist_ok=False)
                 return new_path
             except OSError:
+                logger.error(f"{new_path} already exists")
                 counter += 1
                 suffix = "_"+str(counter).zfill(4)
         

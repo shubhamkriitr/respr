@@ -99,7 +99,7 @@ class EvalPipeline(BasePipeline):
     def run(self, *args, **kwargs):
         for tag, experiments_set in self.selected_experiments:
             output_dir = self.output_dir / f"{tag}"
-            os.makedirs(output_dir, exist_ok=False)
+            self._create_dir_with_conflict_resolution(dir_path=output_dir)
             try:
                 self.run_one_set(experiments_chosen=experiments_set,
                     output_dir=output_dir, tag=tag)
