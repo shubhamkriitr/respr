@@ -60,7 +60,8 @@ class ResultLoaderSignalProcType2B(ResultLoaderSignalProc):
         r2 = df["rr_est_rifv"]
         r3 = df["rr_est_riiv"]
         
-        return r1
+        # use estimates using RIIV only 
+        return r3
     
 class ResultLoaderSignalProcOld(ResultLoaderSignalProc):
     def __init__(self):
