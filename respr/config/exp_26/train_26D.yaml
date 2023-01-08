@@ -6,9 +6,13 @@ description: "Leave one out CV (Code @ commit 148d704292)
 # copy of exp 26 + changes:
   * code @ commit 84469e2c3d4c6f
   * use pretrained weights from contrastive learning (experminet # 27)
+# copy of 26B +
+  * dataset - capnobase @ 300Hz
+  * use lr 0.0005 / 
+  * pretrained weights from exp 27C
+  * val check interval 0.5"
 
-"
-output_dir: "../../artifacts/exp_26B_MC_pretrained_cnn_on_mean_gt_old_csv_w32_stride4_fs_125Hz_LOOCV"
+output_dir: "../../artifacts/exp_26D_MC_pretrained_cnn_on_mean_gt_old_csv_w32_stride4_fs_300Hz_LOOCV"
 pipeline:
   # name: "PredictionPipeline" # [for prediction]
   name: "TrainingPipeline"
@@ -18,9 +22,10 @@ instructions:
 
 # if not `null` the model will be loaded from here before starting training
 # (for each of the folds)
-training_init_model_ckpt_path: "../../artifacts/exp_27_SimCLR_MC_CNN_w32_stri\
-  de4_2datasets_feature_only/2022-12-22_033047/fold_00/lightning_logs/version\
-  _0/checkpoints/model-epoch=466-s-step=149440-train_contrastive_loss=2.20.ckpt"
+training_init_model_ckpt_path: "../../artifacts/exp_27C_ResprMCDropoutCNNResne\
+  t18SimCLR_300Hz_w32_stride4_2datasets_feature_only/2023-01-05_163643/\
+  fold_00/lightning_logs/version_0/checkpoints/model-epoch=537-s-\
+  step=172160-train_contrastive_loss=2.19729.ckpt"
 training_init_model_load_strictness:
   strict: false # this has higher precedence than `allow_*` below
   allow_missing_keys: false
@@ -33,7 +38,7 @@ trainer: # currently using trainer from pytorch lightning
     max_epochs: 20
     # not use `check_val_every_n_epoch` if using `val_check_interval`
     # check_val_every_n_epoch: 1
-    val_check_interval: 1.0 
+    val_check_interval: 0.5 
     # fast_dev_run: true # for debugging only
     # limit_train_batches: 0.01 # for debugging only
     # overfit_batches=0.01 # for debugging only
@@ -51,7 +56,7 @@ model: # model => actual model + lighting wrapper
   kwargs:
     config:
       optimization:
-        lr: 1.0e-3
+        lr: 0.0005
         weight_decay: 1.0e-4
       num_monte_carlo_rollouts: 10
       model_module_class: ResprMCDropoutCNNResnet18
@@ -81,11 +86,8 @@ dataloading:
     # MINI DATASET FOR DEV
     config:
       dataset: "BaseResprCsvDataset"
-      dataset_path: "../../artifacts/frozen/2022-12-22_000752-dataset\
-        _capnobase_w32_s4_fs_final_125Hz_artif_cleaned_gt_mean-commit-\
-        5c20d53d2/2022-12-22_000752/dataset_capnobase_w32_s4_fs_final\
-        _125Hz_artif_cleaned_gt_mean-commit-5c20d53d2.csv"
-      x_length: 4000 # for 125 Hz * 32s
+      dataset_path: "../../artifacts/frozen/dataset_capnobase_w32_s4_artif_cleaned_gt_mean_commit-f69eea50.csv"
+      x_length: 9600 # for 300 Hz * 32s
       batch_size: 16
       augmentation: null # to be added later #TODO
       num_folds: 42
