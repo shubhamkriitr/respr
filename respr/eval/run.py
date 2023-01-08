@@ -158,7 +158,7 @@ class EvalPipeline(BasePipeline):
         results_for_hist_by_ground_truth_rr, df_for_hist_by_ground_truth_rr = eval_helper.create_histogram(
             model_results_for_histogram, bins={"start":0, "end": 100, "step": 2}, binning_col="gt")
         results_for_hist_by_confidence, df_for_hist_by_confidence = eval_helper.create_histogram(
-            model_results_for_histogram, bins={"start":0, "end": 100, "step": 2}, binning_col="std_rr_est_pnn")
+            model_results_for_histogram, bins={"start":0, "end": 100, "step": 0.5}, binning_col="std_rr_est_pnn")
         print(f"Used this models for histogram data preparation: {model_names_used_for_histogram}")
         hist_title = " *".join(model_names_used_for_histogram)
         hist_title = "\n".join(textwrap.wrap(hist_title, 120))
@@ -234,6 +234,21 @@ class EvalPipeline(BasePipeline):
                       )
         img_idx += 1
         
+        #FIG
+        fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_confidence, x_col="bins", y_cols=["percent_samples"],
+                           x_label="$\sigma$ bins", y_label="% of windows (cumulative)", title=hist_title, title_fontsize=7)
+        self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
+                      index=img_idx, file_tag="percent_windows_vs_sigma"
+                      )
+        img_idx += 1
+        
+        #FIG
+        fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_confidence, x_col="bins", y_cols=["MAE"],
+                           x_label="$\sigma$ bins", y_label="MAE", title=hist_title, title_fontsize=7)
+        self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
+                      index=img_idx, file_tag="MAE_vs_Sigma"
+                      )
+        img_idx += 1
         
         
         
