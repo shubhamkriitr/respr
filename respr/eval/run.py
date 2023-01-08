@@ -135,7 +135,7 @@ class EvalPipeline(BasePipeline):
                     save_data=True, output_dir=output_dir,
                     run_tag=f"{tag}_mae_")
         self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
-                      index=img_idx, file_tag="mae"
+                      index=img_idx, file_tag=f"{tag}_mae"
                       )
         img_idx +=1
         
@@ -143,7 +143,7 @@ class EvalPipeline(BasePipeline):
         fig_and_axs = ev.plot_all(all_model_results, metrics=["rmse"],
                                   figsize=(16, 6))
         self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
-                      index=img_idx, file_tag="rmse"
+                      index=img_idx, file_tag=f"{tag}_rmse"
                       )
         img_idx +=1
         
@@ -168,7 +168,7 @@ class EvalPipeline(BasePipeline):
                            x_label="MAE bins", y_label="% of windows (cumulative)", title=hist_title, title_fontsize=7)
         
         self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
-                      index=img_idx, file_tag=""
+                      index=img_idx, file_tag=f"{tag}_"
                       )
         img_idx += 1
         
@@ -176,7 +176,7 @@ class EvalPipeline(BasePipeline):
         fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_mae, x_col="bins", y_cols=["percent_samples"],
                            x_label="MAE bins", y_label="% of windows", title=hist_title, title_fontsize=7)
         self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
-                      index=img_idx, file_tag=""
+                      index=img_idx, file_tag=f"{tag}_"
                       )
         img_idx += 1
         
@@ -185,7 +185,7 @@ class EvalPipeline(BasePipeline):
         fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_mae, x_col="bins", y_cols=["RR[mean]"],
                            x_label="MAE bins", y_label="RR[mean]", title=hist_title, title_fontsize=7)
         self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
-                      index=img_idx, file_tag=""
+                      index=img_idx, file_tag=f"{tag}_"
                       )
         img_idx += 1
         
@@ -194,7 +194,7 @@ class EvalPipeline(BasePipeline):
         fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_rr, x_col="bins", y_cols=["MAE"],
                            x_label="RR[estimate] bins", y_label="MAE")
         self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
-                      index=img_idx, file_tag=""
+                      index=img_idx, file_tag=f"{tag}_"
                       )
         img_idx += 1
         
@@ -203,7 +203,7 @@ class EvalPipeline(BasePipeline):
         fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_ground_truth_rr, x_col="bins", y_cols=["MAE"],
                            x_label="RR[groundtruth] bins", y_label="MAE", title=hist_title, title_fontsize=7)
         self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
-                      index=img_idx, file_tag=""
+                      index=img_idx, file_tag=f"{tag}_"
                       )
         img_idx += 1
         
@@ -212,7 +212,7 @@ class EvalPipeline(BasePipeline):
         fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_ground_truth_rr, x_col="bins", y_cols=["Uncertainty[mean]"],
                            x_label="RR[groundtruth] bins", y_label="$\sigma$ (uncertainty)", title=hist_title, title_fontsize=7)
         self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
-                      index=img_idx, file_tag=""
+                      index=img_idx, file_tag=f"{tag}_"
                       )
         img_idx += 1
         
@@ -221,7 +221,7 @@ class EvalPipeline(BasePipeline):
         fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_ground_truth_rr, x_col="bins", y_cols=["RR[mean]"],
                            x_label="RR[groundtruth] bins", y_label="mean predicted RR", title=hist_title, title_fontsize=7)
         self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
-                      index=img_idx, file_tag=""
+                      index=img_idx, file_tag=f"{tag}_"
                       )
         img_idx += 1
         
@@ -230,15 +230,15 @@ class EvalPipeline(BasePipeline):
         fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_ground_truth_rr, x_col="bins", y_cols=["percent_samples"],
                            x_label="RR[groundtruth] bins", y_label="% windows", title=hist_title, title_fontsize=7)
         self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
-                      index=img_idx, file_tag=""
+                      index=img_idx, file_tag=f"{tag}_"
                       )
         img_idx += 1
         
         #FIG
         fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_confidence, x_col="bins", y_cols=["percent_samples"],
-                           x_label="$\sigma$ bins", y_label="% of windows (cumulative)", title=hist_title, title_fontsize=7)
+                           x_label="$\sigma$ bins", y_label="% of windows", title=hist_title, title_fontsize=7)
         self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
-                      index=img_idx, file_tag="percent_windows_vs_sigma"
+                      index=img_idx, file_tag=f"{tag}_percent_windows_vs_sigma"
                       )
         img_idx += 1
         
@@ -246,7 +246,7 @@ class EvalPipeline(BasePipeline):
         fig_and_axs = eval_helper.plot_histogram(results=results_for_hist_by_confidence, x_col="bins", y_cols=["MAE"],
                            x_label="$\sigma$ bins", y_label="MAE", title=hist_title, title_fontsize=7)
         self.save_fig(fig_and_axs=fig_and_axs, output_dir=output_dir,
-                      index=img_idx, file_tag="MAE_vs_Sigma"
+                      index=img_idx, file_tag=f"{tag}_MAE_vs_Sigma"
                       )
         img_idx += 1
         
