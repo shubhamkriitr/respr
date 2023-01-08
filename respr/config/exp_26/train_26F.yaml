@@ -10,9 +10,12 @@ description: "Leave one out CV (Code @ commit 148d704292)
   * dataset - capnobase @ 300Hz
   * use lr 0.0005 / 
   * pretrained weights from exp 27C
-  * val check interval 0.5"
+  * val check interval 0.5
+# copy of exp 26D +
+  * use both capnobase + BIDMC
+  * batch size 32"
 
-output_dir: "../../artifacts/exp_26D_MC_pretrained_cnn_on_mean_gt_old_csv_w32_stride4_fs_300Hz_LOOCV"
+output_dir: "../../artifacts/exp_26F_MC_pretrained_cnn_on_mean_gt_combined_w32_stride4_fs_300Hz_LOOCV"
 pipeline:
   # name: "PredictionPipeline" # [for prediction]
   name: "TrainingPipeline"
@@ -86,14 +89,19 @@ dataloading:
     # MINI DATASET FOR DEV
     config:
       dataset: "BaseResprCsvDataset"
-      dataset_path: "../../artifacts/frozen/dataset_capnobase_w32_s4_artif_cleaned_gt_mean_commit-f69eea50.csv"
+      dataset_path:
+        - "../../artifacts/frozen/dataset_capnobase_w32_s4_artif_cleaned_gt_mean_commit-f69eea50.csv"
+        - "../../artifacts/frozen/2023-01-04_173920-dataset_bidmc\
+        _w32_s4_fs_final_300Hz_raw-commit 51482974cf3/2023-01-04_173920/2023-\
+        01-04_173920-dataset_bidmc_w32_s4_fs_final_300Hz_raw-commit 51482974cf\
+        3.csv"
       x_length: 9600 # for 300 Hz * 32s
-      batch_size: 16
+      batch_size: 32
       augmentation: null # to be added later #TODO
-      num_folds: 42
+      num_folds: 95
       start_fold: 0
       val_split: 0.2
-      test_split: 0.023 # ~1/42
+      test_split: 0.010526 # ~1/(42+53)
       num_workers: 0
 
 
