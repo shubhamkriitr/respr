@@ -101,7 +101,7 @@ dataloading:
       num_folds: 95
       start_fold: 0
       val_split: 0.2
-      test_split: 0.010526 # ~1/(42+53)
+      test_split: 0.011 # ~1/(42+53)
       num_workers: 0
 
 
