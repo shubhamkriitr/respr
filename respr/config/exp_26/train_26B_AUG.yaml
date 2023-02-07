@@ -6,9 +6,12 @@ description: "Leave one out CV (Code @ commit 148d704292)
 # copy of exp 26 + changes:
   * code @ commit 84469e2c3d4c6f
   * use pretrained weights from contrastive learning (experminet # 27)
+# copy of exp 26B + changes:
+  * use data augmentation 
+  * this is exp 26B_AUG
 
 "
-output_dir: "../../artifacts/exp_26B_MC_pretrained_cnn_on_mean_gt_old_csv_w32_stride4_fs_125Hz_LOOCV"
+output_dir: "../../artifacts/exp_26B_AUG_MC_pretrained_cnn_on_mean_gt_old_csv_w32_stride4_fs_125Hz_LOOCV"
 pipeline:
   # name: "PredictionPipeline" # [for prediction]
   name: "TrainingPipeline"
@@ -80,7 +83,24 @@ dataloading:
       # ckpt_path: ../../artifacts/2022-11-17_050120/fold_00/lightning_logs/version_2482287/checkpoints/epoch=7-step=6717.ckpt
     # MINI DATASET FOR DEV
     config:
-      dataset: "BaseResprCsvDataset"
+      dataset:
+        name: "DatasetAndAugmentationWrapper"
+        args: []
+        kwargs:
+          config:
+            
+            underlying_dataset:
+              name: "BaseResprCsvDataset"
+              args: []
+              kwargs:
+                config: {}
+            data_augmentation:
+              name: "DataAugmentationSingleOutput"
+              args: []
+              kwargs:
+                config: {}
+      val_dataset: "BaseResprCsvDataset"
+      test_dataset: "BaseResprCsvDataset"
       dataset_path: "../../artifacts/frozen/2022-12-22_000752-dataset\
         _capnobase_w32_s4_fs_final_125Hz_artif_cleaned_gt_mean-commit-\
         5c20d53d2/2022-12-22_000752/dataset_capnobase_w32_s4_fs_final\
