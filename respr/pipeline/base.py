@@ -1350,7 +1350,7 @@ class PredictionPipeline(TrainingPipeline):
             assert isinstance(batch, torch.TensorType)
             x = batch
         
-        return x, y
+        return x, y       
         
         
         
