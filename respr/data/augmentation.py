@@ -176,11 +176,19 @@ class BaseResprDataAugmentationComposerSimCLR(DataTransforms):
         for t in self.transforms:
             x = t(x, y)
         return x
+
+class DataAugmentationSingleOutput(BaseResprDataAugmentationComposerSimCLR):
+    def __init__(self, config) -> None:
+        super().__init__(config)
     
+    def __call__(self, x, y=None):
+        x_1 = self.forward(x, y)
+        return x_1, y 
 
 DATA_AUG_CLASSES = {
     "BaseResprDataAugmentationComposerSimCLR": \
-        BaseResprDataAugmentationComposerSimCLR
+        BaseResprDataAugmentationComposerSimCLR,
+    "DataAugmentationSingleOutput": DataAugmentationSingleOutput
 }
 DATA_AUG_FACTORY = BaseFactory(config={
     "resource_map": DATA_AUG_CLASSES
