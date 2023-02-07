@@ -1266,13 +1266,22 @@ class PredictionPipeline(TrainingPipeline):
         if output_dir is not None:
             output_filename = f"{tag}_embeddings.npy"
             output_filename_y = f"{tag}_ground_truth.npy"
+            output_filename_y_pred = f"{tag}_y_predicted.npy"
+            output_filename_uncertainty = f"{tag}_pred_uncertainty.npy"
+            output_filename_x = f"{tag}_PPG.npy"
             output_path = output_dir / output_filename
             output_path_y = output_dir / output_filename_y
         
         all_embeddings = []
         all_ys = [] # groundtruth values
+        # also recording y_pred and var_pred
+        all_y_preds = []
+        all_uncertainties = []
+        all_xs = []
         for batch in tqdm.tqdm(data_loader):
             x, y = self.extract_x_and_y_from_batch(batch=batch)
+            all_xs.append(x)
+            
             x = x.to(model.device)
             embedding = model.get_embedding(x)
             embedding = embedding.detach().cpu().numpy()
@@ -1280,9 +1289,21 @@ class PredictionPipeline(TrainingPipeline):
             
             y = np.nan if y is None else y
             all_ys.append(y)
+            
+            y_pred = None
+            uncertainty = None
+            
+            y_pred, uncertainty = self.extract_prediction(batch=batch, 
+                                                          model=model)
+            all_y_preds.append(y_pred)
+            all_uncertainties.append(uncertainty)
         
         all_embeddings = np.concatenate(all_embeddings, axis=0)
         all_ys = np.concatenate(all_ys, axis=0)
+        all_xs = np.concatenate(all_xs, axis=0)
+        all_y_preds = np.concatenate(all_y_preds, axis=0)
+        all_uncertainties = np.concatenate(all_uncertainties, axis=0)
+        
         assert all_ys.shape[0] == all_embeddings.shape[0]
         assert len(all_ys.shape) == 1
         assert len(all_embeddings.shape) == 2
@@ -1292,10 +1313,29 @@ class PredictionPipeline(TrainingPipeline):
             np.save(output_path, all_embeddings)
             logger.info(f"Saving: {output_path_y}")
             np.save(output_path_y, all_ys)
+            logger.info(f"Saving: {output_dir / output_filename_x}")
+            np.save(output_dir / output_filename_x, all_xs)
+            logger.info(f"Saving: {output_dir / output_filename_y_pred}")
+            np.save(output_dir / output_filename_y_pred, all_y_preds)
+            logger.info(f"Saving: {output_dir / output_filename_uncertainty}")
+            np.save(output_dir / output_filename_uncertainty, all_uncertainties)
             
         
         
         return all_embeddings
+    
+    def extract_prediction(self, batch, model):
+        y_final, uncertainty = None, None
+        if hasattr(model, "predict_step"):
+            y_final, uncertainty = model.predict_step(batch=batch,
+                                    batch_idx=None, dataloader_idx=None)
+        else:
+            raise ValueError(f"`predict_step` must be implemented by the "
+                                " model.")
+        
+        return y_final, uncertainty
+                
+            
     
     def extract_x_and_y_from_batch(self, batch):
         y = None
