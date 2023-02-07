@@ -957,8 +957,8 @@ class DatasetAndAugmentationWrapper(Dataset):
     
     def __getitem__(self, index):
         x, y =  self.dataset.__getitem__(index)
-        x_1, x_2, y = self.augmentation(x, y)
-        return x_1, x_2, y
+        output = self.augmentation(x, y)
+        return output
 
 class BaseResprCsvDatasetDuplicateX(BaseResprCsvDataset):
     """For using in SimCLR pipeline. But for validation and test dataloders.
