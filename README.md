@@ -1,2 +1,2 @@
-# t-st-2022-ExtractingRespiratoryRate-ShubhamKumar
-Semester Project of Shubham Kumar
+### Extracting Respiratory Rate with Uncertainty Estimates from Photoplethysmograph Using Probabilistic Deep Neural Networks
+Assessment of predictive uncertainty is of great importance and especially so for medical applications. This study explores the processing of photoplethysmogram (PPG) signals using Probabilistic Deep Neural Networks for estimating the respiratory rate and the associated uncertainty in the prediction. The study is conducted on two publicly available datasets: Capnobase and BIDMC.
