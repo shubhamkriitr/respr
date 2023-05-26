@@ -1,1 +1,1 @@
-* Notebooks will be made available  [here](https://gitlab.ethz.ch/kumarsh/respr-notebooks).
+* Notebooks available here: [Github](https://github.com/shubhamkriitr/respr-notebooks), [ETH Gitlab](https://gitlab.ethz.ch/kumarsh/respr-notebooks).
